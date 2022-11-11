@@ -25,9 +25,21 @@ Renderer* Renderer::getOrInit(SDL_Window* window) noexcept
     return &rendererInstance;
 }
 
+void Renderer::presentThread(const std::stop_token& token)
+{
+}
+
 void Renderer::shutdown() noexcept
 {
     if (instance) {
+        for (Frame& frame : frames) {
+            device.destroy(frame.fence);
+            device.destroy(frame.renderSemaphore);
+            device.destroy(frame.presentSemaphore);
+            device.destroy(frame.pool);
+        }
+        device.destroy(depthView);
+        depthImage.destroy();
         swapchain.destroy();
         Allocation::shutdownAllocator();
         device.destroy();
@@ -101,6 +113,11 @@ void Renderer::init(SDL_Window* window, bool validation)
     queues.transfer = device.getQueue(queues.transferFamily, 0);
     initAllocator();
     swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily);
+    createDepthImage();
+    createFrames();
+    presentThreadHandle = std::jthread(std::bind_front(&Renderer::presentThread, this));
+
+    logger->info("Vulkan initialization complete");
 }
 
 void Renderer::createInstance(SDL_Window* window, bool validation)
@@ -337,6 +354,77 @@ void Renderer::initAllocator() const
     Allocation::initAllocator(&createInfo);
 }
 
+static vk::Format getDepthFormat(vk::PhysicalDevice physicalDevice)
+{
+    const std::array<vk::Format, 3> possibleFormats = {
+            vk::Format::eD32Sfloat,
+            vk::Format::eD32SfloatS8Uint,
+            vk::Format::eD24UnormS8Uint,
+    };
+    for (vk::Format fmt : possibleFormats) {
+        auto props = physicalDevice.getFormatProperties(fmt);
+        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+            return fmt;
+    }
+    crash("No valid depth image format found");
+}
+
+void Renderer::createDepthImage()
+{
+    vk::ImageCreateInfo createInfo;
+    createInfo.imageType = vk::ImageType::e2D;
+    createInfo.format = getDepthFormat(physicalDevice);
+    createInfo.extent = vk::Extent3D(swapchain.getExtent(), 1);
+    createInfo.mipLevels = 1;
+    createInfo.arrayLayers = 1;
+    createInfo.samples = vk::SampleCountFlagBits::e1;
+    createInfo.tiling = vk::ImageTiling::eOptimal;
+    createInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+    createInfo.sharingMode = vk::SharingMode::eExclusive;
+    createInfo.initialLayout = vk::ImageLayout::eUndefined;
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    depthImage = Image(createInfo, allocInfo);
+
+    vk::ImageSubresourceRange depthSubRange;
+    depthSubRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+    depthSubRange.layerCount = 1;
+    depthSubRange.levelCount = 1;
+    depthSubRange.baseArrayLayer = 0;
+    depthSubRange.baseMipLevel = 0;
+    depthView = depthImage.createView(device, depthSubRange);
+}
+
+bool Renderer::depthHasStencil() const noexcept
+{
+    return depthImage.getFormat() == vk::Format::eD24UnormS8Uint
+           || depthImage.getFormat() == vk::Format::eD32SfloatS8Uint;
+}
+
+void Renderer::createFrames()
+{
+    vk::CommandPoolCreateInfo poolCreateInfo;
+    poolCreateInfo.queueFamilyIndex = queues.graphicsFamily;
+    poolCreateInfo.flags = vk::CommandPoolCreateFlagBits::eTransient;
+    vk::FenceCreateInfo fenceCreateInfo;
+    fenceCreateInfo.flags = vk::FenceCreateFlagBits::eSignaled;
+    vk::SemaphoreCreateInfo semaphoreCreateInfo;
+
+    for (Frame& frame : frames) {
+        frame.pool = device.createCommandPool(poolCreateInfo);
+        vk::CommandBufferAllocateInfo allocInfo;
+        allocInfo.commandBufferCount = 1;
+        allocInfo.commandPool = frame.pool;
+        allocInfo.level = vk::CommandBufferLevel::ePrimary;
+        vk::resultCheck(device.allocateCommandBuffers(&allocInfo, &frame.buffer), "Failed to allocate command buffer");
+        frame.fence = device.createFence(fenceCreateInfo);
+        frame.presentSemaphore = device.createSemaphore(semaphoreCreateInfo);
+        frame.renderSemaphore = device.createSemaphore(semaphoreCreateInfo);
+    }
+}
+
 bool Renderer::Queues::getFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface)
 {
     UInt count;
@@ -378,4 +466,5 @@ bool Renderer::Queues::getFamilies(vk::PhysicalDevice device, vk::SurfaceKHR sur
 
     return foundGraphics && foundPresent && foundTransfer;
 }
+
 }   // namespace df

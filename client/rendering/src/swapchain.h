@@ -24,10 +24,25 @@ public:
     DF_NO_COPY(Swapchain);
     Swapchain(Swapchain&& other) noexcept;
     Swapchain& operator=(Swapchain&& other) noexcept;
-    ~Swapchain() { destroy(); };
+    ~Swapchain()
+    {
+        if (swapchain) {
+            for (UInt i = 0; i < imageCount; i++)
+                device.destroy(views[i]);
+            delete[] images;
+            delete[] views;
+            device.destroy(swapchain);
+            swapchain = nullptr;
+        }
+    };
 
     void destroy() noexcept;
     operator vk::SwapchainKHR() noexcept { return swapchain; }
+    [[nodiscard]] UInt getCurrentImageIndex() const noexcept { return currentImageIndex; }
+    [[nodiscard]] vk::Format getFormat() const noexcept { return format; }
+    [[nodiscard]] const vk::Extent2D& getExtent() const noexcept { return extent; }
+    [[nodiscard]] vk::Image getCurrentImage() const noexcept { return images[currentImageIndex]; }
+    [[nodiscard]] vk::ImageView getCurrentView() const noexcept { return views[currentImageIndex]; }
 
 private:
     vk::SwapchainKHR swapchain;

@@ -13,6 +13,9 @@ public:
     GameClient(int argc, char** argv);
     ~GameClient() override;
     DF_NO_MOVE_COPY(GameClient)
+protected:
+    void mainLoop(double deltaSeconds) override;
+
 private:
     class Renderer* renderer;
     SDL_Window* window;

@@ -26,4 +26,8 @@ GameClient::~GameClient()
     renderer->shutdown();
     SDL_DestroyWindow(window);
 }
+
+void GameClient::mainLoop(double deltaSeconds)
+{
+}
 }// namespace df

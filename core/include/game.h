@@ -11,6 +11,10 @@ public:
     Game(int argc, char** argv);
     virtual ~Game();
     DF_NO_MOVE_COPY(Game);
+    void run();
+protected:
+    virtual void mainLoop(double deltaSeconds) = 0;
+    bool running = true;
 };
 
 }   // namespace df

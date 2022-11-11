@@ -6,4 +6,5 @@
 
 extern "C" int main(int argc, char** argv) {
     df::GameClient game(argc, argv);
+    game.run();
 }

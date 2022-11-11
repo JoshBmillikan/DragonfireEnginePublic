@@ -4,6 +4,7 @@
 
 #include "game.h"
 #include <physfs.h>
+#include <ctime>
 
 #ifndef ASSET_PATH
     #define ASSET_PATH "../assets"
@@ -25,5 +26,17 @@ Game::Game(int argc, char** argv)
 Game::~Game()
 {
     PHYSFS_deinit();
+}
+
+void Game::run()
+{
+    clock_t lastTime = std::clock();
+    spdlog::info("Startup finished in {} seconds", (float)lastTime / CLOCKS_PER_SEC);
+    while (running) {
+        clock_t now = std::clock();
+        double delta = (double)(now - lastTime) / CLOCKS_PER_SEC;
+        lastTime = now;
+        mainLoop(delta);
+    }
 }
 }   // namespace df
