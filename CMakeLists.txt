@@ -25,6 +25,12 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/icculus/physfs.git
         GIT_TAG eb3383b532c5f74bfeb42ec306ba2cf80eed988c
 )
-FetchContent_MakeAvailable(sdl2 spdlog glm physfs)
+FetchContent_Declare(
+        unordered_dense
+        GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
+        GIT_TAG a7ece061e831e0b9f954ded1b25e06a5f9e3287c
+)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
+FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense)
 add_subdirectory(core)
 add_subdirectory(client)

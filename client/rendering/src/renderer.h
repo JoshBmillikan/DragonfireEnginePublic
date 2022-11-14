@@ -3,23 +3,27 @@
 //
 
 #pragma once
-#include "../src/allocation.h"
-#include "../src/swapchain.h"
+#include "vulkan_includes.h"
+#include "allocation.h"
+#include "camera.h"
+#include "swapchain.h"
 #include <SDL_video.h>
+#include <barrier>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
-#include <barrier>
 
 namespace df {
 class Renderer {
 public:
     Renderer() noexcept = default;
-    static Renderer* getOrInit(SDL_Window* window) noexcept;
-    void beginRendering();
+    Renderer(SDL_Window* window);
+    void beginRendering(const Camera& camera);
     void render(class Mesh*, class Material*, glm::mat4& transform);
     void endRendering();
     void shutdown() noexcept;
+    ~Renderer() noexcept {shutdown();}
+    DF_NO_MOVE_COPY(Renderer);
     static constexpr SDL_WindowFlags SDL_WINDOW_FLAGS = SDL_WINDOW_VULKAN;
 
 private:
@@ -75,7 +79,6 @@ private:
     } frames[FRAMES_IN_FLIGHT], *presentingFrame = nullptr;
 
 private:
-    static Renderer rendererInstance;
     Frame& getCurrentFrame() noexcept { return frames[frameCount % FRAMES_IN_FLIGHT]; }
     [[nodiscard]] bool depthHasStencil() const noexcept;
     void presentThread(const std::stop_token& token);

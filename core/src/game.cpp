@@ -8,6 +8,7 @@
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include "config.h"
 #ifndef ASSET_PATH
     #define ASSET_PATH "../assets"
 #endif
@@ -24,11 +25,14 @@ Game::Game(int argc, char** argv)
     if (err == 0)
         crash("PhysFS initialization failed: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
     initLogging(argc > 0 ? *argv : "game.log");
+    spdlog::info("Loading application \'{}\'", APP_NAME);
+    Config::loadConfigFile("config.json");
     spdlog::info("PhysFS initialized");
 }
 
 Game::~Game()
 {
+    Config::get().saveConfig("config.json");
     PHYSFS_deinit();
     spdlog::info("Goodbye!");
     spdlog::shutdown();

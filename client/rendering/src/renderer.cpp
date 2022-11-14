@@ -3,15 +3,15 @@
 //
 
 #include "renderer.h"
+#include "config.h"
 #include <SDL_vulkan.h>
 #include <alloca.h>
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 namespace df {
-Renderer Renderer::rendererInstance;
 
-void Renderer::beginRendering()
+void Renderer::beginRendering(const Camera& camera)
 {
     std::unique_lock lock(presentLock);
     vk::Result lastResult = presentResult;
@@ -44,6 +44,8 @@ void Renderer::beginRendering()
 
 void Renderer::render(class Mesh*, class Material*, glm::mat4& transform)
 {
+    static UInt currentImageIndex = 0;
+
 }
 
 void Renderer::endRendering()
@@ -61,20 +63,6 @@ void Renderer::endRendering()
     lock.unlock();
     presentCond.notify_one();
     frameCount++;
-}
-
-Renderer* Renderer::getOrInit(SDL_Window* window) noexcept
-{
-    if (!rendererInstance.instance) {
-        try {
-            bool validation = std::getenv("VALIDATION_LAYERS") != nullptr;
-            rendererInstance.init(window, validation);
-        }
-        catch (const std::exception& e) {
-            crash("Unhandled error during rendering engine initialization: {}", e.what());
-        }
-    }
-    return &rendererInstance;
 }
 
 void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex)
@@ -194,6 +182,7 @@ void Renderer::shutdown() noexcept
 
 void Renderer::recreateSwapchain()
 {
+    //todo
 }
 
 void Renderer::beginCommandRecording()
@@ -344,9 +333,17 @@ static vk::DebugUtilsMessengerEXT createDebugMessenger(vk::Instance instance, sp
     return instance.createDebugUtilsMessengerEXT(createInfo);
 }
 
+Renderer::Renderer(SDL_Window* window)
+{
+    bool validation = std::getenv("VALIDATION_LAYERS") != nullptr;
+    init(window, validation);
+}
+
 void Renderer::init(SDL_Window* window, bool validation)
 {
     logger = spdlog::default_logger()->clone("Rendering");
+    logger->info("Initializing rendering engine");
+    auto& cfg = Config::get().graphics;
     spdlog::register_logger(logger);
     createInstance(window, validation);
     if (validation)
@@ -359,7 +356,8 @@ void Renderer::init(SDL_Window* window, bool validation)
     queues.present = device.getQueue(queues.presentFamily, 0);
     queues.transfer = device.getQueue(queues.transferFamily, 0);
     initAllocator();
-    swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily);
+    swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily, cfg.vsync);
+    logger->info("Using swapchain extent {}x{}", swapchain.getExtent().width, swapchain.getExtent().height);
     createDepthImage();
     createFrames();
     logger->info("Using {} render threads", renderThreadCount);
@@ -507,7 +505,7 @@ void Renderer::getPhysicalDevice()
     limits = properties.limits;
     if (properties.deviceType != vk::PhysicalDeviceType::eDiscreteGpu)
         logger->warn("No discrete gpu available");
-    logger->info("Using gpu \"{}\"", properties.deviceName.data());
+    logger->info("Using gpu: {}", properties.deviceName.data());
     logger->info(
             "GPU driver version {}.{}.{}",
             VK_VERSION_MAJOR(properties.driverVersion),

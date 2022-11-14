@@ -3,8 +3,9 @@
 //
 
 #pragma once
-#include <game.h>
 #include <SDL.h>
+#include <game.h>
+#include <render_context.h>
 
 namespace df {
 
@@ -17,8 +18,7 @@ protected:
     void mainLoop(double deltaSeconds) override;
 
 private:
-    class Renderer* renderer;
-    SDL_Window* window;
+    RenderContext* renderContext;
 };
 
 }   // namespace df
