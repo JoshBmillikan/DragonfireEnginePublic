@@ -21,9 +21,10 @@ struct GraphicsSettings {
 
 class Config {
     static Config instance;
+
 public:
     GraphicsSettings graphics;
-    static Config& get() noexcept {return instance;}
+    static Config& get() noexcept { return instance; }
     static void loadConfigFile(const char* path);
     void saveConfig(const char* path);
 };

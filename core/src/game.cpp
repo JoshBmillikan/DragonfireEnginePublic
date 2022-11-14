@@ -3,12 +3,12 @@
 //
 
 #include "game.h"
+#include "config.h"
 #include <ctime>
 #include <physfs.h>
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include "config.h"
 #ifndef ASSET_PATH
     #define ASSET_PATH "../assets"
 #endif
@@ -52,19 +52,19 @@ void Game::run()
 
 void initLogging(const char* filename)
 {
+    using namespace spdlog;
     const char* str = std::getenv("DF_LOG_LEVEL");
-    spdlog::level::level_enum level = spdlog::level::info;
+    level::level_enum level = level::info;
     if (str) {
         if (strcasecmp(str, "debug") == 0)
-            level = spdlog::level::debug;
+            level = level::debug;
         else if (strcasecmp(str, "warn") == 0)
-            level = spdlog::level::warn;
+            level = level::warn;
         else if (strcasecmp(str, "trace") == 0)
-            level = spdlog::level::trace;
+            level = level::trace;
         else if (strcasecmp(str, "err") == 0)
-            level = spdlog::level::err;
+            level = level::err;
     }
-    using namespace spdlog;
 
     const char* writeDir = PHYSFS_getWriteDir();
     assert("Please initialize PhysFs write path before logging" && writeDir);

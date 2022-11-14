@@ -78,11 +78,7 @@ Image::Image(vk::ImageCreateInfo& createInfo, VmaAllocationCreateInfo& allocInfo
     }
 }
 
-vk::ImageView Image::createView(
-        vk::Device device,
-        const vk::ImageSubresourceRange& subresourceRange,
-        vk::ImageViewType type
-)
+vk::ImageView Image::createView(vk::Device device, const vk::ImageSubresourceRange& subresourceRange, vk::ImageViewType type)
 {
     assert(image);
     vk::ImageViewCreateInfo createInfo;

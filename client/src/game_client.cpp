@@ -37,4 +37,4 @@ void GameClient::mainLoop(double deltaSeconds)
         }
     }
 }
-}// namespace df
+}   // namespace df

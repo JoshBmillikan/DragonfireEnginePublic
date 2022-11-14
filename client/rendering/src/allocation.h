@@ -53,12 +53,12 @@ class Image : public Allocation {
 public:
     Image() = default;
     Image(vk::ImageCreateInfo& createInfo, VmaAllocationCreateInfo& allocInfo);
-    ~Image() override {destroy();}
+    ~Image() override { destroy(); }
     DF_NO_COPY(Image);
     Image(Image&& other) noexcept;
     Image& operator=(Image&& other) noexcept;
     [[nodiscard]] vk::Format getFormat() const noexcept { return format; }
-    operator vk::Image() const noexcept {return image;}
+    operator vk::Image() const noexcept { return image; }
     void destroy() noexcept;
     [[nodiscard]] vk::ImageView createView(
             vk::Device device,

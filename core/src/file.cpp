@@ -72,4 +72,22 @@ File& File::operator=(File&& other) noexcept
     return *this;
 }
 
+void File::readBytes(void* buffer, Size len)
+{
+    auto readLength = std::min(length(), len);
+    if (PHYSFS_readBytes(fp, buffer, readLength) < 0)
+        throw PhysFsException();
+}
+
+UByte* File::readBytes()
+{
+    auto len = length();
+    UByte* data = new UByte[len];
+    if (PHYSFS_readBytes(fp, data, len) < 0) {
+        delete[] data;
+        throw PhysFsException();
+    }
+    return data;
+}
+
 }   // namespace df

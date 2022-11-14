@@ -33,7 +33,11 @@ namespace df {
 
 /// Logs a message at the critical level, then terminates the program.
 template<typename T>
-[[noreturn]] inline void crash(fmt::format_string<T> msg, T&& arg, std::source_location location = std::source_location::current())
+[[noreturn]] inline void crash(
+        fmt::format_string<T> msg,
+        T&& arg,
+        std::source_location location = std::source_location::current()
+)
 {
     spdlog::critical(
             R"(Unrecoverable error "{}" in function "{}" at {}:{}:{})",

@@ -16,16 +16,16 @@ using Int = std::int32_t;
 using Long = std::int64_t;
 using IntPtr = std::intptr_t;
 using Size = std::size_t;
-}
+}   // namespace df
 
-#define DF_NO_MOVE(Class)                                                                                              \
-    Class(Class&&) = delete;                                                                                           \
+#define DF_NO_MOVE(Class)                                                                                                      \
+    Class(Class&&) = delete;                                                                                                   \
     Class& operator=(Class&&) = delete;
-#define DF_NO_COPY(Class)                                                                                              \
-    Class(const Class&) = delete;                                                                                      \
+#define DF_NO_COPY(Class)                                                                                                      \
+    Class(const Class&) = delete;                                                                                              \
     Class& operator=(const Class&) = delete;
-#define DF_NO_MOVE_COPY(Class)                                                                                         \
-    DF_NO_MOVE(Class)                                                                                                  \
+#define DF_NO_MOVE_COPY(Class)                                                                                                 \
+    DF_NO_MOVE(Class)                                                                                                          \
     DF_NO_COPY(Class)
 
 #ifndef APP_NAME

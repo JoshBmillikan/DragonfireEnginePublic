@@ -45,7 +45,6 @@ void Renderer::beginRendering(const Camera& camera)
 void Renderer::render(class Mesh*, class Material*, glm::mat4& transform)
 {
     static UInt currentImageIndex = 0;
-
 }
 
 void Renderer::endRendering()
@@ -95,7 +94,7 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 device.resetCommandPool(pool);
                 break;
             case RenderCommand::render: {
-                //todo
+                // todo
             } break;
             case RenderCommand::end:
                 cmd.end();
@@ -182,7 +181,7 @@ void Renderer::shutdown() noexcept
 
 void Renderer::recreateSwapchain()
 {
-    //todo
+    // todo
 }
 
 void Renderer::beginCommandRecording()

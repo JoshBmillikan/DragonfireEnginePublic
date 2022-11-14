@@ -3,10 +3,10 @@
 //
 
 #pragma once
-#include "vulkan_includes.h"
 #include "allocation.h"
 #include "camera.h"
 #include "swapchain.h"
+#include "vulkan_includes.h"
 #include <SDL_video.h>
 #include <barrier>
 #include <condition_variable>
@@ -22,7 +22,7 @@ public:
     void render(class Mesh*, class Material*, glm::mat4& transform);
     void endRendering();
     void shutdown() noexcept;
-    ~Renderer() noexcept {shutdown();}
+    ~Renderer() noexcept { shutdown(); }
     DF_NO_MOVE_COPY(Renderer);
     static constexpr SDL_WindowFlags SDL_WINDOW_FLAGS = SDL_WINDOW_VULKAN;
 

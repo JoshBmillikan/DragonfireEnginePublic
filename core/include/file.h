@@ -22,9 +22,9 @@ public:
     [[nodiscard]] ULong length() const;
     std::string readToString();
     void writeString(const char* str);
-    void writeString(const std::string& str) {
-        writeString(str.c_str());
-    }
+    void writeString(const std::string& str) { writeString(str.c_str()); }
+    void readBytes(void* buffer, Size len);
+    UByte* readBytes();
     void close();
     ~File() noexcept;
     DF_NO_COPY(File);
@@ -44,6 +44,6 @@ public:
         : std::runtime_error(PHYSFS_getErrorByCode(errorCode)), errorCode(errorCode)
     {
     }
-    [[nodiscard]] PHYSFS_ErrorCode code() const noexcept {return errorCode;}
+    [[nodiscard]] PHYSFS_ErrorCode code() const noexcept { return errorCode; }
 };
 }   // namespace df

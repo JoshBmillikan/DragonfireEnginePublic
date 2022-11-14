@@ -13,23 +13,17 @@ static SDL_Window* createWindow()
     auto& cfg = Config::get().graphics;
 
     switch (cfg.windowMode) {
-        case GraphicsSettings::WindowMode::borderless:
-            flags |= SDL_WINDOW_BORDERLESS | SDL_WINDOW_FULLSCREEN_DESKTOP;
-            break;
-        case GraphicsSettings::WindowMode::fullscreen:
-            flags |= SDL_WINDOW_FULLSCREEN;
-            break;
-        case GraphicsSettings::WindowMode::windowed:
-            flags |= SDL_WINDOW_RESIZABLE;
-            break;
+        case GraphicsSettings::WindowMode::borderless: flags |= SDL_WINDOW_BORDERLESS | SDL_WINDOW_FULLSCREEN_DESKTOP; break;
+        case GraphicsSettings::WindowMode::fullscreen: flags |= SDL_WINDOW_FULLSCREEN; break;
+        case GraphicsSettings::WindowMode::windowed: flags |= SDL_WINDOW_RESIZABLE; break;
     }
 
     SDL_Window* window = SDL_CreateWindow(
             APP_NAME,
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
-            (int)cfg.resolution[0],
-            (int)cfg.resolution[1],
+            (int) cfg.resolution[0],
+            (int) cfg.resolution[1],
             flags
     );
     if (window)

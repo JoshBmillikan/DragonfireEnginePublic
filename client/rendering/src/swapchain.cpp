@@ -38,8 +38,7 @@ Swapchain::Swapchain(
     if (capabilities.maxImageCount > 0 && minImageCount > capabilities.maxImageCount)
         minImageCount = capabilities.maxImageCount;
 
-    vk::SharingMode shareMode =
-            graphicsIndex == presentIndex ? vk::SharingMode::eExclusive : vk::SharingMode::eConcurrent;
+    vk::SharingMode shareMode = graphicsIndex == presentIndex ? vk::SharingMode::eExclusive : vk::SharingMode::eConcurrent;
 
     vk::SwapchainCreateInfoKHR createInfo;
     createInfo.surface = surface;
@@ -69,7 +68,7 @@ Swapchain::Swapchain(
         subresourceRange.levelCount = 1;
         subresourceRange.baseArrayLayer = 0;
         subresourceRange.layerCount = 1;
-        for (UInt i=0;i<imageCount;i++) {
+        for (UInt i = 0; i < imageCount; i++) {
             vk::ImageViewCreateInfo viewCreateInfo;
             viewCreateInfo.image = images[i];
             viewCreateInfo.viewType = vk::ImageViewType::e2D;
@@ -81,7 +80,8 @@ Swapchain::Swapchain(
             viewCreateInfo.components.a = vk::ComponentSwizzle::eIdentity;
             views[i] = device.createImageView(viewCreateInfo);
         }
-    } catch(const std::exception& err) {
+    }
+    catch (const std::exception& err) {
         delete[] images;
         delete[] views;
         throw err;
@@ -118,8 +118,7 @@ vk::SurfaceFormatKHR getSurfaceFormat(vk::PhysicalDevice physicalDevice, vk::Sur
     vk::resultCheck(physicalDevice.getSurfaceFormatsKHR(surface, &count, formats), "Failed to get surface formats");
 
     for (UInt i = 0; i < count; i++) {
-        if (formats[i].format == vk::Format::eB8G8R8A8Srgb
-            && formats[i].colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+        if (formats[i].format == vk::Format::eB8G8R8A8Srgb && formats[i].colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
             return formats[i];
     }
 
@@ -132,15 +131,9 @@ vk::PresentModeKHR getPresentMode(vk::PhysicalDevice physicalDevice, vk::Surface
     vk::PresentModeKHR target = vsync ? vk::PresentModeKHR::eMailbox : vk::PresentModeKHR::eImmediate;
     UInt count;
     vk::PresentModeKHR* modes = nullptr;
-    vk::resultCheck(
-            physicalDevice.getSurfacePresentModesKHR(surface, &count, modes),
-            "Failed to get surface present modes"
-    );
+    vk::resultCheck(physicalDevice.getSurfacePresentModesKHR(surface, &count, modes), "Failed to get surface present modes");
     modes = (vk::PresentModeKHR*) alloca(sizeof(vk::PresentModeKHR) * count);
-    vk::resultCheck(
-            physicalDevice.getSurfacePresentModesKHR(surface, &count, modes),
-            "Failed to get surface present modes"
-    );
+    vk::resultCheck(physicalDevice.getSurfacePresentModesKHR(surface, &count, modes), "Failed to get surface present modes");
 
     for (UInt i = 0; i < count; i++) {
         if (modes[i] == target)
