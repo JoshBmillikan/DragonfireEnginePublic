@@ -12,6 +12,7 @@ public:
     virtual ~Game();
     DF_NO_MOVE_COPY(Game);
     void run();
+    void stop() noexcept {running = false;}
 protected:
     virtual void mainLoop(double deltaSeconds) = 0;
     bool running = true;

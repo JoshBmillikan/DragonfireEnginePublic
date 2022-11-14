@@ -8,20 +8,22 @@
 #include <SDL_video.h>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
+#include <barrier>
 
 namespace df {
 class Renderer {
-    friend class Swapchainp;
-
 public:
     Renderer() noexcept = default;
     static Renderer* getOrInit(SDL_Window* window) noexcept;
-
+    void beginRendering();
+    void render(class Mesh*, class Material*, glm::mat4& transform);
+    void endRendering();
     void shutdown() noexcept;
     static constexpr SDL_WindowFlags SDL_WINDOW_FLAGS = SDL_WINDOW_VULKAN;
-    static constexpr Size FRAMES_IN_FLIGHT = 2;
 
 private:
+    static constexpr Size FRAMES_IN_FLIGHT = 2;
     ULong frameCount = 0;
     std::shared_ptr<spdlog::logger> logger;
     vk::DebugUtilsMessengerEXT debugMessenger;
@@ -34,9 +36,30 @@ private:
     Image depthImage;
     vk::ImageView depthView;
 
+    std::stop_source threadStop;
     std::mutex presentLock;
+    vk::Result presentResult = vk::Result::eSuccess;
     std::condition_variable_any presentCond;
-    std::jthread presentThreadHandle;
+    std::thread presentThreadHandle;
+
+    UInt renderThreadCount = std::max(std::thread::hardware_concurrency() / 2, 1u), currentThread = 0;
+    std::barrier<> renderBarrier{renderThreadCount + 1};
+    vk::CommandBuffer* secondaryBuffers = nullptr;
+
+    enum class RenderCommand {
+        waiting,
+        begin,
+        render,
+        end,
+    };
+
+    struct RenderThreadData {
+        std::thread thread;
+        std::mutex mutex;
+        std::condition_variable_any cond;
+        RenderCommand command = RenderCommand::waiting;
+        std::vector<glm::mat4> matrices;
+    }* threadData = nullptr;
 
     struct Queues {
         UInt graphicsFamily = 0, presentFamily = 0, transferFamily = 0;
@@ -56,7 +79,11 @@ private:
     Frame& getCurrentFrame() noexcept { return frames[frameCount % FRAMES_IN_FLIGHT]; }
     [[nodiscard]] bool depthHasStencil() const noexcept;
     void presentThread(const std::stop_token& token);
-
+    void renderThread(const std::stop_token& token, UInt threadIndex);
+    void beginCommandRecording();
+    void imageToPresentSrc(vk::CommandBuffer cmd) const;
+    void imageToColorWrite(vk::CommandBuffer cmd) const;
+    void recreateSwapchain();
     void init(SDL_Window* window, bool validation);
     void createInstance(SDL_Window* window, bool validation);
     void getPhysicalDevice();

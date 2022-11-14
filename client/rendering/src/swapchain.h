@@ -35,7 +35,7 @@ public:
             swapchain = nullptr;
         }
     };
-
+    [[nodiscard]] vk::Result next(vk::Semaphore semaphore);
     void destroy() noexcept;
     operator vk::SwapchainKHR() noexcept { return swapchain; }
     [[nodiscard]] UInt getCurrentImageIndex() const noexcept { return currentImageIndex; }

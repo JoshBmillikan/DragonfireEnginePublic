@@ -58,7 +58,7 @@ public:
     Image(Image&& other) noexcept;
     Image& operator=(Image&& other) noexcept;
     [[nodiscard]] vk::Format getFormat() const noexcept { return format; }
-    operator vk::Image() noexcept {return image;}
+    operator vk::Image() const noexcept {return image;}
     void destroy() noexcept;
     [[nodiscard]] vk::ImageView createView(
             vk::Device device,

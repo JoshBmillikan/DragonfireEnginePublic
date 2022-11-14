@@ -17,6 +17,11 @@ static SDL_Window* createWindow() {
 
 GameClient::GameClient(int argc, char** argv) : Game(argc, argv)
 {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) != 0)
+        crash("Failed to initialize SDL: {}", SDL_GetError());
+    SDL_version version;
+    SDL_GetVersion(&version);
+    spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
     window = createWindow();
     renderer = Renderer::getOrInit(window); // todo
 }
@@ -29,5 +34,17 @@ GameClient::~GameClient()
 
 void GameClient::mainLoop(double deltaSeconds)
 {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym != SDLK_ESCAPE)
+                    break;
+            case SDL_QUIT:
+                spdlog::info("Quit requested");
+                stop();
+                break;
+        }
+    }
 }
 }// namespace df

@@ -88,6 +88,13 @@ Swapchain::Swapchain(
     }
 }
 
+vk::Result Swapchain::next(vk::Semaphore semaphore)
+{
+    auto [result, index] = device.acquireNextImageKHR(swapchain, UINT64_MAX, semaphore);
+    currentImageIndex = index;
+    return result;
+}
+
 void Swapchain::destroy() noexcept
 {
     if (swapchain) {
