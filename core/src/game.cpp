@@ -25,7 +25,7 @@ Game::Game(int argc, char** argv)
     if (err == 0)
         crash("PhysFS initialization failed: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
     initLogging(argc > 0 ? *argv : "game.log");
-    spdlog::info("Loading application \'{}\'", APP_NAME);
+    spdlog::info("Loading application \"{}\"", APP_NAME);
     Config::loadConfigFile("config.json");
     spdlog::info("PhysFS initialized");
 }

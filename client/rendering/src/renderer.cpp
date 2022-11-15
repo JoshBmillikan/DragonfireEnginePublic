@@ -155,16 +155,17 @@ void Renderer::shutdown() noexcept
             threadData[i].cond.notify_one();
             threadData[i].thread.join();
         }
-        delete[] threadData;
-        delete[] secondaryBuffers;
         presentThreadHandle.join();
         device.waitIdle();
+        delete[] threadData;
+        delete[] secondaryBuffers;
         for (Frame& frame : frames) {
             device.destroy(frame.fence);
             device.destroy(frame.renderSemaphore);
             device.destroy(frame.presentSemaphore);
             device.destroy(frame.pool);
         }
+        pipelineFactory.destroy();
         device.destroy(depthView);
         depthImage.destroy();
         swapchain.destroy();
@@ -326,12 +327,6 @@ static vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* l
     return createInfo;
 }
 
-static vk::DebugUtilsMessengerEXT createDebugMessenger(vk::Instance instance, spdlog::logger* logger)
-{
-    auto createInfo = getDebugCreateInfo(logger);
-    return instance.createDebugUtilsMessengerEXT(createInfo);
-}
-
 Renderer::Renderer(SDL_Window* window)
 {
     bool validation = std::getenv("VALIDATION_LAYERS") != nullptr;
@@ -345,8 +340,10 @@ void Renderer::init(SDL_Window* window, bool validation)
     auto& cfg = Config::get().graphics;
     spdlog::register_logger(logger);
     createInstance(window, validation);
-    if (validation)
-        debugMessenger = createDebugMessenger(instance, logger.get());
+    if (validation) {
+        auto debugInfo = getDebugCreateInfo(logger.get());
+        debugMessenger = instance.createDebugUtilsMessengerEXT(debugInfo);
+    }
     if (SDL_Vulkan_CreateSurface(window, instance, reinterpret_cast<VkSurfaceKHR*>(&surface)) != SDL_TRUE)
         crash("SDL failed to create vulkan surface: {}", SDL_GetError());
     getPhysicalDevice();
@@ -358,6 +355,7 @@ void Renderer::init(SDL_Window* window, bool validation)
     swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily, cfg.vsync);
     logger->info("Using swapchain extent {}x{}", swapchain.getExtent().width, swapchain.getExtent().height);
     createDepthImage();
+    pipelineFactory = PipelineFactory(device, swapchain.getFormat(), depthImage.getFormat(), logger.get());
     createFrames();
     logger->info("Using {} render threads", renderThreadCount);
     secondaryBuffers = new vk::CommandBuffer[renderThreadCount];

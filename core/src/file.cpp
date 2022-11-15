@@ -79,15 +79,20 @@ void File::readBytes(void* buffer, Size len)
         throw PhysFsException();
 }
 
-UByte* File::readBytes()
+std::vector<UByte> File::readBytes()
 {
     auto len = length();
-    UByte* data = new UByte[len];
-    if (PHYSFS_readBytes(fp, data, len) < 0) {
-        delete[] data;
+    std::vector<UByte> data;
+    data.resize(len);
+    if (PHYSFS_readBytes(fp, data.data(), len) < 0)
         throw PhysFsException();
-    }
     return data;
+}
+
+void File::writeBytes(void* data, Size len)
+{
+    if (PHYSFS_writeBytes(fp, data, len) < 0)
+        throw PhysFsException();
 }
 
 }   // namespace df

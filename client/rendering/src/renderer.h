@@ -5,6 +5,7 @@
 #pragma once
 #include "allocation.h"
 #include "camera.h"
+#include "pipeline.h"
 #include "swapchain.h"
 #include "vulkan_includes.h"
 #include <SDL_video.h>
@@ -39,6 +40,7 @@ private:
     Swapchain swapchain;
     Image depthImage;
     vk::ImageView depthView;
+    PipelineFactory pipelineFactory;
 
     std::stop_source threadStop;
     std::mutex presentLock;

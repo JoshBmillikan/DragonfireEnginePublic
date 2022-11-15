@@ -24,7 +24,8 @@ public:
     void writeString(const char* str);
     void writeString(const std::string& str) { writeString(str.c_str()); }
     void readBytes(void* buffer, Size len);
-    UByte* readBytes();
+    std::vector<UByte> readBytes();
+    void writeBytes(void* data, Size len);
     void close();
     ~File() noexcept;
     DF_NO_COPY(File);

@@ -4,6 +4,7 @@
 
 #pragma once
 #include <SDL_video.h>
+#include "vertex.h"
 
 namespace df {
 
