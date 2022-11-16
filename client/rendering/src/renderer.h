@@ -18,6 +18,7 @@
 namespace df {
 class Renderer {
     friend class Mesh::Factory;
+
 public:
     Renderer() noexcept = default;
     Renderer(SDL_Window* window);

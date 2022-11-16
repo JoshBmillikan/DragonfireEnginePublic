@@ -12,13 +12,17 @@ namespace df {
 
 class Mesh {
     Buffer buffer;
+    vk::DeviceSize indexOffset = 0, indexCount = 0;
 
 public:
     Mesh() = default;
-    Mesh(Buffer&& buffer) noexcept : buffer(std::move(buffer)) {}
+    Mesh(Buffer&& buffer, vk::DeviceSize indexOffset) noexcept : buffer(std::move(buffer)), indexOffset(indexOffset) {}
     void destroy() noexcept { buffer.destroy(); }
     static std::array<vk::VertexInputBindingDescription, 2> vertexInputDescriptions;
     static std::array<vk::VertexInputAttributeDescription, 7> vertexAttributeDescriptions;
+    [[nodiscard]] vk::DeviceSize getIndexOffset() const { return indexOffset; }
+    [[nodiscard]] vk::DeviceSize getIndexCount() const { return indexCount; }
+    [[nodiscard]] vk::Buffer getBuffer() { return buffer; }
 
     class Factory {
     public:
@@ -31,6 +35,9 @@ public:
         void destroy() noexcept;
         ~Factory() noexcept { destroy(); }
         DF_NO_COPY(Factory);
+        Factory(Factory&& other) noexcept;
+        Factory& operator=(Factory&& other) noexcept;
+
     private:
         vk::Device device;
         Buffer stagingBuffer;

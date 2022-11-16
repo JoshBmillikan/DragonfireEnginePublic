@@ -199,13 +199,14 @@ void PipelineFactory::saveCache()
     logger->info("Saved pipeline cache to disk");
 }
 
-vk::PipelineCache loadCache(vk::Device device) {
-   File file(PipelineFactory::CACHE_PATH);
-   auto data = file.readBytes();
-   vk::PipelineCacheCreateInfo createInfo;
-   createInfo.initialDataSize = data.size();
-   createInfo.pInitialData = data.data();
-   return device.createPipelineCache(createInfo);
+vk::PipelineCache loadCache(vk::Device device)
+{
+    File file(PipelineFactory::CACHE_PATH);
+    auto data = file.readBytes();
+    vk::PipelineCacheCreateInfo createInfo;
+    createInfo.initialDataSize = data.size();
+    createInfo.pInitialData = data.data();
+    return device.createPipelineCache(createInfo);
 }
 
 void PipelineFactory::destroy() noexcept

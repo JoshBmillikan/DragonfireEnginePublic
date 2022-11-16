@@ -79,7 +79,7 @@ Mesh* Mesh::Factory::create(Vertex* vertices, UInt vertexCount, UInt* indices, U
 
     vk::resultCheck(device.waitForFences(fence, true, UINT64_MAX), "Fence wait failed");
     device.resetFences(fence);
-    return new Mesh(std::move(meshBuffer));
+    return new Mesh(std::move(meshBuffer), vertexSize);
 }
 
 void Mesh::Factory::destroy() noexcept
@@ -154,10 +154,48 @@ void Mesh::Factory::transferQueueOwnership(Buffer& meshBuffer)
     graphicsQueue.submit(submitInfo, fence);
 }
 
+Mesh::Factory::Factory(Mesh::Factory&& other) noexcept
+{
+    if (this != &other) {
+        device = other.device;
+        stagingBuffer = std::move(other.stagingBuffer);
+        pool = other.pool;
+        cmd = other.cmd;
+        secondaryCmd = other.secondaryCmd;
+        graphicsFamily = other.graphicsFamily;
+        transferFamily = other.transferFamily;
+        transferQueue = other.transferQueue;
+        graphicsQueue = other.graphicsQueue;
+        fence = other.fence;
+        semaphore = other.semaphore;
+        other.device = nullptr;
+    }
+}
+
+Mesh::Factory& Mesh::Factory::operator=(Factory&& other) noexcept
+{
+    if (this != &other) {
+        device = other.device;
+        stagingBuffer = std::move(other.stagingBuffer);
+        pool = other.pool;
+        cmd = other.cmd;
+        secondaryCmd = other.secondaryCmd;
+        graphicsFamily = other.graphicsFamily;
+        transferFamily = other.transferFamily;
+        transferQueue = other.transferQueue;
+        graphicsQueue = other.graphicsQueue;
+        fence = other.fence;
+        semaphore = other.semaphore;
+        other.device = nullptr;
+    }
+    return *this;
+}
+
 std::array<vk::VertexInputBindingDescription, 2> Mesh::vertexInputDescriptions = {
         vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
         vk::VertexInputBindingDescription(1, sizeof(glm::mat4), vk::VertexInputRate::eInstance),
 };
+
 std::array<vk::VertexInputAttributeDescription, 7> Mesh::vertexAttributeDescriptions = {
         vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, position)),
         vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)),

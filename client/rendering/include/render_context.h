@@ -3,8 +3,8 @@
 //
 
 #pragma once
-#include <SDL_video.h>
 #include "vertex.h"
+#include <SDL_video.h>
 
 namespace df {
 

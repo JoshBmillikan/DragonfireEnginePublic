@@ -19,7 +19,7 @@ public:
             spdlog::logger* logger,
             vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1
     );
-    ~PipelineFactory() noexcept {destroy();};
+    ~PipelineFactory() noexcept { destroy(); };
     void destroy() noexcept;
     DF_NO_COPY(PipelineFactory);
     PipelineFactory(PipelineFactory&& other) noexcept;
