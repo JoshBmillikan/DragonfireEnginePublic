@@ -4,4 +4,4 @@ target_link_libraries(Core PUBLIC spdlog glm PhysFS::PhysFS-static nlohmann_json
 set(DEV_ASSET_DIR ${CMAKE_SOURCE_DIR}/assets)
 target_compile_definitions(Core PUBLIC ASSET_PATH="${DEV_ASSET_DIR}" GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_RADIANS)
 target_include_directories(Core PUBLIC include)
-target_precompile_headers(Core PUBLIC <memory> <glm/glm.hpp> include/core.h include/crash.h)
+target_precompile_headers(Core PUBLIC <memory> <glm/glm.hpp> <glm/gtx/quaternion.hpp> include/core.h include/crash.h)

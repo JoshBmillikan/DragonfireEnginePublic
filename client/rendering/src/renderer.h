@@ -5,6 +5,7 @@
 #pragma once
 #include "allocation.h"
 #include "camera.h"
+#include "mesh.h"
 #include "pipeline.h"
 #include "swapchain.h"
 #include "vulkan_includes.h"
@@ -16,11 +17,12 @@
 
 namespace df {
 class Renderer {
+    friend class Mesh::Factory;
 public:
     Renderer() noexcept = default;
     Renderer(SDL_Window* window);
     void beginRendering(const Camera& camera);
-    void render(class Mesh*, class Material*, glm::mat4& transform);
+    void render(Mesh*, class Material*, glm::mat4& transform);
     void endRendering();
     void shutdown() noexcept;
     ~Renderer() noexcept { shutdown(); }
@@ -41,6 +43,8 @@ private:
     Image depthImage;
     vk::ImageView depthView;
     PipelineFactory pipelineFactory;
+    Buffer globalUniformBuffer;
+    vk::DeviceSize globalUniformOffset = 0;
 
     std::stop_source threadStop;
     std::mutex presentLock;
@@ -70,7 +74,7 @@ private:
     struct Queues {
         UInt graphicsFamily = 0, presentFamily = 0, transferFamily = 0;
         vk::Queue graphics, present, transfer;
-        bool getFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface);
+        bool getFamilies(vk::PhysicalDevice pDevice, vk::SurfaceKHR surfaceKhr);
     } queues;
 
     struct Frame {
@@ -79,6 +83,12 @@ private:
         vk::Fence fence;
         vk::Semaphore renderSemaphore, presentSemaphore;
     } frames[FRAMES_IN_FLIGHT], *presentingFrame = nullptr;
+
+    struct UBOData {
+        alignas(16) glm::mat4 viewPerspective;
+        alignas(16) glm::mat4 viewOrthographic;
+        alignas(16) glm::vec3 sunAngle;
+    };
 
 private:
     Frame& getCurrentFrame() noexcept { return frames[frameCount % FRAMES_IN_FLIGHT]; }
@@ -95,6 +105,7 @@ private:
     void createDevice();
     void initAllocator() const;
     void createDepthImage();
+    void allocateUniformBuffer();
     void createFrames();
 };
 

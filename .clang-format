@@ -17,6 +17,7 @@ AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterReturnType: None
 PenaltyReturnTypeOnItsOwnLine: 1000000
 AlwaysBreakTemplateDeclarations: Yes
+PenaltyBreakAssignment: 100
 BreakBeforeBraces: Stroustrup
 BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeTernaryOperators: true

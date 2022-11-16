@@ -5,4 +5,8 @@
 #include "camera.h"
 
 namespace df {
+glm::mat4 Camera::getViewMatrix() const
+{
+    return glm::mat4(); //todo
+}
 }   // namespace df

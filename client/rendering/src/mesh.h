@@ -3,18 +3,46 @@
 //
 
 #pragma once
-#include "vulkan_includes.h"
-#include "vertex.h"
 #include "allocation.h"
+#include "vertex.h"
+#include "vulkan_includes.h"
 #include <array>
 
 namespace df {
 
 class Mesh {
     Buffer buffer;
+
 public:
+    Mesh() = default;
+    Mesh(Buffer&& buffer) noexcept : buffer(std::move(buffer)) {}
+    void destroy() noexcept { buffer.destroy(); }
     static std::array<vk::VertexInputBindingDescription, 2> vertexInputDescriptions;
     static std::array<vk::VertexInputAttributeDescription, 7> vertexAttributeDescriptions;
+
+    class Factory {
+    public:
+        explicit Factory(class Renderer* renderer);
+        Mesh* create(Vertex* vertices, UInt vertexCount, UInt* indices, UInt indexCount);
+        Mesh* create(std::vector<Vertex>& vertices, std::vector<UInt>& indices)
+        {
+            return create(vertices.data(), vertices.size(), indices.data(), indices.size());
+        }
+        void destroy() noexcept;
+        ~Factory() noexcept { destroy(); }
+        DF_NO_COPY(Factory);
+    private:
+        vk::Device device;
+        Buffer stagingBuffer;
+        vk::CommandPool pool;
+        vk::CommandBuffer cmd, secondaryCmd;
+        UInt graphicsFamily = 0, transferFamily = 0;
+        vk::Queue transferQueue, graphicsQueue;
+        vk::Fence fence;
+        vk::Semaphore semaphore;
+        void transferQueueOwnership(Buffer& meshBuffer);
+        void createStagingBuffer(vk::DeviceSize size);
+    };
 };
 
 }   // namespace df

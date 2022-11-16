@@ -29,6 +29,15 @@ void Renderer::beginRendering(const Camera& camera)
         lastResult = swapchain.next(frame.presentSemaphore);
         retryCount++;
     } while (lastResult != vk::Result::eSuccess && retryCount < 10);
+    vk::resultCheck(lastResult, "Failed to resize swapchain");
+
+    char* ptr = static_cast<char*>(globalUniformBuffer.getInfo().pMappedData);
+    ptr += globalUniformOffset * (frameCount % FRAMES_IN_FLIGHT);
+    UBOData* data = reinterpret_cast<UBOData*>(ptr);
+    glm::mat4 view = camera.getViewMatrix();
+    data->viewPerspective = camera.perspective * view;
+    data->viewOrthographic = camera.orthographic * view;
+
     device.resetFences(frame.fence);
     beginCommandRecording();
 
@@ -42,9 +51,9 @@ void Renderer::beginRendering(const Camera& camera)
     }
 }
 
-void Renderer::render(class Mesh*, class Material*, glm::mat4& transform)
+void Renderer::render(Mesh*, class Material*, glm::mat4& transform)
 {
-    static UInt currentImageIndex = 0;
+    // todo
 }
 
 void Renderer::endRendering()
@@ -166,6 +175,7 @@ void Renderer::shutdown() noexcept
             device.destroy(frame.pool);
         }
         pipelineFactory.destroy();
+        globalUniformBuffer.destroy();
         device.destroy(depthView);
         depthImage.destroy();
         swapchain.destroy();
@@ -317,9 +327,10 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 static vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* logger)
 {
     vk::DebugUtilsMessengerCreateInfoEXT createInfo;
-    createInfo.messageSeverity =
-            vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
-            | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+    createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
+                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
+                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
+                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
     createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
                              | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation;
     createInfo.pfnUserCallback = &debugCallback;
@@ -355,6 +366,8 @@ void Renderer::init(SDL_Window* window, bool validation)
     swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily, cfg.vsync);
     logger->info("Using swapchain extent {}x{}", swapchain.getExtent().width, swapchain.getExtent().height);
     createDepthImage();
+    allocateUniformBuffer();
+
     pipelineFactory = PipelineFactory(device, swapchain.getFormat(), depthImage.getFormat(), logger.get());
     createFrames();
     logger->info("Using {} render threads", renderThreadCount);
@@ -436,7 +449,6 @@ static std::array<const char*, 6> DEVICE_EXTENSIONS = {
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
         VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
-        VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 };
 
 static bool isValidDevice(vk::PhysicalDevice device)
@@ -639,6 +651,29 @@ void Renderer::createDepthImage()
     depthView = depthImage.createView(device, depthSubRange);
 }
 
+void Renderer::allocateUniformBuffer()
+{
+    globalUniformOffset = (sizeof(UBOData) + limits.minUniformBufferOffsetAlignment - 1)
+                          & ~(limits.minUniformBufferOffsetAlignment - 1);
+    vk::DeviceSize size = globalUniformOffset * FRAMES_IN_FLIGHT;
+    logger->info("Allocating uniform buffer of size {}(minimum alignment of {})", size, limits.minUniformBufferOffsetAlignment);
+    vk::BufferCreateInfo createInfo;
+    createInfo.size = size;
+    createInfo.sharingMode = vk::SharingMode::eExclusive;
+    createInfo.usage = vk::BufferUsageFlagBits::eUniformBuffer;
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+    allocInfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+    );
+    allocInfo.preferredFlags = static_cast<VkMemoryPropertyFlags>(vk::MemoryPropertyFlagBits::eDeviceLocal);
+    allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocInfo.priority = 1;
+
+    globalUniformBuffer = Buffer(createInfo, allocInfo);
+}
+
 bool Renderer::depthHasStencil() const noexcept
 {
     return depthImage.getFormat() == vk::Format::eD24UnormS8Uint || depthImage.getFormat() == vk::Format::eD32SfloatS8Uint;
@@ -666,13 +701,13 @@ void Renderer::createFrames()
     }
 }
 
-bool Renderer::Queues::getFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface)
+bool Renderer::Queues::getFamilies(vk::PhysicalDevice pDevice, vk::SurfaceKHR surfaceKhr)
 {
     UInt count;
     vk::QueueFamilyProperties* properties = nullptr;
-    device.getQueueFamilyProperties(&count, properties);
+    pDevice.getQueueFamilyProperties(&count, properties);
     properties = (vk::QueueFamilyProperties*) alloca(sizeof(vk::QueueFamilyProperties) * count);
-    device.getQueueFamilyProperties(&count, properties);
+    pDevice.getQueueFamilyProperties(&count, properties);
 
     bool foundGraphics, foundPresent, foundTransfer;
     foundGraphics = foundPresent = foundTransfer = false;
@@ -682,7 +717,7 @@ bool Renderer::Queues::getFamilies(vk::PhysicalDevice device, vk::SurfaceKHR sur
             foundGraphics = true;
             graphicsFamily = i;
         }
-        else if (!foundPresent && device.getSurfaceSupportKHR(i, surface)) {
+        else if (!foundPresent && pDevice.getSurfaceSupportKHR(i, surfaceKhr)) {
             foundPresent = true;
             presentFamily = i;
         }
@@ -695,7 +730,7 @@ bool Renderer::Queues::getFamilies(vk::PhysicalDevice device, vk::SurfaceKHR sur
             break;
     }
 
-    if (!foundPresent && foundGraphics && device.getSurfaceSupportKHR(graphicsFamily, surface)) {
+    if (!foundPresent && foundGraphics && pDevice.getSurfaceSupportKHR(graphicsFamily, surfaceKhr)) {
         foundPresent = true;
         presentFamily = graphicsFamily;
     }
