@@ -14,6 +14,7 @@ GameClient::GameClient(int argc, char** argv) : Game(argc, argv)
     SDL_GetVersion(&version);
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
     renderContext = new RenderContext();
+    assetRegistry.loadDir("assets/models");
 }
 
 GameClient::~GameClient()

@@ -28,6 +28,7 @@ Buffer::Buffer(vk::BufferCreateInfo& createInfo, VmaAllocationCreateInfo& allocI
         != VK_SUCCESS) {
         vk::throwResultException(static_cast<vk::Result>(result), "Vma failed to allocate buffer");
     }
+    spdlog::trace("VMA allocated GPU buffer of size {}", info.size);
 }
 
 Buffer::Buffer(Buffer&& other) noexcept

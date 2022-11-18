@@ -22,11 +22,12 @@ VertexBuffer::Factory::Factory(Renderer* renderer)
     vk::CommandBufferAllocateInfo allocateInfo;
     allocateInfo.commandPool = pool;
     allocateInfo.level = vk::CommandBufferLevel::ePrimary;
-    allocateInfo.commandBufferCount = 2;
-    vk::CommandBuffer buffers[2];
-    vk::resultCheck(device.allocateCommandBuffers(&allocateInfo, buffers), "Failed to allocate command buffer");
-    cmd = buffers[0];
-    secondaryCmd = buffers[1];
+    allocateInfo.commandBufferCount = 1;
+    vk::resultCheck(device.allocateCommandBuffers(&allocateInfo, &cmd), "Failed to allocate command buffer");
+    createInfo.queueFamilyIndex = graphicsFamily;
+    secondaryPool = device.createCommandPool(createInfo);
+    allocateInfo.commandPool = secondaryPool;
+    vk::resultCheck(device.allocateCommandBuffers(&allocateInfo, &secondaryCmd), "Failed to allocate command buffer");
     createStagingBuffer(1024);
     fence = device.createFence(vk::FenceCreateInfo());
     semaphore = device.createSemaphore(vk::SemaphoreCreateInfo());
@@ -37,6 +38,7 @@ VertexBuffer* VertexBuffer::Factory::create(Vertex* vertices, UInt vertexCount, 
     vk::DeviceSize vertexSize = vertexCount * sizeof(Vertex);
     vk::DeviceSize indexSize = numIndices * sizeof(UInt);
     vk::DeviceSize totalSize = vertexSize + indexSize;
+    assert(totalSize > 0);
     if (stagingBuffer.getInfo().size < totalSize)
         createStagingBuffer(totalSize);
 
@@ -51,7 +53,7 @@ VertexBuffer* VertexBuffer::Factory::create(Vertex* vertices, UInt vertexCount, 
                        | vk::BufferUsageFlagBits::eIndexBuffer;
     createInfo.sharingMode = vk::SharingMode::eExclusive;
 
-    VmaAllocationCreateInfo allocInfo;
+    VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
     allocInfo.priority = 1;
     allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -86,6 +88,7 @@ void VertexBuffer::Factory::destroy() noexcept
 {
     if (device) {
         device.destroy(pool);
+        device.destroy(secondaryPool);
         device.destroy(fence);
         device.destroy(semaphore);
         stagingBuffer.destroy();
@@ -113,10 +116,11 @@ void VertexBuffer::Factory::transferQueueOwnership(Buffer& meshBuffer)
 {
     {
         vk::BufferMemoryBarrier barrier;
-        barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+        barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;;
         barrier.srcQueueFamilyIndex = transferFamily;
         barrier.dstQueueFamilyIndex = graphicsFamily;
         barrier.buffer = meshBuffer;
+        barrier.size = meshBuffer.getInfo().size;
 
         cmd.pipelineBarrier(
                 vk::PipelineStageFlagBits::eTransfer,
@@ -136,6 +140,7 @@ void VertexBuffer::Factory::transferQueueOwnership(Buffer& meshBuffer)
 
         transferQueue.submit(submitInfo);
     }
+    device.resetCommandPool(secondaryPool);
     vk::CommandBufferBeginInfo beginInfo;
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
     secondaryCmd.begin(beginInfo);
@@ -144,7 +149,8 @@ void VertexBuffer::Factory::transferQueueOwnership(Buffer& meshBuffer)
     barrier.srcQueueFamilyIndex = transferFamily;
     barrier.dstQueueFamilyIndex = graphicsFamily;
     barrier.buffer = meshBuffer;
-    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eVertexInput, {}, {}, barrier, {});
+    barrier.size = meshBuffer.getInfo().size;
+    secondaryCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eVertexInput, {}, {}, barrier, {});
     secondaryCmd.end();
 
     vk::SubmitInfo submitInfo;
@@ -152,6 +158,8 @@ void VertexBuffer::Factory::transferQueueOwnership(Buffer& meshBuffer)
     submitInfo.pCommandBuffers = &secondaryCmd;
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = &semaphore;
+    vk::PipelineStageFlags mask = vk::PipelineStageFlagBits::eVertexInput;
+    submitInfo.pWaitDstStageMask = &mask;
     graphicsQueue.submit(submitInfo, fence);
 }
 

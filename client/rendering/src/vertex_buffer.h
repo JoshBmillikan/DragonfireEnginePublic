@@ -44,7 +44,7 @@ public:
     private:
         vk::Device device;
         Buffer stagingBuffer;
-        vk::CommandPool pool;
+        vk::CommandPool pool, secondaryPool;
         vk::CommandBuffer cmd, secondaryCmd;
         UInt graphicsFamily = 0, transferFamily = 0;
         vk::Queue transferQueue, graphicsQueue;

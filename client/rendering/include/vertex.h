@@ -19,12 +19,15 @@ struct Vertex {
 }   // namespace df
 
 namespace std {
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCInconsistentNamingInspection"
 template<>
-struct hash<df::Vertex> {
+struct [[maybe_unused]] hash<df::Vertex> {
     size_t operator()(df::Vertex const& vertex) const
     {
         return ((hash<glm::vec3>()(vertex.position) ^ (hash<glm::vec3>()(vertex.normal) << 1)) >> 1)
                ^ (hash<glm::vec2>()(vertex.uv) << 1);
     }
 };
+#pragma clang diagnostic pop
 }   // namespace std

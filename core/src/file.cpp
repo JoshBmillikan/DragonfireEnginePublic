@@ -45,6 +45,7 @@ void File::close()
 {
     if (PHYSFS_close(fp) == 0)
         throw PhysFsException();
+    fp = nullptr;
 }
 
 File::~File() noexcept

@@ -80,6 +80,7 @@ private:
             }
             indices.emplace_back(uniqueVertices[v]);
         }
+        spdlog::info("Loaded model \"{}\" with {} vertices", shape.name, vertices.size());
         return std::unique_ptr<VertexBuffer>(factory.create(vertices, indices));
     }
 };

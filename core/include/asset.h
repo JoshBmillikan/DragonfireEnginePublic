@@ -55,7 +55,7 @@ public:
 private:
     std::shared_mutex mutex;
     HashMap<std::string, std::unique_ptr<Asset>> assets;
-    HashMap<const char*, std::unique_ptr<Loader>> loaders;
+    HashMap<std::string, std::unique_ptr<Loader>> loaders;
     inline static AssetRegistry* instance = nullptr;
 };
 

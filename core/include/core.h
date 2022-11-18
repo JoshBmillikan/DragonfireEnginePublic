@@ -20,6 +20,8 @@ using Int = std::int32_t;
 using Long = std::int64_t;
 using IntPtr = std::intptr_t;
 using Size = std::size_t;
+
+constexpr UInt MAX_FILEPATH_LENGTH = 128;
 }   // namespace df
 
 #define DF_NO_MOVE(Class)                                                                                                      \

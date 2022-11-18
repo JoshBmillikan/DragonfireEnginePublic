@@ -362,6 +362,7 @@ void Renderer::init(SDL_Window* window, bool validation)
     queues.graphics = device.getQueue(queues.graphicsFamily, 0);
     queues.present = device.getQueue(queues.presentFamily, 0);
     queues.transfer = device.getQueue(queues.transferFamily, 0);
+    logger->info("Using queue families: graphics={}, presentation={}, transfer={}", queues.graphicsFamily, queues.presentFamily, queues.transferFamily);
     initAllocator();
     swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily, cfg.vsync);
     logger->info("Using swapchain extent {}x{}", swapchain.getExtent().width, swapchain.getExtent().height);
