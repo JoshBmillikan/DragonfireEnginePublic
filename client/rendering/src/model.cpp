@@ -16,23 +16,23 @@ class ModelLoader : public AssetRegistry::Loader {
 public:
     Asset* load(const char* filename) override
     {
+        tinyobj::ObjReader reader;
         File file(filename);
         std::string str = file.readToString();
         file.close();
-        std::unique_lock lock(mutex);
         bool ok = reader.ParseFromString(str, "");
         if (!ok) {
             if (!reader.Error().empty())
                 throw std::runtime_error(reader.Error());
         }
         if (!reader.Warning().empty())
-            spdlog::warn("OBJ loader warning: {}", reader.Warning());
+            logger->warn("OBJ loader warning: {}", reader.Warning());
 
         auto& attributes = reader.GetAttrib();
         auto& shapes = reader.GetShapes();
         auto& materials = reader.GetMaterials();
         if (shapes.size() > 1)
-            spdlog::warn("More than one model found in OBJ file {}, only the first will be loaded!", filename);
+            logger->warn("More than one model found in OBJ file {}, only the first will be loaded!", filename);
 
         auto vbo = createVertexBuffer(shapes[0], attributes);
         return new Model(shapes[0].name, std::move(vbo));
@@ -42,12 +42,12 @@ public:
 private:
     VertexBuffer::Factory factory;
     std::mutex mutex;
-    tinyobj::ObjReader reader;
     std::vector<Vertex> vertices;
     std::vector<UInt> indices;
     HashMap<Vertex, UInt> uniqueVertices;
     std::unique_ptr<VertexBuffer> createVertexBuffer(const tinyobj::shape_t& shape, const tinyobj::attrib_t& attributes)
     {
+        std::unique_lock lock(mutex);
         vertices.clear();
         indices.clear();
         uniqueVertices.clear();
@@ -80,7 +80,7 @@ private:
             }
             indices.emplace_back(uniqueVertices[v]);
         }
-        spdlog::info("Loaded model \"{}\" with {} vertices", shape.name, vertices.size());
+        logger->info("Loaded model \"{}\" with {} vertices", shape.name, vertices.size());
         return std::unique_ptr<VertexBuffer>(factory.create(vertices, indices));
     }
 };

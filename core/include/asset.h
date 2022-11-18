@@ -31,7 +31,7 @@ public:
     void destroy() noexcept;
 
     static AssetRegistry& getRegistry() { return *instance; }
-    AssetRegistry() noexcept { instance = this; }
+    AssetRegistry() noexcept;
     template<typename T>
         requires std::is_base_of_v<Asset, T>
     T* operator[](const char* str)
@@ -45,6 +45,8 @@ public:
         virtual Asset* load(const char* filename) = 0;
         virtual ~Loader() = default;
         Asset* operator()(const char* filename) { return load(filename); }
+    protected:
+        std::shared_ptr<spdlog::logger> logger = spdlog::get("Assets");
     };
 
     void addLoader(std::unique_ptr<Loader>&& loader, const char* fileExtension)
@@ -56,6 +58,7 @@ private:
     std::shared_mutex mutex;
     HashMap<std::string, std::unique_ptr<Asset>> assets;
     HashMap<std::string, std::unique_ptr<Loader>> loaders;
+    std::shared_ptr<spdlog::logger> logger;
     inline static AssetRegistry* instance = nullptr;
 };
 
