@@ -1,13 +1,13 @@
 //
 // Created by josh on 11/9/22.
 //
-#include <cstdint>
 #include <ankerl/unordered_dense.h>
+#include <cstdint>
 
 #pragma once
 namespace df {
 template<typename K, typename V>
-using HashMap = ankerl::unordered_dense::map<K,V>;
+using HashMap = ankerl::unordered_dense::map<K, V>;
 
 // alias's for fixed width integer types following our naming convention
 using UByte = std::uint8_t;

@@ -116,7 +116,8 @@ void VertexBuffer::Factory::transferQueueOwnership(Buffer& meshBuffer)
 {
     {
         vk::BufferMemoryBarrier barrier;
-        barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;;
+        barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+        ;
         barrier.srcQueueFamilyIndex = transferFamily;
         barrier.dstQueueFamilyIndex = graphicsFamily;
         barrier.buffer = meshBuffer;
@@ -150,7 +151,14 @@ void VertexBuffer::Factory::transferQueueOwnership(Buffer& meshBuffer)
     barrier.dstQueueFamilyIndex = graphicsFamily;
     barrier.buffer = meshBuffer;
     barrier.size = meshBuffer.getInfo().size;
-    secondaryCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eVertexInput, {}, {}, barrier, {});
+    secondaryCmd.pipelineBarrier(
+            vk::PipelineStageFlagBits::eTopOfPipe,
+            vk::PipelineStageFlagBits::eVertexInput,
+            {},
+            {},
+            barrier,
+            {}
+    );
     secondaryCmd.end();
 
     vk::SubmitInfo submitInfo;

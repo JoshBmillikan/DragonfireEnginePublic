@@ -7,6 +7,10 @@
 #include "vertex_buffer.h"
 #include <nlohmann/json.hpp>
 
+#ifndef SHADER_DIR
+    #define SHADER_DIR "./shaders"
+#endif
+
 namespace df {
 
 static vk::PipelineCache loadCache(vk::Device device);
@@ -20,6 +24,8 @@ PipelineFactory::PipelineFactory(
 )
     : device(device), imageFormat(imageFormat), depthFormat(depthFormat), msaaSamples(msaaSamples), logger(logger)
 {
+    if (PHYSFS_mount(SHADER_DIR, "assets/shaders", false) == 0)
+        throw PhysFsException();
     try {
         cache = loadCache(device);
     }
@@ -150,15 +156,23 @@ UInt PipelineFactory::getStageCreateInfo(vk::PipelineShaderStageCreateInfo* stag
 
 void PipelineFactory::loadShaders() noexcept
 {
-    char** files = PHYSFS_enumerateFiles("assets/shaders");
+    char** files;
+    char** list;
+    list = files = PHYSFS_enumerateFiles("assets/shaders");
     if (files == nullptr)
         crash("Failed to enumerate files in shader directory: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
     std::vector<UInt> data;
     data.reserve(1024);
     char name[40];
+    char path[MAX_FILEPATH_LENGTH];
+    const auto dirNameLen = strlen("assets/shaders");
     for (char* filename = *files; filename != nullptr; filename = *++files) {
+        strncpy(path, "assets/shaders", MAX_FILEPATH_LENGTH);
+        if (path[dirNameLen - 1] != '/')
+            strcat(path, "/");
+        strncat(path, filename, MAX_FILEPATH_LENGTH - dirNameLen);
         try {
-            File file(filename);
+            File file(path);
             auto length = file.length();
             if (length < 4)
                 throw std::runtime_error("SPIR-V file was empty");
@@ -173,21 +187,22 @@ void PipelineFactory::loadShaders() noexcept
             createInfo.codeSize = length;
             createInfo.pCode = data.data();
             vk::ShaderModule module = device.createShaderModule(createInfo);
-            Long len = 40;
+            Long len = 39;
             char* dot = strrchr(filename, '.');
             if (dot) {
                 auto distance = std::distance(filename, dot);
                 len = std::clamp(distance, 1l, len);
             }
             strncpy(name, filename, len);
-            name[len - 1] = '\0';
+            name[len] = '\0';
             shaders.emplace(name, module);
+            logger->info("loaded shader module: {}", name);
         }
         catch (const std::exception& e) {
             logger->error("Failed to create shader module \"{}\", error: {}", filename, e.what());
         }
     }
-    PHYSFS_freeList(files);
+    PHYSFS_freeList(list);
 }
 
 void PipelineFactory::saveCache()

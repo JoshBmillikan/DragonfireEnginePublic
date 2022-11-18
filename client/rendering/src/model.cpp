@@ -3,10 +3,10 @@
 //
 
 #include "model.h"
+#include "renderer.h"
 #include "vertex_buffer.h"
 #include <file.h>
 #include <mutex>
-#include "renderer.h"
 #define TINYOBJLOADER_USE_MAPBOX_EARCUT
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -55,7 +55,7 @@ private:
         indices.reserve(shape.mesh.indices.size());
         uniqueVertices.reserve(shape.mesh.indices.size());
         for (const auto& index : shape.mesh.indices) {
-            Vertex v{
+            Vertex vertex{
                     .position =
                             {
                                     attributes.vertices[3 * index.vertex_index + 0],
@@ -74,11 +74,11 @@ private:
                                     1.0f - attributes.texcoords[2 * index.texcoord_index + 1],
                             },
             };
-            if (!uniqueVertices.contains(v)) {
-                uniqueVertices[v] = vertices.size();
-                vertices.emplace_back(v);
+            if (!uniqueVertices.contains(vertex)) {
+                uniqueVertices[vertex] = vertices.size();
+                vertices.emplace_back(vertex);
             }
-            indices.emplace_back(uniqueVertices[v]);
+            indices.emplace_back(uniqueVertices[vertex]);
         }
         logger->info("Loaded model \"{}\" with {} vertices", shape.name, vertices.size());
         return std::unique_ptr<VertexBuffer>(factory.create(vertices, indices));

@@ -45,6 +45,7 @@ public:
         virtual Asset* load(const char* filename) = 0;
         virtual ~Loader() = default;
         Asset* operator()(const char* filename) { return load(filename); }
+
     protected:
         std::shared_ptr<spdlog::logger> logger = spdlog::get("Assets");
     };
