@@ -32,6 +32,7 @@ Game::Game(int argc, char** argv)
 
 Game::~Game()
 {
+    assetRegistry.destroy();
     Config::get().saveConfig("config.json");
     PHYSFS_deinit();
     spdlog::info("Goodbye!");

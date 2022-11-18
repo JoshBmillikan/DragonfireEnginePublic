@@ -31,6 +31,16 @@ FetchContent_Declare(
         GIT_TAG a7ece061e831e0b9f954ded1b25e06a5f9e3287c
 )
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
-FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense)
+FetchContent_Declare(
+        nameof
+        GIT_REPOSITORY https://github.com/Neargye/nameof.git
+        GIT_TAG c04b72fc51e4ac75f55462632de000c79a7b65b5
+)
+FetchContent_Declare(
+        tinyobjloader
+        GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader.git
+        GIT_TAG f48bd0bfb9b00ed1f5b13dbcdbd7909ca8bd49b5
+)
+FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense nameof tinyobjloader)
 add_subdirectory(core)
 add_subdirectory(client)

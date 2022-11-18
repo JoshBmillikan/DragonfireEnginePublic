@@ -5,9 +5,10 @@
 #pragma once
 #include "allocation.h"
 #include "camera.h"
-#include "mesh.h"
+#include "model.h"
 #include "pipeline.h"
 #include "swapchain.h"
+#include "vertex_buffer.h"
 #include "vulkan_includes.h"
 #include <SDL_video.h>
 #include <barrier>
@@ -17,13 +18,13 @@
 
 namespace df {
 class Renderer {
-    friend class Mesh::Factory;
+    friend class VertexBuffer::Factory;
 
 public:
     Renderer() noexcept = default;
     Renderer(SDL_Window* window);
     void beginRendering(const Camera& camera);
-    void render(Mesh*, class Material*, glm::mat4& transform);
+    void render(VertexBuffer*, class Material*, glm::mat4& transform);
     void endRendering();
     void shutdown() noexcept;
     ~Renderer() noexcept { shutdown(); }

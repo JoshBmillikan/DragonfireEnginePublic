@@ -4,7 +4,7 @@
 
 #include "pipeline.h"
 #include "file.h"
-#include "mesh.h"
+#include "vertex_buffer.h"
 #include <nlohmann/json.hpp>
 
 namespace df {
@@ -37,10 +37,10 @@ vk::Pipeline PipelineFactory::createPipeline(const nlohmann::json& pipelineDescr
     const UInt stageCount = getStageCreateInfo(stageInfos, pipelineDescription);
 
     vk::PipelineVertexInputStateCreateInfo vertexInput;
-    vertexInput.pVertexAttributeDescriptions = Mesh::vertexAttributeDescriptions.data();
-    vertexInput.vertexAttributeDescriptionCount = Mesh::vertexAttributeDescriptions.size();
-    vertexInput.pVertexBindingDescriptions = Mesh::vertexInputDescriptions.data();
-    vertexInput.vertexBindingDescriptionCount = Mesh::vertexInputDescriptions.size();
+    vertexInput.pVertexAttributeDescriptions = VertexBuffer::vertexAttributeDescriptions.data();
+    vertexInput.vertexAttributeDescriptionCount = VertexBuffer::vertexAttributeDescriptions.size();
+    vertexInput.pVertexBindingDescriptions = VertexBuffer::vertexInputDescriptions.data();
+    vertexInput.vertexBindingDescriptionCount = VertexBuffer::vertexInputDescriptions.size();
 
     vk::PipelineDepthStencilStateCreateInfo depth;
     depth.depthBoundsTestEnable = true;

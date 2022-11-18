@@ -31,7 +31,7 @@ public:
 private:
     void loadShaders() noexcept;
     UInt getStageCreateInfo(vk::PipelineShaderStageCreateInfo* stages, const nlohmann::json& json);
-    ankerl::unordered_dense::map<std::string, vk::ShaderModule> shaders;
+    HashMap<std::string, vk::ShaderModule> shaders;
     vk::Device device = nullptr;
     vk::PipelineCache cache;
     vk::Format imageFormat{}, depthFormat{};

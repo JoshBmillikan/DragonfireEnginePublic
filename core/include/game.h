@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "asset.h"
 
 namespace df {
 
@@ -14,6 +15,7 @@ public:
     void run();
     void stop() noexcept { running = false; }
 
+    AssetRegistry assetRegistry;
 protected:
     virtual void mainLoop(double deltaSeconds) = 0;
     bool running = true;

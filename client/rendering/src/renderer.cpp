@@ -51,7 +51,7 @@ void Renderer::beginRendering(const Camera& camera)
     }
 }
 
-void Renderer::render(Mesh*, class Material*, glm::mat4& transform)
+void Renderer::render(VertexBuffer*, class Material*, glm::mat4& transform)
 {
     // todo
 }
@@ -377,7 +377,7 @@ void Renderer::init(SDL_Window* window, bool validation)
         threadData[i].thread = std::thread(&Renderer::renderThread, this, threadStop.get_token(), i);
 
     presentThreadHandle = std::thread(&Renderer::presentThread, this, threadStop.get_token());
-
+    AssetRegistry::getRegistry().addLoader(std::move(Model::createLoader(this)), "obj");
     logger->info("Vulkan initialization complete");
 }
 
@@ -443,7 +443,7 @@ void Renderer::createInstance(SDL_Window* window, bool validation)
     VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
 }
 
-static std::array<const char*, 6> DEVICE_EXTENSIONS = {
+static std::array<const char*, 5> DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,

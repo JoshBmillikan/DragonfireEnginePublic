@@ -6,6 +6,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(vma)
 add_library(Renderer src/renderer.cpp src/renderer.h src/allocation.cpp src/allocation.h src/vulkan_includes.h src/swapchain.cpp src/swapchain.h src/pipeline.cpp
-        src/pipeline.h src/camera.cpp include/camera.h src/render_context.cpp include/render_context.h src/mesh.cpp src/mesh.h include/vertex.h)
-target_link_libraries(Renderer PUBLIC Core Vulkan::Headers SDL2::SDL2 VulkanMemoryAllocator)
+        src/pipeline.h src/camera.cpp include/camera.h src/render_context.cpp include/render_context.h src/vertex_buffer.cpp src/vertex_buffer.h include/vertex.h src/model.cpp include/model.h)
+target_link_libraries(Renderer PUBLIC Core Vulkan::Headers SDL2::SDL2 VulkanMemoryAllocator tinyobjloader)
 target_include_directories(Renderer PUBLIC include)

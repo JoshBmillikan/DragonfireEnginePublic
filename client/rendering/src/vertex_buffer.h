@@ -10,13 +10,16 @@
 
 namespace df {
 
-class Mesh {
+class VertexBuffer {
     Buffer buffer;
     vk::DeviceSize indexOffset = 0, indexCount = 0;
 
 public:
-    Mesh() = default;
-    Mesh(Buffer&& buffer, vk::DeviceSize indexOffset) noexcept : buffer(std::move(buffer)), indexOffset(indexOffset) {}
+    VertexBuffer() = default;
+    VertexBuffer(Buffer&& buffer, vk::DeviceSize indexOffset, vk::DeviceSize indexCount) noexcept
+        : buffer(std::move(buffer)), indexOffset(indexOffset), indexCount(indexCount)
+    {
+    }
     void destroy() noexcept { buffer.destroy(); }
     static std::array<vk::VertexInputBindingDescription, 2> vertexInputDescriptions;
     static std::array<vk::VertexInputAttributeDescription, 7> vertexAttributeDescriptions;
@@ -27,8 +30,8 @@ public:
     class Factory {
     public:
         explicit Factory(class Renderer* renderer);
-        Mesh* create(Vertex* vertices, UInt vertexCount, UInt* indices, UInt indexCount);
-        Mesh* create(std::vector<Vertex>& vertices, std::vector<UInt>& indices)
+        VertexBuffer* create(Vertex* vertices, UInt vertexCount, UInt* indices, UInt numIndices);
+        VertexBuffer* create(std::vector<Vertex>& vertices, std::vector<UInt>& indices)
         {
             return create(vertices.data(), vertices.size(), indices.data(), indices.size());
         }

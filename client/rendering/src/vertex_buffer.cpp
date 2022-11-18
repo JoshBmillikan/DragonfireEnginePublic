@@ -2,12 +2,12 @@
 // Created by josh on 11/14/22.
 //
 
-#include "mesh.h"
+#include "vertex_buffer.h"
 #include "renderer.h"
 
 namespace df {
 
-Mesh::Factory::Factory(Renderer* renderer)
+VertexBuffer::Factory::Factory(Renderer* renderer)
 {
     device = renderer->device;
     graphicsFamily = renderer->queues.graphicsFamily;
@@ -32,10 +32,10 @@ Mesh::Factory::Factory(Renderer* renderer)
     semaphore = device.createSemaphore(vk::SemaphoreCreateInfo());
 }
 
-Mesh* Mesh::Factory::create(Vertex* vertices, UInt vertexCount, UInt* indices, UInt indexCount)
+VertexBuffer* VertexBuffer::Factory::create(Vertex* vertices, UInt vertexCount, UInt* indices, UInt numIndices)
 {
     vk::DeviceSize vertexSize = vertexCount * sizeof(Vertex);
-    vk::DeviceSize indexSize = indexCount * sizeof(UInt);
+    vk::DeviceSize indexSize = numIndices * sizeof(UInt);
     vk::DeviceSize totalSize = vertexSize + indexSize;
     if (stagingBuffer.getInfo().size < totalSize)
         createStagingBuffer(totalSize);
@@ -79,27 +79,28 @@ Mesh* Mesh::Factory::create(Vertex* vertices, UInt vertexCount, UInt* indices, U
 
     vk::resultCheck(device.waitForFences(fence, true, UINT64_MAX), "Fence wait failed");
     device.resetFences(fence);
-    return new Mesh(std::move(meshBuffer), vertexSize);
+    return new VertexBuffer(std::move(meshBuffer), vertexSize, numIndices);
 }
 
-void Mesh::Factory::destroy() noexcept
+void VertexBuffer::Factory::destroy() noexcept
 {
     if (device) {
         device.destroy(pool);
         device.destroy(fence);
+        device.destroy(semaphore);
         stagingBuffer.destroy();
         device = nullptr;
     }
 }
 
-void Mesh::Factory::createStagingBuffer(vk::DeviceSize size)
+void VertexBuffer::Factory::createStagingBuffer(vk::DeviceSize size)
 {
     vk::BufferCreateInfo createInfo;
     createInfo.size = size;
     createInfo.usage = vk::BufferUsageFlagBits::eTransferSrc;
     createInfo.sharingMode = vk::SharingMode::eExclusive;
 
-    VmaAllocationCreateInfo allocInfo;
+    VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
     allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     allocInfo.priority = 1;
@@ -108,7 +109,7 @@ void Mesh::Factory::createStagingBuffer(vk::DeviceSize size)
     stagingBuffer = Buffer(createInfo, allocInfo);
 }
 
-void Mesh::Factory::transferQueueOwnership(Buffer& meshBuffer)
+void VertexBuffer::Factory::transferQueueOwnership(Buffer& meshBuffer)
 {
     {
         vk::BufferMemoryBarrier barrier;
@@ -154,7 +155,7 @@ void Mesh::Factory::transferQueueOwnership(Buffer& meshBuffer)
     graphicsQueue.submit(submitInfo, fence);
 }
 
-Mesh::Factory::Factory(Mesh::Factory&& other) noexcept
+VertexBuffer::Factory::Factory(VertexBuffer::Factory&& other) noexcept
 {
     if (this != &other) {
         device = other.device;
@@ -172,7 +173,7 @@ Mesh::Factory::Factory(Mesh::Factory&& other) noexcept
     }
 }
 
-Mesh::Factory& Mesh::Factory::operator=(Factory&& other) noexcept
+VertexBuffer::Factory& VertexBuffer::Factory::operator=(Factory&& other) noexcept
 {
     if (this != &other) {
         device = other.device;
@@ -191,12 +192,12 @@ Mesh::Factory& Mesh::Factory::operator=(Factory&& other) noexcept
     return *this;
 }
 
-std::array<vk::VertexInputBindingDescription, 2> Mesh::vertexInputDescriptions = {
+std::array<vk::VertexInputBindingDescription, 2> VertexBuffer::vertexInputDescriptions = {
         vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
         vk::VertexInputBindingDescription(1, sizeof(glm::mat4), vk::VertexInputRate::eInstance),
 };
 
-std::array<vk::VertexInputAttributeDescription, 7> Mesh::vertexAttributeDescriptions = {
+std::array<vk::VertexInputAttributeDescription, 7> VertexBuffer::vertexAttributeDescriptions = {
         vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, position)),
         vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)),
         vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, uv)),

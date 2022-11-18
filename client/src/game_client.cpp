@@ -18,6 +18,7 @@ GameClient::GameClient(int argc, char** argv) : Game(argc, argv)
 
 GameClient::~GameClient()
 {
+    assetRegistry.destroy();
     delete renderContext;
     SDL_Quit();
 }
