@@ -45,4 +45,19 @@ void RenderContext::shutdown() noexcept
         window = nullptr;
     }
 }
+
+void RenderContext::addModel(Model* model, const Transform& transform)
+{
+    models[model].push_back(transform);
+}
+
+void RenderContext::drawFrame()
+{
+    renderer->beginRendering(camera);
+    for (auto& [model, matrices]  : models)
+        renderer->render(model, matrices);
+    renderer->endRendering();
+    for (auto& [model, matrices]  : models)
+        matrices.clear();
+}
 }   // namespace df

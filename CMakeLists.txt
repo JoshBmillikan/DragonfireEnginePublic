@@ -41,6 +41,24 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader.git
         GIT_TAG f48bd0bfb9b00ed1f5b13dbcdbd7909ca8bd49b5
 )
-FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense nameof tinyobjloader)
+FetchContent_Declare(
+        concurrentQueue
+        GIT_REPOSITORY https://github.com/cameron314/concurrentqueue.git
+        GIT_TAG 3747268264d0fa113e981658a99ceeae4dad05b7
+)
+FetchContent_Declare(
+        threadPool
+        GIT_REPOSITORY https://github.com/bshoshany/thread-pool.git
+        GIT_TAG 67fad04348b91cf93bdfad7495d298f54825602c
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+)
+FetchContent_Declare(
+        entt
+        GIT_REPOSITORY https://github.com/skypjack/entt.git
+        GIT_TAG 76298bc26ae7d47e5e75baeb9da1bd5bf17bdadc
+)
+FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense nameof tinyobjloader concurrentQueue entt)
+
 add_subdirectory(core)
 add_subdirectory(client)

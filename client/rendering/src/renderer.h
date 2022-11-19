@@ -24,7 +24,7 @@ public:
     Renderer() noexcept = default;
     Renderer(SDL_Window* window);
     void beginRendering(const Camera& camera);
-    void render(VertexBuffer*, class Material*, glm::mat4& transform);
+    void render(Model* model, const std::vector<glm::mat4>& matrices);
     void endRendering();
     void shutdown() noexcept;
     ~Renderer() noexcept { shutdown(); }
@@ -47,6 +47,8 @@ private:
     PipelineFactory pipelineFactory;
     Buffer globalUniformBuffer;
     vk::DeviceSize globalUniformOffset = 0;
+    glm::mat4 viewPerspective;
+    glm::mat4 viewOrthographic;
 
     std::stop_source threadStop;
     std::mutex presentLock;
@@ -70,7 +72,9 @@ private:
         std::mutex mutex;
         std::condition_variable_any cond;
         RenderCommand command = RenderCommand::waiting;
-        std::vector<glm::mat4> matrices;
+        const glm::mat4* matrices;
+        UInt matrixCount = 0;
+        Model* model;
     }* threadData = nullptr;
 
     struct Queues {
@@ -86,7 +90,7 @@ private:
         vk::Semaphore renderSemaphore, presentSemaphore;
     } frames[FRAMES_IN_FLIGHT], *presentingFrame = nullptr;
 
-    struct UBOData {
+    struct UboData {
         alignas(16) glm::mat4 viewPerspective;
         alignas(16) glm::mat4 viewOrthographic;
         alignas(16) glm::vec3 sunAngle;
@@ -97,6 +101,7 @@ private:
     [[nodiscard]] bool depthHasStencil() const noexcept;
     void presentThread(const std::stop_token& token);
     void renderThread(const std::stop_token& token, UInt threadIndex);
+    bool cullTest(Model* model, const glm::mat4& matrix);
     void beginCommandRecording();
     void imageToPresentSrc(vk::CommandBuffer cmd) const;
     void imageToColorWrite(vk::CommandBuffer cmd) const;

@@ -4,6 +4,7 @@
 
 #pragma once
 #include "asset.h"
+#include <entt/entt.hpp>
 
 namespace df {
 
@@ -18,6 +19,7 @@ public:
     AssetRegistry assetRegistry;
 
 protected:
+    entt::registry registry;
     virtual void mainLoop(double deltaSeconds) = 0;
     bool running = true;
 };

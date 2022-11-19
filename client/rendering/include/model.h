@@ -13,6 +13,7 @@ class Model : public Asset {
 public:
     Model(const std::string& modelName, std::unique_ptr<VertexBuffer>&& vbo);
     static std::unique_ptr<AssetRegistry::Loader> createLoader(class Renderer* renderer);
+    VertexBuffer& getVertexBuffer() noexcept {return *vertexBuffer;}
 };
 
 }   // namespace df

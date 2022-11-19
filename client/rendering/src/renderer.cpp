@@ -33,10 +33,10 @@ void Renderer::beginRendering(const Camera& camera)
 
     char* ptr = static_cast<char*>(globalUniformBuffer.getInfo().pMappedData);
     ptr += globalUniformOffset * (frameCount % FRAMES_IN_FLIGHT);
-    UBOData* data = reinterpret_cast<UBOData*>(ptr);
+    UboData* data = reinterpret_cast<UboData*>(ptr);
     glm::mat4 view = camera.getViewMatrix();
-    data->viewPerspective = camera.perspective * view;
-    data->viewOrthographic = camera.orthographic * view;
+    data->viewPerspective = viewPerspective = camera.perspective * view;
+    data->viewOrthographic = viewOrthographic = camera.orthographic * view;
 
     device.resetFences(frame.fence);
     beginCommandRecording();
@@ -51,9 +51,19 @@ void Renderer::beginRendering(const Camera& camera)
     }
 }
 
-void Renderer::render(VertexBuffer*, class Material*, glm::mat4& transform)
+void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
 {
-    // todo
+    static UInt threadIndex = 0;
+    auto& data = threadData[threadIndex];
+    {
+        std::unique_lock lock(data.mutex);
+        data.matrices = matrices.data();
+        data.matrixCount = matrices.size();
+        data.command = RenderCommand::render;
+        data.model = model;
+    }
+    data.cond.notify_one();
+    threadIndex = (threadIndex + 1) % renderThreadCount;
 }
 
 void Renderer::endRendering()
@@ -73,6 +83,8 @@ void Renderer::endRendering()
     frameCount++;
 }
 
+static Buffer createInstanceVertexBuffer(UInt capacity);
+
 void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex)
 {
     vk::CommandPool pool, pools[FRAMES_IN_FLIGHT];
@@ -88,6 +100,9 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
         allocInfo.commandPool = pools[i];
         vk::resultCheck(device.allocateCommandBuffers(&allocInfo, &buffers[i]), "Failed to allocate secondary command buffer");
     }
+    Buffer vertexBuffer = createInstanceVertexBuffer(1024);
+    vk::DeviceSize bufferOffset = 0;
+
     if (threadData == nullptr || secondaryBuffers == nullptr)
         crash("Thread data was not initialized before starting render threads");
     RenderThreadData& data = threadData[threadIndex];
@@ -101,9 +116,37 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 pool = pools[frameCount % FRAMES_IN_FLIGHT];
                 cmd = buffers[frameCount % FRAMES_IN_FLIGHT];
                 device.resetCommandPool(pool);
+                bufferOffset = 0;
                 break;
             case RenderCommand::render: {
-                // todo
+                if ((bufferOffset + data.matrixCount) * sizeof(glm::mat4) >= vertexBuffer.getInfo().size) {
+                    Buffer newBuffer = createInstanceVertexBuffer(
+                            std::max(bufferOffset + data.matrixCount, vertexBuffer.getInfo().size * 2)
+                    );
+                    void* src = vertexBuffer.getInfo().pMappedData;
+                    void* dst = newBuffer.getInfo().pMappedData;
+                    memcpy(dst, src, vertexBuffer.getInfo().size);
+                    vertexBuffer = std::move(newBuffer);
+                }
+                UInt drawCount = 0;
+                Model* model = data.model;
+                for (UInt i = 0; i < data.matrixCount; i++) {
+                    const glm::mat4& matrix = data.matrices[i];
+                    if (cullTest(model, matrix)) {
+                        glm::mat4* ptr = static_cast<glm::mat4*>(vertexBuffer.getInfo().pMappedData);
+                        ptr[bufferOffset + drawCount] = matrix;
+                        drawCount++;
+                    }
+                }
+                if (drawCount > 0) {
+                    // TODO pipeline/descriptor sets
+                    vk::Buffer vertexBuffers[] = {model->getVertexBuffer().getBuffer(), vertexBuffer};
+                    vk::DeviceSize offsets[] = {0, bufferOffset};
+                    cmd.bindVertexBuffers(0, vertexBuffers, offsets);
+                    cmd.bindIndexBuffer(model->getVertexBuffer().getBuffer(), model->getVertexBuffer().getIndexOffset(), vk::IndexType::eUint32);
+                    cmd.drawIndexed(model->getVertexBuffer().getIndexCount(), drawCount, 0, 0, 0);
+                }
+                bufferOffset += drawCount;
             } break;
             case RenderCommand::end:
                 cmd.end();
@@ -118,6 +161,29 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
         device.destroy(p);
     logger->trace("Render thread {} destroyed", threadIndex);
     renderBarrier.arrive_and_drop();
+}
+
+bool Renderer::cullTest(Model* model, const glm::mat4& matrix)
+{
+    return true;   // TODO
+}
+
+Buffer createInstanceVertexBuffer(UInt capacity)
+{
+    vk::DeviceSize size = capacity * sizeof(glm::mat4);
+    vk::BufferCreateInfo createInfo;
+    createInfo.size = size;
+    createInfo.sharingMode = vk::SharingMode::eExclusive;
+    createInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+    allocInfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+    );
+    allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocInfo.priority = 1;
+    return Buffer(createInfo, allocInfo);
 }
 
 void Renderer::presentThread(const std::stop_token& token)
@@ -659,7 +725,7 @@ void Renderer::createDepthImage()
 
 void Renderer::allocateUniformBuffer()
 {
-    globalUniformOffset = (sizeof(UBOData) + limits.minUniformBufferOffsetAlignment - 1)
+    globalUniformOffset = (sizeof(UboData) + limits.minUniformBufferOffsetAlignment - 1)
                           & ~(limits.minUniformBufferOffsetAlignment - 1);
     vk::DeviceSize size = globalUniformOffset * FRAMES_IN_FLIGHT;
     logger->info("Allocating uniform buffer of size {}(minimum alignment of {})", size, limits.minUniformBufferOffsetAlignment);
