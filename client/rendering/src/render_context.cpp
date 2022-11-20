@@ -4,6 +4,8 @@
 
 #include "render_context.h"
 #include "config.h"
+#include "material.h"
+#include "render_asset_loaders.h"
 #include "renderer.h"
 
 namespace df {
@@ -54,10 +56,24 @@ void RenderContext::addModel(Model* model, const Transform& transform)
 void RenderContext::drawFrame()
 {
     renderer->beginRendering(camera);
-    for (auto& [model, matrices]  : models)
+    for (auto& [model, matrices] : models)
         renderer->render(model, matrices);
     renderer->endRendering();
-    for (auto& [model, matrices]  : models)
+    for (auto& [model, matrices] : models)
         matrices.clear();
 }
+
+void RenderContext::loadMaterials(const char* path)
+{
+    Material::Loader loader;
+    AssetRegistry::getRegistry().loadDir(path, loader);
+}
+
+void RenderContext::loadModels(const char* path)
+{
+    ObjLoader loader(renderer);
+    auto& registry = AssetRegistry::getRegistry();
+    registry.loadDir("assets/models", loader);
+}
+
 }   // namespace df

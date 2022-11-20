@@ -5,10 +5,10 @@
 #pragma once
 #include "allocation.h"
 #include "camera.h"
+#include "mesh.h"
 #include "model.h"
 #include "pipeline.h"
 #include "swapchain.h"
-#include "vertex_buffer.h"
 #include "vulkan_includes.h"
 #include <SDL_video.h>
 #include <barrier>
@@ -18,7 +18,7 @@
 
 namespace df {
 class Renderer {
-    friend class VertexBuffer::Factory;
+    friend class Mesh::Factory;
 
 public:
     Renderer() noexcept = default;
@@ -47,8 +47,8 @@ private:
     PipelineFactory pipelineFactory;
     Buffer globalUniformBuffer;
     vk::DeviceSize globalUniformOffset = 0;
-    glm::mat4 viewPerspective;
-    glm::mat4 viewOrthographic;
+    glm::mat4 viewPerspective{};
+    glm::mat4 viewOrthographic{};
 
     std::stop_source threadStop;
     std::mutex presentLock;

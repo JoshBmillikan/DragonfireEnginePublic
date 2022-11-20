@@ -3,17 +3,15 @@
 //
 
 #pragma once
-#include <asset.h>
 namespace df {
 
-class Model : public Asset {
-    friend class ModelLoader;
-    std::unique_ptr<class VertexBuffer> vertexBuffer;
+class Model {
+    class Mesh* mesh;
+    class Material* material;
 
 public:
-    Model(const std::string& modelName, std::unique_ptr<VertexBuffer>&& vbo);
-    static std::unique_ptr<AssetRegistry::Loader> createLoader(class Renderer* renderer);
-    VertexBuffer& getVertexBuffer() noexcept {return *vertexBuffer;}
+    Mesh& getMesh() noexcept {return *mesh;}
+    Material& getMaterial() noexcept {return *material;}
 };
 
 }   // namespace df

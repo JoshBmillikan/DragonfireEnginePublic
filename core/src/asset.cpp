@@ -3,10 +3,11 @@
 //
 #include "asset.h"
 #include "util.h"
-#include <physfs.h>
+#include "file.h"
+#include <nlohmann/json.hpp>
 namespace df {
 
-void AssetRegistry::loadDir(const char* dirName)
+void AssetRegistry::loadDir(const char* dirName, Loader& loader)
 {
     char** files = PHYSFS_enumerateFiles(dirName);
     char path[MAX_FILEPATH_LENGTH];
@@ -19,7 +20,8 @@ void AssetRegistry::loadDir(const char* dirName)
             strcat(path, "/");
         strncat(path, *ptr, MAX_FILEPATH_LENGTH - dirNameLen);
         try {
-            loadFile(path);
+            loadFile(path, loader);
+            logger->info("Loaded asset file \"{}\"", *ptr);
         }
         catch (const std::runtime_error& e) {
             logger->error("Failed to load asset file: {}, error: {}", *ptr, e.what());
@@ -28,20 +30,22 @@ void AssetRegistry::loadDir(const char* dirName)
     PHYSFS_freeList(files);
 }
 
-void AssetRegistry::loadFile(const char* filename)
+void AssetRegistry::loadFile(const char* filename, Loader& loader)
 {
     const char* extension = getFileExtension(filename);
-    std::shared_lock lock(mutex);
-    auto asset = std::unique_ptr<Asset>(loaders.at(extension)->load(filename));
-    lock.unlock();
-    std::unique_lock unique(lock);
-    assets[asset->getName()] = std::move(asset);
+    if (strcmp(extension, "meta") != 0) {
+        std::shared_lock lock(mutex);
+        auto loadedAssets = loader.load(filename);
+        lock.unlock();
+        std::unique_lock unique(lock);
+        for (Asset* asset : loadedAssets)
+            insert(asset);
+    }
 }
 
 void AssetRegistry::destroy() noexcept
 {
     assets.clear();
-    loaders.clear();
 }
 
 AssetRegistry::AssetRegistry() noexcept
@@ -49,5 +53,14 @@ AssetRegistry::AssetRegistry() noexcept
     instance = this;
     logger = spdlog::default_logger()->clone("Assets");
     spdlog::register_logger(logger);
+}
+
+nlohmann::json AssetRegistry::Loader::readMetadata(const char* filename)
+{
+    char path[MAX_FILEPATH_LENGTH + 6];
+    strncpy(path, filename, MAX_FILEPATH_LENGTH);
+    strcat(path, ".meta");
+    File file(path);
+    return file.readToString();
 }
 }   // namespace df

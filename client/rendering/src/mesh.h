@@ -7,19 +7,21 @@
 #include "vertex.h"
 #include "vulkan_includes.h"
 #include <array>
+#include <asset.h>
 
 namespace df {
 
-class VertexBuffer {
+class Mesh : public Asset {
     Buffer buffer;
     vk::DeviceSize indexOffset = 0, indexCount = 0;
 
 public:
-    VertexBuffer() = default;
-    VertexBuffer(Buffer&& buffer, vk::DeviceSize indexOffset, vk::DeviceSize indexCount) noexcept
+    Mesh() = default;
+    Mesh(Buffer&& buffer, vk::DeviceSize indexOffset, vk::DeviceSize indexCount) noexcept
         : buffer(std::move(buffer)), indexOffset(indexOffset), indexCount(indexCount)
     {
     }
+    void setName(const std::string& str) noexcept { name = std::move(str); }
     void destroy() noexcept { buffer.destroy(); }
     static std::array<vk::VertexInputBindingDescription, 2> vertexInputDescriptions;
     static std::array<vk::VertexInputAttributeDescription, 7> vertexAttributeDescriptions;
@@ -30,8 +32,8 @@ public:
     class Factory {
     public:
         explicit Factory(class Renderer* renderer);
-        VertexBuffer* create(Vertex* vertices, UInt vertexCount, UInt* indices, UInt numIndices);
-        VertexBuffer* create(std::vector<Vertex>& vertices, std::vector<UInt>& indices)
+        Mesh* create(Vertex* vertices, UInt vertexCount, UInt* indices, UInt numIndices);
+        Mesh* create(std::vector<Vertex>& vertices, std::vector<UInt>& indices)
         {
             return create(vertices.data(), vertices.size(), indices.data(), indices.size());
         }

@@ -22,6 +22,8 @@ public:
     void addModel(Model* model, const Transform& transform);
     void drawFrame();
 
+    void loadMaterials(const char* path);
+    void loadModels(const char* path);
 private:
     Camera camera;
     class Renderer* renderer = nullptr;

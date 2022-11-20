@@ -3,6 +3,7 @@
 //
 
 #include "game_client.h"
+#include "../rendering/src/render_asset_loaders.h"
 
 namespace df {
 
@@ -14,7 +15,7 @@ GameClient::GameClient(int argc, char** argv) : Game(argc, argv)
     SDL_GetVersion(&version);
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
     renderContext = new RenderContext();
-    assetRegistry.loadDir("assets/models");
+    loadAssets();
 }
 
 GameClient::~GameClient()
@@ -38,5 +39,11 @@ void GameClient::mainLoop(double deltaSeconds)
                 break;
         }
     }
+}
+
+void GameClient::loadAssets()
+{
+    renderContext->loadMaterials("assets/materials");
+    renderContext->loadModels("assets/models");
 }
 }   // namespace df

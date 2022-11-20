@@ -5,6 +5,7 @@
 #pragma once
 #include <concepts>
 #include <mutex>
+#include <nlohmann/json_fwd.hpp>
 namespace df {
 
 class Asset {
@@ -38,27 +39,25 @@ public:
     {
         return get<T>(str);
     }
-    void loadDir(const char* dirName);
-    void loadFile(const char* filename);
+
+    void insert(std::unique_ptr<Asset>&& asset) { assets[asset->getName()] = std::move(asset); }
+    void insert(Asset* asset) { insert(std::unique_ptr<Asset>(asset)); }
 
     struct Loader {
-        virtual Asset* load(const char* filename) = 0;
+        virtual std::vector<Asset*> load(const char* filename) = 0;
         virtual ~Loader() = default;
-        Asset* operator()(const char* filename) { return load(filename); }
+        std::vector<Asset*> operator()(const char* filename) { return load(filename); }
 
     protected:
         std::shared_ptr<spdlog::logger> logger = spdlog::get("Assets");
+        static nlohmann::json readMetadata(const char* filename);
     };
-
-    void addLoader(std::unique_ptr<Loader>&& loader, const char* fileExtension)
-    {
-        loaders.emplace(fileExtension, std::move(loader));
-    }
+    void loadDir(const char* dirName, Loader& loader);
+    void loadFile(const char* filename, Loader& loader);
 
 private:
     std::shared_mutex mutex;
     HashMap<std::string, std::unique_ptr<Asset>> assets;
-    HashMap<std::string, std::unique_ptr<Loader>> loaders;
     std::shared_ptr<spdlog::logger> logger;
     inline static AssetRegistry* instance = nullptr;
 };

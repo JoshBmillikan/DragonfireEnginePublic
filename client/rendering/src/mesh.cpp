@@ -2,12 +2,12 @@
 // Created by josh on 11/14/22.
 //
 
-#include "vertex_buffer.h"
+#include "mesh.h"
 #include "renderer.h"
 
 namespace df {
 
-VertexBuffer::Factory::Factory(Renderer* renderer)
+Mesh::Factory::Factory(Renderer* renderer)
 {
     device = renderer->device;
     graphicsFamily = renderer->queues.graphicsFamily;
@@ -33,7 +33,7 @@ VertexBuffer::Factory::Factory(Renderer* renderer)
     semaphore = device.createSemaphore(vk::SemaphoreCreateInfo());
 }
 
-VertexBuffer* VertexBuffer::Factory::create(Vertex* vertices, UInt vertexCount, UInt* indices, UInt numIndices)
+Mesh* Mesh::Factory::create(Vertex* vertices, UInt vertexCount, UInt* indices, UInt numIndices)
 {
     vk::DeviceSize vertexSize = vertexCount * sizeof(Vertex);
     vk::DeviceSize indexSize = numIndices * sizeof(UInt);
@@ -81,10 +81,10 @@ VertexBuffer* VertexBuffer::Factory::create(Vertex* vertices, UInt vertexCount, 
 
     vk::resultCheck(device.waitForFences(fence, true, UINT64_MAX), "Fence wait failed");
     device.resetFences(fence);
-    return new VertexBuffer(std::move(meshBuffer), vertexSize, numIndices);
+    return new Mesh(std::move(meshBuffer), vertexSize, numIndices);
 }
 
-void VertexBuffer::Factory::destroy() noexcept
+void Mesh::Factory::destroy() noexcept
 {
     if (device) {
         device.destroy(pool);
@@ -96,7 +96,7 @@ void VertexBuffer::Factory::destroy() noexcept
     }
 }
 
-void VertexBuffer::Factory::createStagingBuffer(vk::DeviceSize size)
+void Mesh::Factory::createStagingBuffer(vk::DeviceSize size)
 {
     vk::BufferCreateInfo createInfo;
     createInfo.size = size;
@@ -112,7 +112,7 @@ void VertexBuffer::Factory::createStagingBuffer(vk::DeviceSize size)
     stagingBuffer = Buffer(createInfo, allocInfo);
 }
 
-void VertexBuffer::Factory::transferQueueOwnership(Buffer& meshBuffer)
+void Mesh::Factory::transferQueueOwnership(Buffer& meshBuffer)
 {
     {
         vk::BufferMemoryBarrier barrier;
@@ -171,7 +171,7 @@ void VertexBuffer::Factory::transferQueueOwnership(Buffer& meshBuffer)
     graphicsQueue.submit(submitInfo, fence);
 }
 
-VertexBuffer::Factory::Factory(VertexBuffer::Factory&& other) noexcept
+Mesh::Factory::Factory(Mesh::Factory&& other) noexcept
 {
     if (this != &other) {
         device = other.device;
@@ -189,7 +189,7 @@ VertexBuffer::Factory::Factory(VertexBuffer::Factory&& other) noexcept
     }
 }
 
-VertexBuffer::Factory& VertexBuffer::Factory::operator=(Factory&& other) noexcept
+Mesh::Factory& Mesh::Factory::operator=(Factory&& other) noexcept
 {
     if (this != &other) {
         device = other.device;
@@ -208,12 +208,12 @@ VertexBuffer::Factory& VertexBuffer::Factory::operator=(Factory&& other) noexcep
     return *this;
 }
 
-std::array<vk::VertexInputBindingDescription, 2> VertexBuffer::vertexInputDescriptions = {
+std::array<vk::VertexInputBindingDescription, 2> Mesh::vertexInputDescriptions = {
         vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
         vk::VertexInputBindingDescription(1, sizeof(glm::mat4), vk::VertexInputRate::eInstance),
 };
 
-std::array<vk::VertexInputAttributeDescription, 7> VertexBuffer::vertexAttributeDescriptions = {
+std::array<vk::VertexInputAttributeDescription, 7> Mesh::vertexAttributeDescriptions = {
         vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, position)),
         vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)),
         vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, uv)),

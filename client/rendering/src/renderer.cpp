@@ -140,11 +140,11 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 }
                 if (drawCount > 0) {
                     // TODO pipeline/descriptor sets
-                    vk::Buffer vertexBuffers[] = {model->getVertexBuffer().getBuffer(), vertexBuffer};
+                    vk::Buffer vertexBuffers[] = {model->getMesh().getBuffer(), vertexBuffer};
                     vk::DeviceSize offsets[] = {0, bufferOffset};
                     cmd.bindVertexBuffers(0, vertexBuffers, offsets);
-                    cmd.bindIndexBuffer(model->getVertexBuffer().getBuffer(), model->getVertexBuffer().getIndexOffset(), vk::IndexType::eUint32);
-                    cmd.drawIndexed(model->getVertexBuffer().getIndexCount(), drawCount, 0, 0, 0);
+                    cmd.bindIndexBuffer(model->getMesh().getBuffer(), model->getMesh().getIndexOffset(), vk::IndexType::eUint32);
+                    cmd.drawIndexed(model->getMesh().getIndexCount(), drawCount, 0, 0, 0);
                 }
                 bufferOffset += drawCount;
             } break;
@@ -449,7 +449,6 @@ void Renderer::init(SDL_Window* window, bool validation)
         threadData[i].thread = std::thread(&Renderer::renderThread, this, threadStop.get_token(), i);
 
     presentThreadHandle = std::thread(&Renderer::presentThread, this, threadStop.get_token());
-    AssetRegistry::getRegistry().addLoader(std::move(Model::createLoader(this)), "obj");
     logger->info("Vulkan initialization complete");
 }
 
