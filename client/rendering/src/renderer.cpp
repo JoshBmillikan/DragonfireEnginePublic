@@ -241,6 +241,8 @@ void Renderer::shutdown() noexcept
             device.destroy(frame.pool);
         }
         pipelineFactory.destroy();
+        device.destroy(descriptorPool);
+        device.destroy(globalDescriptorSetLayout);
         globalUniformBuffer.destroy();
         device.destroy(depthView);
         depthImage.destroy();
@@ -439,7 +441,7 @@ void Renderer::init(SDL_Window* window, bool validation)
     logger->info("Using swapchain extent {}x{}", swapchain.getExtent().width, swapchain.getExtent().height);
     createDepthImage();
     allocateUniformBuffer();
-
+    createDescriptorPool();
     pipelineFactory = PipelineFactory(device, swapchain.getFormat(), depthImage.getFormat(), logger.get());
     createFrames();
     logger->info("Using {} render threads", renderThreadCount);
@@ -750,6 +752,28 @@ bool Renderer::depthHasStencil() const noexcept
     return depthImage.getFormat() == vk::Format::eD24UnormS8Uint || depthImage.getFormat() == vk::Format::eD32SfloatS8Uint;
 }
 
+void Renderer::createDescriptorPool()
+{
+    vk::DescriptorPoolSize size;
+    size.type = vk::DescriptorType::eUniformBuffer;
+    size.descriptorCount = 10;
+    vk::DescriptorPoolCreateInfo poolCreateInfo;
+    poolCreateInfo.maxSets = 10;
+    poolCreateInfo.pPoolSizes = &size;
+    poolCreateInfo.poolSizeCount = 1;
+    descriptorPool = device.createDescriptorPool(poolCreateInfo);
+
+    vk::DescriptorSetLayoutBinding binding;
+    binding.binding = 0;
+    binding.descriptorCount = 1;
+    binding.descriptorType = vk::DescriptorType::eUniformBuffer;
+    binding.stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
+    vk::DescriptorSetLayoutCreateInfo layoutCreateInfo;
+    layoutCreateInfo.pBindings = &binding;
+    layoutCreateInfo.bindingCount = 1;
+    globalDescriptorSetLayout = device.createDescriptorSetLayout(layoutCreateInfo);
+}
+
 void Renderer::createFrames()
 {
     vk::CommandPoolCreateInfo poolCreateInfo;
@@ -759,7 +783,19 @@ void Renderer::createFrames()
     fenceCreateInfo.flags = vk::FenceCreateFlagBits::eSignaled;
     vk::SemaphoreCreateInfo semaphoreCreateInfo;
 
-    for (Frame& frame : frames) {
+    std::array<vk::DescriptorSetLayout, FRAMES_IN_FLIGHT> layouts;
+    layouts.fill(globalDescriptorSetLayout);
+    vk::DescriptorSetAllocateInfo descriptorSetInfo;
+    descriptorSetInfo.descriptorPool = descriptorPool;
+    descriptorSetInfo.pSetLayouts = layouts.data();
+    descriptorSetInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
+    vk::DescriptorSet allocatedSets[FRAMES_IN_FLIGHT];
+    vk::resultCheck(device.allocateDescriptorSets(&descriptorSetInfo, allocatedSets), "Failed to allocate descriptor sets");
+
+    std::array<vk::DescriptorBufferInfo, FRAMES_IN_FLIGHT> bufferInfos;
+    std::array<vk::WriteDescriptorSet, FRAMES_IN_FLIGHT> writes;
+    for (UInt i=0; i<FRAMES_IN_FLIGHT; i++) {
+        Frame& frame = frames[i];
         frame.pool = device.createCommandPool(poolCreateInfo);
         vk::CommandBufferAllocateInfo allocInfo;
         allocInfo.commandBufferCount = 1;
@@ -769,7 +805,16 @@ void Renderer::createFrames()
         frame.fence = device.createFence(fenceCreateInfo);
         frame.presentSemaphore = device.createSemaphore(semaphoreCreateInfo);
         frame.renderSemaphore = device.createSemaphore(semaphoreCreateInfo);
+        frame.globalDescriptorSet = allocatedSets[i];
+        bufferInfos[i].buffer = globalUniformBuffer;
+        bufferInfos[i].offset = globalUniformOffset * i;
+        bufferInfos[i].range = sizeof (UboData);
+        writes[i].dstSet = frame.globalDescriptorSet;
+        writes[i].descriptorType = vk::DescriptorType::eUniformBuffer;
+        writes[i].descriptorCount = 1;
+        writes[i].pBufferInfo = &bufferInfos[i];
     }
+    device.updateDescriptorSets(writes, {});
 }
 
 bool Renderer::Queues::getFamilies(vk::PhysicalDevice pDevice, vk::SurfaceKHR surfaceKhr)

@@ -47,6 +47,9 @@ private:
     PipelineFactory pipelineFactory;
     Buffer globalUniformBuffer;
     vk::DeviceSize globalUniformOffset = 0;
+    vk::DescriptorSetLayout globalDescriptorSetLayout;
+    vk::DescriptorPool descriptorPool;
+
     glm::mat4 viewPerspective{};
     glm::mat4 viewOrthographic{};
 
@@ -88,6 +91,7 @@ private:
         vk::CommandBuffer buffer;
         vk::Fence fence;
         vk::Semaphore renderSemaphore, presentSemaphore;
+        vk::DescriptorSet globalDescriptorSet;
     } frames[FRAMES_IN_FLIGHT], *presentingFrame = nullptr;
 
     struct UboData {
@@ -113,7 +117,13 @@ private:
     void initAllocator() const;
     void createDepthImage();
     void allocateUniformBuffer();
+    void createDescriptorPool();
     void createFrames();
+
+public:
+    PipelineFactory* getPipelineFactory() noexcept { return &pipelineFactory; }
+    [[nodiscard]] vk::Device getDevice() const noexcept { return device; };
+    [[nodiscard]] vk::DescriptorSetLayout getGlobalDescriptorSetLayout() const noexcept { return globalDescriptorSetLayout; }
 };
 
 }   // namespace df

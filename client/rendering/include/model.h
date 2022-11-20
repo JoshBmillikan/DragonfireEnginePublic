@@ -10,6 +10,7 @@ class Model {
     class Material* material;
 
 public:
+    Model(const char* meshId, const char* materialId);
     Mesh& getMesh() noexcept {return *mesh;}
     Material& getMaterial() noexcept {return *material;}
 };

@@ -1,0 +1,7 @@
+{
+  "name": "basic",
+  "shaders": {
+    "fragment": "base.frag",
+    "vertex": "base.vert"
+  }
+}

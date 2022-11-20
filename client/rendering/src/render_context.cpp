@@ -63,10 +63,15 @@ void RenderContext::drawFrame()
         matrices.clear();
 }
 
+void RenderContext::loadTextures(const char* path)
+{
+}
+
 void RenderContext::loadMaterials(const char* path)
 {
-    Material::Loader loader;
-    AssetRegistry::getRegistry().loadDir(path, loader);
+    MaterialLoader loader(renderer->getPipelineFactory(), renderer->getDevice(), renderer->getGlobalDescriptorSetLayout());
+    auto& registry = AssetRegistry::getRegistry();
+    registry.loadDir("assets/materials", loader);
 }
 
 void RenderContext::loadModels(const char* path)

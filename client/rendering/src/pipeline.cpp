@@ -196,7 +196,7 @@ void PipelineFactory::loadShaders() noexcept
             strncpy(name, filename, len);
             name[len] = '\0';
             shaders.emplace(name, module);
-            logger->info("loaded shader module: {}", name);
+            logger->info("loaded shader module \"{}\"", name);
         }
         catch (const std::exception& e) {
             logger->error("Failed to create shader module \"{}\", error: {}", filename, e.what());

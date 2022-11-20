@@ -3,20 +3,12 @@
 //
 
 #include "material.h"
-#include <file.h>
-#include <nlohmann/json.hpp>
-#include "pipeline.h"
 
 namespace df {
 
-std::vector<Asset*> Material::Loader::load(const char* filename)
+Material::~Material()
 {
-    File file(filename);
-    nlohmann::json json = file.readToString();
-    file.close();
-
-
-
-    return {};
+    device.destroy(pipeline);
+    device.destroy(layout);
 }
 }   // namespace df

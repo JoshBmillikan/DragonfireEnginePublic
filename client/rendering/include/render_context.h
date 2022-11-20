@@ -22,6 +22,7 @@ public:
     void addModel(Model* model, const Transform& transform);
     void drawFrame();
 
+    void loadTextures(const char* path);
     void loadMaterials(const char* path);
     void loadModels(const char* path);
 private:

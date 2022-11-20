@@ -59,6 +59,5 @@ FetchContent_Declare(
         GIT_TAG 76298bc26ae7d47e5e75baeb9da1bd5bf17bdadc
 )
 FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense nameof tinyobjloader concurrentQueue entt)
-
 add_subdirectory(core)
 add_subdirectory(client)

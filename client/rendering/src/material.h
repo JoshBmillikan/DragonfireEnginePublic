@@ -10,15 +10,14 @@
 namespace df {
 
 class Material : public Asset {
+    friend class MaterialLoader;
     vk::Pipeline pipeline;
     vk::PipelineLayout layout;
+    vk::Device device;
 public:
-    class Loader : public AssetRegistry::Loader {
-        PipelineFactory pipelineFactory;
-    public:
-
-        std::vector<Asset*> load(const char* filename) override;
-    };
+    Material() = default;
+    ~Material() override;
+    DF_NO_MOVE_COPY(Material);
 };
 
 }   // namespace df

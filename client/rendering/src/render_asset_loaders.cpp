@@ -8,11 +8,11 @@
 #include <asset.h>
 #include <file.h>
 #include <mutex>
+#include <nlohmann/json.hpp>
 
 namespace df {
 std::vector<Asset*> ObjLoader::load(const char* filename)
 {
-    tinyobj::ObjReader reader;
     File file(filename);
     std::string str = file.readToString();
     file.close();
@@ -74,5 +74,59 @@ Mesh* ObjLoader::createMesh(const tinyobj::shape_t& shape, const tinyobj::attrib
     }
     logger->info("Loaded model \"{}\" with {} vertices", shape.name, vertices.size());
     return factory.create(vertices, indices);
+}
+
+vk::PipelineLayout MaterialLoader::createPipelineLayout(nlohmann::json& json, vk::Device device)
+{
+    vk::PipelineLayoutCreateInfo createInfo;
+    createInfo.pSetLayouts = &setLayout;
+    createInfo.setLayoutCount = 1;
+
+    return device.createPipelineLayout(createInfo);
+}
+
+std::vector<Asset*> MaterialLoader::load(const char* filename)
+{
+    File file(filename);
+    nlohmann::json json = nlohmann::json::parse(file.readToString());
+    file.close();
+    std::vector<Asset*> out;
+    if (json.is_array()) {
+        out.reserve(json.size());
+        for (auto& material : json)
+            out.push_back(createMaterial(material));
+    }
+    else
+        out.push_back(createMaterial(json));
+
+    return out;
+}
+
+Material* MaterialLoader::createMaterial(nlohmann::json& json)
+{
+    Material* material;
+    vk::Pipeline pipeline = nullptr;
+    vk::PipelineLayout layout = createPipelineLayout(json, device);
+    try {
+        pipeline = pipelineFactory->createPipeline(json["shaders"], layout);
+        material = new Material();
+        material->pipeline = pipeline;
+        material->layout = layout;
+        material->device = device;
+        material->name = json["name"].get<std::string>();
+        logger->info("Loaded material \"{}\"", material->name);
+    }
+    catch (std::exception& e) {
+        device.destroy(layout);
+        if (pipeline)
+            device.destroy(pipeline);
+        throw;
+    }
+    return material;
+}
+
+MaterialLoader::MaterialLoader(PipelineFactory* pipelineFactory, vk::Device device, vk::DescriptorSetLayout setLayout)
+    : pipelineFactory(pipelineFactory), device(device), setLayout(setLayout)
+{
 }
 }   // namespace df
