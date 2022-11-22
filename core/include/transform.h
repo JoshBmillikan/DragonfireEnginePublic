@@ -4,6 +4,7 @@
 
 #pragma once
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/hash.hpp>
 namespace df {
 
 class Transform {

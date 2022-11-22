@@ -48,11 +48,6 @@ void RenderContext::shutdown() noexcept
     }
 }
 
-void RenderContext::addModel(Model* model, const Transform& transform)
-{
-    models[model].push_back(transform);
-}
-
 void RenderContext::drawFrame()
 {
     renderer->beginRendering(camera);
@@ -65,6 +60,7 @@ void RenderContext::drawFrame()
 
 void RenderContext::loadTextures(const char* path)
 {
+    //todo
 }
 
 void RenderContext::loadMaterials(const char* path)

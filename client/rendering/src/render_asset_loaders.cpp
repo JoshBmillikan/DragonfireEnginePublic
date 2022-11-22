@@ -76,7 +76,7 @@ Mesh* ObjLoader::createMesh(const tinyobj::shape_t& shape, const tinyobj::attrib
     return factory.create(vertices, indices);
 }
 
-vk::PipelineLayout MaterialLoader::createPipelineLayout(nlohmann::json& json, vk::Device device)
+vk::PipelineLayout MaterialLoader::createPipelineLayout(nlohmann::json& json)
 {
     vk::PipelineLayoutCreateInfo createInfo;
     createInfo.pSetLayouts = &setLayout;
@@ -104,9 +104,9 @@ std::vector<Asset*> MaterialLoader::load(const char* filename)
 
 Material* MaterialLoader::createMaterial(nlohmann::json& json)
 {
-    Material* material;
+    Material* material = nullptr;
     vk::Pipeline pipeline = nullptr;
-    vk::PipelineLayout layout = createPipelineLayout(json, device);
+    vk::PipelineLayout layout = createPipelineLayout(json);
     try {
         pipeline = pipelineFactory->createPipeline(json["shaders"], layout);
         material = new Material();
@@ -120,6 +120,7 @@ Material* MaterialLoader::createMaterial(nlohmann::json& json)
         device.destroy(layout);
         if (pipeline)
             device.destroy(pipeline);
+        delete material;
         throw;
     }
     return material;

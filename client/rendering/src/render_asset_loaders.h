@@ -36,6 +36,6 @@ public:
     MaterialLoader(PipelineFactory* pipelineFactory, vk::Device device, vk::DescriptorSetLayout setLayout);
     std::vector<Asset*> load(const char* filename) override;
     Material* createMaterial(nlohmann::json& json);
-    vk::PipelineLayout createPipelineLayout(nlohmann::json& json, vk::Device device);
+    vk::PipelineLayout createPipelineLayout(nlohmann::json& json);
 };
 }
