@@ -17,6 +17,7 @@ struct GraphicsSettings {
         fullscreen,
         windowed,
     } windowMode = WindowMode::borderless;
+    float fov = 60;
 };
 
 class Config {

@@ -20,6 +20,7 @@ protected:
 private:
     RenderContext* renderContext;
     void loadAssets();
+    void update(double deltaSeconds);
 };
 
 }   // namespace df

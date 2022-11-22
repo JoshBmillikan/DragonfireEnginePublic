@@ -4,6 +4,7 @@
 
 #include "renderer.h"
 #include "config.h"
+#include "material.h"
 #include <SDL_vulkan.h>
 #include <alloca.h>
 
@@ -15,7 +16,6 @@ void Renderer::beginRendering(const Camera& camera)
 {
     std::unique_lock lock(presentLock);
     vk::Result lastResult = presentResult;
-    lock.unlock();
     Frame& frame = getCurrentFrame();
 
     if (device.waitForFences(frame.fence, true, UINT64_MAX) != vk::Result::eSuccess)
@@ -29,7 +29,8 @@ void Renderer::beginRendering(const Camera& camera)
         lastResult = swapchain.next(frame.presentSemaphore);
         retryCount++;
     } while (lastResult != vk::Result::eSuccess && retryCount < 10);
-    vk::resultCheck(lastResult, "Failed to resize swapchain");
+    if (lastResult != vk::Result::eSuccess)
+        crash("Failed to resize swapchain");
 
     char* ptr = static_cast<char*>(globalUniformBuffer.getInfo().pMappedData);
     ptr += globalUniformOffset * (frameCount % FRAMES_IN_FLIGHT);
@@ -49,6 +50,7 @@ void Renderer::beginRendering(const Camera& camera)
         threadData[i].mutex.unlock();
         threadData[i].cond.notify_one();
     }
+    renderBarrier.arrive_and_wait();
 }
 
 void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
@@ -61,6 +63,7 @@ void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
         data.matrixCount = matrices.size();
         data.command = RenderCommand::render;
         data.model = model;
+        data.uboDescriptorSet = getCurrentFrame().globalDescriptorSet;
     }
     data.cond.notify_one();
     threadIndex = (threadIndex + 1) % renderThreadCount;
@@ -68,6 +71,14 @@ void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
 
 void Renderer::endRendering()
 {
+    if (threadData == nullptr)
+        crash("Renderer was not initialized");
+    for (UInt i = 0; i < renderThreadCount; i++) {
+        threadData[i].mutex.lock();
+        threadData[i].command = RenderCommand::end;
+        threadData[i].mutex.unlock();
+        threadData[i].cond.notify_one();
+    }
     renderBarrier.arrive_and_wait();
     Frame& frame = getCurrentFrame();
     vk::CommandBuffer cmd = frame.buffer;
@@ -112,12 +123,39 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
         if (token.stop_requested())
             break;
         switch (data.command) {
-            case RenderCommand::begin:
+            case RenderCommand::begin: {
                 pool = pools[frameCount % FRAMES_IN_FLIGHT];
                 cmd = buffers[frameCount % FRAMES_IN_FLIGHT];
                 device.resetCommandPool(pool);
+                auto fmt = swapchain.getFormat();
+                vk::CommandBufferInheritanceRenderingInfo renderingInfo;
+                renderingInfo.colorAttachmentCount = 1;
+                renderingInfo.pColorAttachmentFormats = &fmt;
+                renderingInfo.depthAttachmentFormat = depthImage.getFormat();
+                renderingInfo.rasterizationSamples = rasterSamples;
+
+                vk::CommandBufferInheritanceInfo inheritanceInfo;
+                inheritanceInfo.pNext = &renderingInfo;
+                vk::CommandBufferBeginInfo beginInfo;
+                beginInfo.pInheritanceInfo = &inheritanceInfo;
+                beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
+                                  | vk::CommandBufferUsageFlagBits::eRenderPassContinue;
+                cmd.begin(beginInfo);
+                vk::Viewport viewport;
+                viewport.x = 0;
+                viewport.y = 0;
+                viewport.width = static_cast<float>(swapchain.getExtent().width);
+                viewport.height = static_cast<float>(swapchain.getExtent().height);
+                viewport.minDepth = 0.0;
+                viewport.maxDepth = 1.0;
+                cmd.setViewport(0, viewport);
+                vk::Rect2D scissor;
+                scissor.offset = vk::Offset2D();
+                scissor.extent = swapchain.getExtent();
+                cmd.setScissor(0, scissor);
                 bufferOffset = 0;
-                break;
+                renderBarrier.arrive_and_wait();
+            } break;
             case RenderCommand::render: {
                 if ((bufferOffset + data.matrixCount) * sizeof(glm::mat4) >= vertexBuffer.getInfo().size) {
                     Buffer newBuffer = createInstanceVertexBuffer(
@@ -139,11 +177,20 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                     }
                 }
                 if (drawCount > 0) {
-                    // TODO pipeline/descriptor sets
                     vk::Buffer vertexBuffers[] = {model->getMesh().getBuffer(), vertexBuffer};
                     vk::DeviceSize offsets[] = {0, bufferOffset};
+                    vk::Pipeline pipeline = model->getMaterial().getPipeline();
+                    vk::PipelineLayout pipelineLayout = model->getMaterial().getLayout();
+
+                    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
+                    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, data.uboDescriptorSet, {});
+
                     cmd.bindVertexBuffers(0, vertexBuffers, offsets);
-                    cmd.bindIndexBuffer(model->getMesh().getBuffer(), model->getMesh().getIndexOffset(), vk::IndexType::eUint32);
+                    cmd.bindIndexBuffer(
+                            model->getMesh().getBuffer(),
+                            model->getMesh().getIndexOffset(),
+                            vk::IndexType::eUint32
+                    );
                     cmd.drawIndexed(model->getMesh().getIndexCount(), drawCount, 0, 0, 0);
                 }
                 bufferOffset += drawCount;
@@ -151,16 +198,19 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
             case RenderCommand::end:
                 cmd.end();
                 secondaryBuffers[threadIndex] = cmd;
+                cmd = nullptr;
                 renderBarrier.arrive_and_wait();
                 break;
             default: break;
         }
         data.command = RenderCommand::waiting;
     }
-    for (vk::CommandPool p : pools)
+    renderBarrier.arrive_and_wait();
+    for (vk::CommandPool p : pools) {
+        device.resetCommandPool(p);
         device.destroy(p);
+    }
     logger->trace("Render thread {} destroyed", threadIndex);
-    renderBarrier.arrive_and_drop();
 }
 
 bool Renderer::cullTest(Model* model, const glm::mat4& matrix)
@@ -217,23 +267,32 @@ void Renderer::presentThread(const std::stop_token& token)
         presentResult = queues.present.presentKHR(presentInfo);
         presentingFrame = nullptr;
     }
+    queues.present.waitIdle();
     logger->info("Presentation thread destroyed");
 }
 
-void Renderer::shutdown() noexcept
+void Renderer::stopRendering()
+{
+    logger->info("Shutting down render threads");
+    threadStop.request_stop();
+    presentCond.notify_one();
+    presentThreadHandle.join();
+    device.waitIdle();
+    renderBarrier.arrive_and_drop();
+    for (UInt i = 0; threadData != nullptr && i < renderThreadCount; i++) {
+        threadData[i].cond.notify_one();
+        threadData[i].thread.join();
+    }
+    delete[] threadData;
+    delete[] secondaryBuffers;
+    threadData = nullptr;
+}
+
+void Renderer::destroy() noexcept
 {
     if (instance) {
-        threadStop.request_stop();
-        presentCond.notify_one();
-        renderBarrier.arrive_and_drop();
-        for (UInt i = 0; threadData != nullptr && i < renderThreadCount; i++) {
-            threadData[i].cond.notify_one();
-            threadData[i].thread.join();
-        }
-        presentThreadHandle.join();
-        device.waitIdle();
-        delete[] threadData;
-        delete[] secondaryBuffers;
+        if (threadData)
+            stopRendering();
         for (Frame& frame : frames) {
             device.destroy(frame.fence);
             device.destroy(frame.renderSemaphore);
@@ -254,13 +313,14 @@ void Renderer::shutdown() noexcept
             instance.destroy(debugMessenger);
         instance.destroy();
         instance = nullptr;
-        logger->info("Renderer shutdown successfully");
+        logger->info("Renderer destroy successfully");
     }
 }
 
 void Renderer::recreateSwapchain()
 {
     // todo
+    crash("Not yet implemented");
 }
 
 void Renderer::beginCommandRecording()
@@ -290,19 +350,8 @@ void Renderer::beginCommandRecording()
     info.pDepthAttachment = &depth;
     info.layerCount = 1;
     info.renderArea = vk::Rect2D(vk::Offset2D(), swapchain.getExtent());
+    info.flags = vk::RenderingFlagBits::eContentsSecondaryCommandBuffers;
     frame.buffer.beginRendering(info);
-    vk::Viewport viewport;
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.width = static_cast<float>(swapchain.getExtent().width);
-    viewport.height = static_cast<float>(swapchain.getExtent().height);
-    viewport.minDepth = 0.0;
-    viewport.maxDepth = 1.0;
-    frame.buffer.setViewport(0, viewport);
-    vk::Rect2D scissor;
-    scissor.offset = vk::Offset2D();
-    scissor.extent = swapchain.getExtent();
-    frame.buffer.setScissor(0, scissor);
 }
 
 void Renderer::imageToColorWrite(vk::CommandBuffer cmd) const
@@ -317,6 +366,8 @@ void Renderer::imageToColorWrite(vk::CommandBuffer cmd) const
     image.subresourceRange.levelCount = 1;
     image.subresourceRange.baseArrayLayer = 0;
     image.subresourceRange.layerCount = 1;
+    image.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    image.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     depth.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
     depth.oldLayout = vk::ImageLayout::eUndefined;
     depth.newLayout = vk::ImageLayout::eDepthAttachmentOptimal;
@@ -353,6 +404,8 @@ void Renderer::imageToPresentSrc(vk::CommandBuffer cmd) const
     barrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
     barrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
     barrier.image = swapchain.getCurrentImage();
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
@@ -411,6 +464,15 @@ Renderer::Renderer(SDL_Window* window)
     bool validation = std::getenv("VALIDATION_LAYERS") != nullptr;
     init(window, validation);
 }
+
+static std::array<const char*, 6> DEVICE_EXTENSIONS = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+        VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
+        VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
+        VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+};
 
 void Renderer::init(SDL_Window* window, bool validation)
 {
@@ -515,14 +577,6 @@ void Renderer::createInstance(SDL_Window* window, bool validation)
     instance = vk::createInstance(createInfo);
     VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
 }
-
-static std::array<const char*, 5> DEVICE_EXTENSIONS = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
-        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-        VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
-        VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
-};
 
 static bool isValidDevice(vk::PhysicalDevice device)
 {
@@ -794,7 +848,7 @@ void Renderer::createFrames()
 
     std::array<vk::DescriptorBufferInfo, FRAMES_IN_FLIGHT> bufferInfos;
     std::array<vk::WriteDescriptorSet, FRAMES_IN_FLIGHT> writes;
-    for (UInt i=0; i<FRAMES_IN_FLIGHT; i++) {
+    for (UInt i = 0; i < FRAMES_IN_FLIGHT; i++) {
         Frame& frame = frames[i];
         frame.pool = device.createCommandPool(poolCreateInfo);
         vk::CommandBufferAllocateInfo allocInfo;
@@ -808,7 +862,7 @@ void Renderer::createFrames()
         frame.globalDescriptorSet = allocatedSets[i];
         bufferInfos[i].buffer = globalUniformBuffer;
         bufferInfos[i].offset = globalUniformOffset * i;
-        bufferInfos[i].range = sizeof (UboData);
+        bufferInfos[i].range = sizeof(UboData);
         writes[i].dstSet = frame.globalDescriptorSet;
         writes[i].descriptorType = vk::DescriptorType::eUniformBuffer;
         writes[i].descriptorCount = 1;

@@ -16,10 +16,15 @@ GameClient::GameClient(int argc, char** argv) : Game(argc, argv)
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
     renderContext = new RenderContext();
     loadAssets();
+    auto entity = registry.create();
+    registry.emplace<Model>(entity,"Suzanne", "basic");
+    registry.emplace<Transform>(entity);
 }
 
 GameClient::~GameClient()
 {
+    renderContext->waitForLastFrame();
+    registry.clear<>();
     assetRegistry.destroy();
     delete renderContext;
     SDL_Quit();
@@ -39,6 +44,16 @@ void GameClient::mainLoop(double deltaSeconds)
                 break;
         }
     }
+    update(deltaSeconds);
+}
+
+void GameClient::update(double deltaSeconds)
+{
+    auto renderObjects = registry.group<Model, Transform>();
+    for (auto&& [entity, model, transform] : renderObjects.each()) {
+        renderContext->addModel(&model, transform);
+    }
+    renderContext->drawFrame();
 }
 
 void GameClient::loadAssets()

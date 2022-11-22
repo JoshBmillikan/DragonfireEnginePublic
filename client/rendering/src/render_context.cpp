@@ -33,10 +33,21 @@ static SDL_Window* createWindow()
     throw std::runtime_error(fmt::format("SDL failed to create window: {}", SDL_GetError()));
 }
 
+static Camera createCamera(SDL_Window* window)
+{
+    auto& cfg = Config::get().graphics;
+    int width, height;
+    SDL_GetWindowSize(window, &width, &height);
+    return {cfg.fov, static_cast<UInt>(width), static_cast<UInt>(height)};
+}
+
 RenderContext::RenderContext()
 {
     window = createWindow();
     renderer = new Renderer(window);
+    camera = createCamera(window);
+    camera.position.x += 10;
+    camera.lookAt({0.0f,0.0f,0.0f});
 }
 
 void RenderContext::shutdown() noexcept
@@ -50,17 +61,19 @@ void RenderContext::shutdown() noexcept
 
 void RenderContext::drawFrame()
 {
-    renderer->beginRendering(camera);
-    for (auto& [model, matrices] : models)
-        renderer->render(model, matrices);
-    renderer->endRendering();
-    for (auto& [model, matrices] : models)
-        matrices.clear();
+    if (!models.empty()) {
+        renderer->beginRendering(camera);
+        for (auto& [model, matrices] : models)
+            renderer->render(model, matrices);
+        renderer->endRendering();
+        for (auto& [model, matrices] : models)
+            matrices.clear();
+    }
 }
 
 void RenderContext::loadTextures(const char* path)
 {
-    //todo
+    // todo
 }
 
 void RenderContext::loadMaterials(const char* path)
@@ -75,6 +88,11 @@ void RenderContext::loadModels(const char* path)
     ObjLoader loader(renderer);
     auto& registry = AssetRegistry::getRegistry();
     registry.loadDir("assets/models", loader);
+}
+
+void RenderContext::waitForLastFrame()
+{
+    renderer->stopRendering();
 }
 
 }   // namespace df

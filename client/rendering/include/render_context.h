@@ -21,6 +21,7 @@ public:
     void addModel(Model* model, const Transform& transform) { models[model].push_back(transform); }
 
     void drawFrame();
+    void waitForLastFrame();
 
     void loadTextures(const char* path);
     void loadMaterials(const char* path);

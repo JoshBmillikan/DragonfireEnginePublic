@@ -26,8 +26,9 @@ public:
     void beginRendering(const Camera& camera);
     void render(Model* model, const std::vector<glm::mat4>& matrices);
     void endRendering();
-    void shutdown() noexcept;
-    ~Renderer() noexcept { shutdown(); }
+    void stopRendering();
+    void destroy() noexcept;
+    ~Renderer() noexcept { destroy(); }
     DF_NO_MOVE_COPY(Renderer);
     static constexpr SDL_WindowFlags SDL_WINDOW_FLAGS = SDL_WINDOW_VULKAN;
 
@@ -49,6 +50,7 @@ private:
     vk::DeviceSize globalUniformOffset = 0;
     vk::DescriptorSetLayout globalDescriptorSetLayout;
     vk::DescriptorPool descriptorPool;
+    vk::SampleCountFlagBits rasterSamples = vk::SampleCountFlagBits::e1;
 
     glm::mat4 viewPerspective{};
     glm::mat4 viewOrthographic{};
@@ -78,6 +80,7 @@ private:
         const glm::mat4* matrices;
         UInt matrixCount = 0;
         Model* model;
+        vk::DescriptorSet uboDescriptorSet;
     }* threadData = nullptr;
 
     struct Queues {

@@ -18,6 +18,8 @@ public:
     Material() = default;
     ~Material() override;
     DF_NO_MOVE_COPY(Material);
+    [[nodiscard]] vk::Pipeline getPipeline() const { return pipeline; }
+    [[nodiscard]] vk::PipelineLayout getLayout() const { return layout; }
 };
 
 }   // namespace df
