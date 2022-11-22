@@ -15,7 +15,9 @@ namespace df {
 void Renderer::beginRendering(const Camera& camera)
 {
     std::unique_lock lock(presentLock);
+    presentCond.wait(lock, [&] {return presentingFrame == nullptr; });
     vk::Result lastResult = presentResult;
+    lock.unlock();
     Frame& frame = getCurrentFrame();
 
     if (device.waitForFences(frame.fence, true, UINT64_MAX) != vk::Result::eSuccess)
@@ -266,6 +268,8 @@ void Renderer::presentThread(const std::stop_token& token)
 
         presentResult = queues.present.presentKHR(presentInfo);
         presentingFrame = nullptr;
+        lock.unlock();
+        presentCond.notify_one();
     }
     queues.present.waitIdle();
     logger->info("Presentation thread destroyed");
