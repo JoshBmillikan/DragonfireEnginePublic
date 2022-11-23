@@ -47,12 +47,12 @@ void Renderer::beginRendering(const Camera& camera)
     if (threadData == nullptr)
         crash("Renderer was not initialized");
     for (UInt i = 0; i < renderThreadCount; i++) {
-        threadData[i].mutex.lock();
+        std::unique_lock l(threadData[i].mutex);
+        threadData[i].cond.wait(l, [&] {return threadData[i].command == RenderCommand::waiting;});
         threadData[i].command = RenderCommand::begin;
-        threadData[i].mutex.unlock();
+        l.unlock();
         threadData[i].cond.notify_one();
     }
-    renderBarrier.arrive_and_wait();
 }
 
 void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
@@ -61,6 +61,7 @@ void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
     auto& data = threadData[threadIndex];
     {
         std::unique_lock lock(data.mutex);
+        data.cond.wait(lock, [&] {return data.command == RenderCommand::waiting;});
         data.matrices = matrices.data();
         data.matrixCount = matrices.size();
         data.command = RenderCommand::render;
@@ -76,9 +77,10 @@ void Renderer::endRendering()
     if (threadData == nullptr)
         crash("Renderer was not initialized");
     for (UInt i = 0; i < renderThreadCount; i++) {
-        threadData[i].mutex.lock();
+        std::unique_lock l(threadData[i].mutex);
+        threadData[i].cond.wait(l, [&] {return threadData[i].command == RenderCommand::waiting;});
         threadData[i].command = RenderCommand::end;
-        threadData[i].mutex.unlock();
+        l.unlock();
         threadData[i].cond.notify_one();
     }
     renderBarrier.arrive_and_wait();
@@ -156,7 +158,6 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 scissor.extent = swapchain.getExtent();
                 cmd.setScissor(0, scissor);
                 bufferOffset = 0;
-                renderBarrier.arrive_and_wait();
             } break;
             case RenderCommand::render: {
                 if ((bufferOffset + data.matrixCount) * sizeof(glm::mat4) >= vertexBuffer.getInfo().size) {
@@ -206,6 +207,8 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
             default: break;
         }
         data.command = RenderCommand::waiting;
+        lock.unlock();
+        data.cond.notify_one();
     }
     renderBarrier.arrive_and_wait();
     for (vk::CommandPool p : pools) {
