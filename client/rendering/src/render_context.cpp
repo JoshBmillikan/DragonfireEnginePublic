@@ -38,7 +38,7 @@ static Camera createCamera(SDL_Window* window)
     auto& cfg = Config::get().graphics;
     int width, height;
     SDL_GetWindowSize(window, &width, &height);
-    spdlog::info("Aspect ratio {}", (float)width / (float)height);
+    spdlog::info("Aspect ratio {}", (float) width / (float) height);
     return Camera(cfg.fov, static_cast<UInt>(width), static_cast<UInt>(height));
 }
 
@@ -48,10 +48,10 @@ RenderContext::RenderContext()
     renderer = new Renderer(window);
     camera = createCamera(window);
     camera.position.x -= 5;
-    camera.lookAt({0.0f,0.0f,0.0f});
+    camera.lookAt({0.0f, 0.0f, 0.0f});
 }
 
-void RenderContext::shutdown() noexcept
+void RenderContext::destroy() noexcept
 {
     if (window) {
         delete renderer;
@@ -93,7 +93,7 @@ void RenderContext::loadModels(const char* path)
     registry.loadDir(path, loader);
 }
 
-void RenderContext::waitForLastFrame()
+void RenderContext::stopRendering()
 {
     renderer->stopRendering();
 }

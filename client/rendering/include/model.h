@@ -11,8 +11,8 @@ class Model {
 
 public:
     Model(const char* meshId, const char* materialId);
-    Mesh& getMesh() noexcept {return *mesh;}
-    Material& getMaterial() noexcept {return *material;}
+    Mesh& getMesh() noexcept { return *mesh; }
+    Material& getMaterial() noexcept { return *material; }
 };
 
 }   // namespace df

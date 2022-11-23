@@ -17,19 +17,19 @@ GameClient::GameClient(int argc, char** argv) : Game(argc, argv)
     renderContext = new RenderContext();
     loadAssets();
     auto entity = registry.create();
-    registry.emplace<Model>(entity,"Suzanne", "basic");
+    registry.emplace<Model>(entity, "Suzanne", "basic");
     Transform t;
     t.position.y += 2;
     registry.emplace<Transform>(entity, t);
     auto entity2 = registry.create();
-    registry.emplace<Model>(entity2,"Suzanne", "basic");
+    registry.emplace<Model>(entity2, "Suzanne", "basic");
     t.position.y -= 4;
     registry.emplace<Transform>(entity2, t);
 }
 
 GameClient::~GameClient()
 {
-    renderContext->waitForLastFrame();
+    renderContext->stopRendering();
     registry.clear<>();
     assetRegistry.destroy();
     delete renderContext;
@@ -57,7 +57,7 @@ void GameClient::update(double deltaSeconds)
 {
     auto renderObjects = registry.group<Model, Transform>();
     for (auto&& [entity, model, transform] : renderObjects.each()) {
-        renderContext->addModel(&model, transform);
+        renderContext->enqueueModel(&model, transform);
     }
     renderContext->drawFrame();
 }

@@ -4,8 +4,8 @@
 
 #pragma once
 #include "asset.h"
-#include "mesh.h"
 #include "material.h"
+#include "mesh.h"
 #include "pipeline.h"
 #include "tiny_obj_loader.h"
 #include <nlohmann/json_fwd.hpp>
@@ -32,10 +32,11 @@ class MaterialLoader : public AssetRegistry::Loader {
     PipelineFactory* pipelineFactory;
     vk::Device device;
     vk::DescriptorSetLayout setLayout;
+
 public:
     MaterialLoader(PipelineFactory* pipelineFactory, vk::Device device, vk::DescriptorSetLayout setLayout);
     std::vector<Asset*> load(const char* filename) override;
     Material* createMaterial(nlohmann::json& json);
     vk::PipelineLayout createPipelineLayout(nlohmann::json& json);
 };
-}
+}   // namespace df

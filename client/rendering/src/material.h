@@ -3,8 +3,8 @@
 //
 
 #pragma once
-#include "vulkan_includes.h"
 #include "pipeline.h"
+#include "vulkan_includes.h"
 #include <asset.h>
 
 namespace df {
@@ -14,6 +14,7 @@ class Material : public Asset {
     vk::Pipeline pipeline;
     vk::PipelineLayout layout;
     vk::Device device;
+
 public:
     Material() = default;
     ~Material() override;

@@ -3,9 +3,9 @@
 //
 
 #include "model.h"
-#include <asset.h>
-#include "mesh.h"
 #include "material.h"
+#include "mesh.h"
+#include <asset.h>
 namespace df {
 
 df::Model::Model(const char* meshId, const char* materialId)

@@ -10,7 +10,7 @@ ThreadPool ThreadPool::globalThreadPool;
 ThreadPool::ThreadPool(UInt threadCount)
 {
     workerThreads.reserve(threadCount);
-    for(UInt i=0;i<threadCount;i++)
+    for (UInt i = 0; i < threadCount; i++)
         workerThreads.emplace_back(&ThreadPool::workerThread, this, stop.get_token());
 }
 

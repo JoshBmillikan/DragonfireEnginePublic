@@ -15,7 +15,7 @@ namespace df {
 void Renderer::beginRendering(const Camera& camera)
 {
     std::unique_lock lock(presentLock);
-    presentCond.wait(lock, [&] {return presentingFrame == nullptr; });
+    presentCond.wait(lock, [&] { return presentingFrame == nullptr; });
     vk::Result lastResult = presentResult;
     lock.unlock();
     Frame& frame = getCurrentFrame();
@@ -48,7 +48,7 @@ void Renderer::beginRendering(const Camera& camera)
         crash("Renderer was not initialized");
     for (UInt i = 0; i < renderThreadCount; i++) {
         std::unique_lock l(threadData[i].mutex);
-        threadData[i].cond.wait(l, [&] {return threadData[i].command == RenderCommand::waiting;});
+        threadData[i].cond.wait(l, [&] { return threadData[i].command == RenderCommand::waiting; });
         threadData[i].command = RenderCommand::begin;
         l.unlock();
         threadData[i].cond.notify_one();
@@ -61,7 +61,7 @@ void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
     auto& data = threadData[threadIndex];
     {
         std::unique_lock lock(data.mutex);
-        data.cond.wait(lock, [&] {return data.command == RenderCommand::waiting;});
+        data.cond.wait(lock, [&] { return data.command == RenderCommand::waiting; });
         data.matrices = matrices.data();
         data.matrixCount = matrices.size();
         data.command = RenderCommand::render;
@@ -78,7 +78,7 @@ void Renderer::endRendering()
         crash("Renderer was not initialized");
     for (UInt i = 0; i < renderThreadCount; i++) {
         std::unique_lock l(threadData[i].mutex);
-        threadData[i].cond.wait(l, [&] {return threadData[i].command == RenderCommand::waiting;});
+        threadData[i].cond.wait(l, [&] { return threadData[i].command == RenderCommand::waiting; });
         threadData[i].command = RenderCommand::end;
         l.unlock();
         threadData[i].cond.notify_one();
