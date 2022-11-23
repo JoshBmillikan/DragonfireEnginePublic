@@ -18,7 +18,13 @@ GameClient::GameClient(int argc, char** argv) : Game(argc, argv)
     loadAssets();
     auto entity = registry.create();
     registry.emplace<Model>(entity,"Suzanne", "basic");
-    registry.emplace<Transform>(entity);
+    Transform t;
+    t.position.y += 2;
+    registry.emplace<Transform>(entity, t);
+    auto entity2 = registry.create();
+    registry.emplace<Model>(entity2,"Suzanne", "basic");
+    t.position.y -= 4;
+    registry.emplace<Transform>(entity2, t);
 }
 
 GameClient::~GameClient()

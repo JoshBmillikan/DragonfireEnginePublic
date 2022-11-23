@@ -39,6 +39,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         }
 );
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GraphicsSettings, vsync, resolution, windowMode);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GraphicsSettings, vsync, resolution, windowMode, fov);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Config, graphics);
 }   // namespace df

@@ -3,8 +3,8 @@
 //
 
 #pragma once
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/hash.hpp>
+#include <glm/gtx/quaternion.hpp>
 namespace df {
 
 class Transform {
@@ -19,7 +19,7 @@ public:
 
     [[nodiscard]] glm::mat4 toMatrix() const noexcept
     {
-        return glm::scale(glm::translate(glm::mat4(1.0f), position) * glm::toMat4(rotation), scale);
+        return glm::scale(glm::translate(glm::identity<glm::mat4>(), position) * glm::toMat4(rotation), scale);
     }
 
     operator glm::mat4() const noexcept { return toMatrix(); }
