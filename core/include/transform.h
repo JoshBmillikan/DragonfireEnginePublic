@@ -9,7 +9,7 @@ namespace df {
 
 class Transform {
 public:
-    glm::vec3 position, scale;
+    glm::vec3 position, scale = glm::vec3(1.0f);
     glm::quat rotation;
 
     bool operator==(const Transform& other) const noexcept

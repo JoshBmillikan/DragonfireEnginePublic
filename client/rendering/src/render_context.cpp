@@ -46,7 +46,7 @@ RenderContext::RenderContext()
     window = createWindow();
     renderer = new Renderer(window);
     camera = createCamera(window);
-    camera.position.x += 10;
+    camera.position.x += 1;
     camera.lookAt({0.0f,0.0f,0.0f});
 }
 
@@ -63,8 +63,10 @@ void RenderContext::drawFrame()
 {
     if (!models.empty()) {
         renderer->beginRendering(camera);
-        for (auto& [model, matrices] : models)
-            renderer->render(model, matrices);
+        for (auto& [model, matrices] : models) {
+            if (!matrices.empty())
+                renderer->render(model, matrices);
+        }
         renderer->endRendering();
         for (auto& [model, matrices] : models)
             matrices.clear();
@@ -80,14 +82,14 @@ void RenderContext::loadMaterials(const char* path)
 {
     MaterialLoader loader(renderer->getPipelineFactory(), renderer->getDevice(), renderer->getGlobalDescriptorSetLayout());
     auto& registry = AssetRegistry::getRegistry();
-    registry.loadDir("assets/materials", loader);
+    registry.loadDir(path, loader);
 }
 
 void RenderContext::loadModels(const char* path)
 {
     ObjLoader loader(renderer);
     auto& registry = AssetRegistry::getRegistry();
-    registry.loadDir("assets/models", loader);
+    registry.loadDir(path, loader);
 }
 
 void RenderContext::waitForLastFrame()
