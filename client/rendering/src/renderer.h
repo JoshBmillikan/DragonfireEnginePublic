@@ -21,13 +21,45 @@ class Renderer {
     friend class Mesh::Factory;
 
 public:
+    /**
+     *  Default constructs the class with zero init fields
+     */
     Renderer() noexcept = default;
+
+    /**
+     * Creates and initializes a new renderer
+     * @param window SDL window handle
+     */
     Renderer(SDL_Window* window);
+
+    /**
+     * Begin rendering a the next frame
+     * @param camera camera to use for the view and projection matrices
+     */
     void beginRendering(const Camera& camera);
+
+    /**
+     * Dispatch a model and set of matrices to one of the worker threads
+     * @param model the model to render
+     * @param matrices the matrices for each model instance
+     */
     void render(Model* model, const std::vector<glm::mat4>& matrices);
+
+    /**
+     * End rendering the current frame and present it
+     */
     void endRendering();
+
+    /**
+     * Join all rendering threads and wait for the queues to be idle
+     */
     void stopRendering();
+
+    /**
+     * Destroys the renderer and all associated resources
+     */
     void destroy() noexcept;
+
     ~Renderer() noexcept { destroy(); }
     DF_NO_MOVE_COPY(Renderer);
     static constexpr SDL_WindowFlags SDL_WINDOW_FLAGS = SDL_WINDOW_VULKAN;
@@ -104,23 +136,41 @@ private:
     };
 
 private:
+    /// Gets a reference to the current frame
     Frame& getCurrentFrame() noexcept { return frames[frameCount % FRAMES_IN_FLIGHT]; }
+    /// returns if the depth format has a stencil component
     [[nodiscard]] bool depthHasStencil() const noexcept;
+    /// The presentation thread function
     void presentThread(const std::stop_token& token);
+    /// The render worker thread function
     void renderThread(const std::stop_token& token, UInt threadIndex);
+    /// Returns true if the model should be rendered with the given transform
     bool cullTest(Model* model, const glm::mat4& matrix);
+    /// Start recording a command buffer
     void beginCommandRecording();
+    /// Record commands to transition the swapchain image from color attachment to present src
     void imageToPresentSrc(vk::CommandBuffer cmd) const;
+    /// Record commands to transition the swapchain/depth image to be written
     void imageToColorWrite(vk::CommandBuffer cmd) const;
+    /// Recreate the swapchain and assicated data
     void recreateSwapchain();
+    /// Initialize the renderer
     void init(SDL_Window* window, bool validation);
+    /// Create the vulkan instance
     void createInstance(SDL_Window* window, bool validation);
+    /// Get the gpu handle to use
     void getPhysicalDevice();
+    /// Create the vulkan device handle
     void createDevice();
+    /// Initialize the VMA allocator
     void initAllocator() const;
+    /// Create the depth image and view
     void createDepthImage();
+    /// Allocate the global uniform buffer
     void allocateUniformBuffer();
+    /// Create the descriptor pool and layout
     void createDescriptorPool();
+    /// Create per frame data
     void createFrames();
 
 public:

@@ -176,4 +176,16 @@ Swapchain& Swapchain::operator=(Swapchain&& other) noexcept
     }
     return *this;
 }
+
+Swapchain::~Swapchain() noexcept
+{
+    if (swapchain) {
+        for (UInt i = 0; i < imageCount; i++)
+            device.destroy(views[i]);
+        delete[] images;
+        delete[] views;
+        device.destroy(swapchain);
+        swapchain = nullptr;
+    }
+}
 }   // namespace df

@@ -64,6 +64,7 @@ void GameClient::update(double deltaSeconds)
 
 void GameClient::loadAssets()
 {
+    renderContext->loadTextures("assets/textures");
     renderContext->loadMaterials("assets/materials");
     renderContext->loadModels("assets/models");
 }

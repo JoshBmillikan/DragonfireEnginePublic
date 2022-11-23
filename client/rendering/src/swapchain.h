@@ -24,18 +24,18 @@ public:
     DF_NO_COPY(Swapchain);
     Swapchain(Swapchain&& other) noexcept;
     Swapchain& operator=(Swapchain&& other) noexcept;
-    ~Swapchain()
-    {
-        if (swapchain) {
-            for (UInt i = 0; i < imageCount; i++)
-                device.destroy(views[i]);
-            delete[] images;
-            delete[] views;
-            device.destroy(swapchain);
-            swapchain = nullptr;
-        }
-    };
+    ~Swapchain() noexcept;
+
+    /**
+     * Acquire the next swapchain image
+     * @param semaphore semaphore to signal
+     * @return the result of acquiring the image
+     */
     [[nodiscard]] vk::Result next(vk::Semaphore semaphore);
+
+    /**
+     * Destroy the swapchain
+     */
     void destroy() noexcept;
     operator vk::SwapchainKHR() noexcept { return swapchain; }
     [[nodiscard]] UInt getCurrentImageIndex() const noexcept { return currentImageIndex; }

@@ -10,17 +10,37 @@ namespace df {
 
 class Game {
 public:
+    /**
+     * Initialize the game
+     * @param argc number of args from the command line
+     * @param argv program arguments array
+     */
     Game(int argc, char** argv);
+
     virtual ~Game();
     DF_NO_MOVE_COPY(Game);
+
+    /**
+     * Start the game
+     */
     void run();
+
+    /**
+     * Stops the game
+     */
     void stop() noexcept { running = false; }
 
     AssetRegistry assetRegistry;
 
 protected:
-    entt::registry registry;
+    /**
+     * The program's main loop,
+     * Will be called once every frame
+     * @param deltaSeconds number of seconds since the last frame
+     */
     virtual void mainLoop(double deltaSeconds) = 0;
+
+    entt::registry registry;
     bool running = true;
 };
 

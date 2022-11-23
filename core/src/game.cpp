@@ -15,6 +15,7 @@
 
 namespace df {
 static void initLogging(const char* filename);
+
 Game::Game(int argc, char** argv)
 {
     int err = PHYSFS_init(argc > 0 ? *argv : nullptr);
@@ -24,7 +25,7 @@ Game::Game(int argc, char** argv)
         err = PHYSFS_mount(ASSET_PATH, "assets", false);
     if (err == 0)
         crash("PhysFS initialization failed: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
-    initLogging(argc > 0 ? *argv : "game.log");
+    initLogging(APP_NAME);
     spdlog::info("Loading application \"{}\"", APP_NAME);
     Config::loadConfigFile("config.json");
     spdlog::info("PhysFS initialized");
@@ -51,6 +52,10 @@ void Game::run()
     }
 }
 
+/**
+ * Initialize logging
+ * @param filename name of the log file to write to
+ */
 void initLogging(const char* filename)
 {
     using namespace spdlog;
@@ -72,6 +77,7 @@ void initLogging(const char* filename)
     std::string logPath = writeDir;
     logPath.append("/log/");
     logPath.append(filename);
+    logPath.append(".log");
     init_thread_pool(8192, 1);
 
     auto stdoutSink = std::make_shared<sinks::stdout_color_sink_mt>();
@@ -86,6 +92,6 @@ void initLogging(const char* filename)
     set_default_logger(logger);
     set_level(level);
     set_pattern("[%T] [thread:%5t] [%^%=8!l%$] [%=12!n] %v %@");
-    info("Logging started");
+    info("Logging started to {}",logPath);
 }
 }   // namespace df
