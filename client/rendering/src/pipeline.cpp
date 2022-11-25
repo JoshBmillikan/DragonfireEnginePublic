@@ -49,9 +49,9 @@ vk::Pipeline PipelineFactory::createPipeline(const nlohmann::json& pipelineDescr
     vertexInput.vertexBindingDescriptionCount = Mesh::vertexInputDescriptions.size();
 
     vk::PipelineDepthStencilStateCreateInfo depth;
-    depth.depthBoundsTestEnable = true;
+    depth.depthTestEnable = true;
     depth.depthWriteEnable = true;
-    depth.depthCompareOp = vk::CompareOp::eLess;
+    depth.depthCompareOp = vk::CompareOp::eLessOrEqual;
     depth.depthBoundsTestEnable = false;
     depth.stencilTestEnable = false;
     depth.minDepthBounds = 0;
@@ -99,6 +99,7 @@ vk::Pipeline PipelineFactory::createPipeline(const nlohmann::json& pipelineDescr
     vk::PipelineRenderingCreateInfo renderState;
     renderState.pColorAttachmentFormats = &imageFormat;
     renderState.colorAttachmentCount = 1;
+    renderState.depthAttachmentFormat = depthFormat;
 
     vk::GraphicsPipelineCreateInfo createInfo;
     createInfo.pNext = &renderState;

@@ -59,12 +59,12 @@ void GameClient::update(double deltaSeconds)
         if (direction) {
             if (3 - transform.position.z < 0.01)
                 direction = !direction;
-            transform.position = lerp(transform.position, transform.position + glm::vec3(0, 0, 3), (float) deltaSeconds);
+            transform.position = lerp(transform.position, transform.position + glm::vec3(0, 0, 3), (float) deltaSeconds / 5.0f);
         }
         else {
             if (transform.position.z < -1.01)
                 direction = !direction;
-            transform.position = lerp(transform.position, transform.position + glm::vec3(0, 0, -3), (float) deltaSeconds);
+            transform.position = lerp(transform.position, transform.position + glm::vec3(0, 0, -3), (float) deltaSeconds / 5.0f);
         }
     }
 

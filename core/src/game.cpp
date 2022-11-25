@@ -48,7 +48,7 @@ void Game::run()
     time_point lastTime = steady_clock::now();
     spdlog::info("Startup finished in {} seconds", duration<double>(lastTime - START_TIME).count());
     while (running) {
-        auto now = steady_clock::now();
+        time_point now = steady_clock::now();
         auto delta = duration<double>(now - lastTime);
         lastTime = now;
         mainLoop(delta.count());

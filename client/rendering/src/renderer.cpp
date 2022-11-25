@@ -348,7 +348,7 @@ void Renderer::beginCommandRecording()
     depth.imageView = depthView;
     depth.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
     depth.loadOp = vk::AttachmentLoadOp::eClear;
-    depth.storeOp = vk::AttachmentStoreOp::eStore;
+    depth.storeOp = vk::AttachmentStoreOp::eDontCare;
     depth.clearValue = vk::ClearValue(vk::ClearDepthStencilValue(1.0, 0.0));
 
     vk::RenderingInfo info;
@@ -375,10 +375,13 @@ void Renderer::imageToColorWrite(vk::CommandBuffer cmd) const
     image.subresourceRange.layerCount = 1;
     image.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     image.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
     depth.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
     depth.oldLayout = vk::ImageLayout::eUndefined;
     depth.newLayout = vk::ImageLayout::eDepthAttachmentOptimal;
     depth.image = depthImage;
+    depth.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    depth.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     depth.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
     depth.subresourceRange.baseMipLevel = 0;
     depth.subresourceRange.levelCount = 1;
