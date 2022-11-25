@@ -9,6 +9,7 @@
 #include "model.h"
 #include "pipeline.h"
 #include "swapchain.h"
+#include "texture.h"
 #include "vulkan_includes.h"
 #include <SDL_video.h>
 #include <barrier>
@@ -19,6 +20,7 @@
 namespace df {
 class Renderer {
     friend class Mesh::Factory;
+    friend class Texture::Factory;
 
 public:
     /**

@@ -7,6 +7,7 @@
 #include "material.h"
 #include "mesh.h"
 #include "pipeline.h"
+#include "texture.h"
 #include "tiny_obj_loader.h"
 #include <nlohmann/json_fwd.hpp>
 
@@ -38,5 +39,14 @@ public:
     std::vector<Asset*> load(const char* filename) override;
     Material* createMaterial(nlohmann::json& json);
     vk::PipelineLayout createPipelineLayout(nlohmann::json& json);
+};
+
+class PngLoader : public AssetRegistry::Loader {
+public:
+    std::vector<Asset*> load(const char* filename) override;
+    explicit PngLoader(Renderer* renderer) : factory(renderer) {}
+
+private:
+    Texture::Factory factory;
 };
 }   // namespace df

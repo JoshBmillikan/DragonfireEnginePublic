@@ -76,7 +76,9 @@ void RenderContext::drawFrame()
 
 void RenderContext::loadTextures(const char* path)
 {
-    // todo
+    PngLoader loader(renderer);
+    auto& registry = AssetRegistry::getRegistry();
+    registry.loadDir(path, loader);
 }
 
 void RenderContext::loadMaterials(const char* path)

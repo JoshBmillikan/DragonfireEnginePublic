@@ -117,7 +117,6 @@ void Mesh::Factory::transferQueueOwnership(Buffer& meshBuffer)
     {
         vk::BufferMemoryBarrier barrier;
         barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-        ;
         barrier.srcQueueFamilyIndex = transferFamily;
         barrier.dstQueueFamilyIndex = graphicsFamily;
         barrier.buffer = meshBuffer;

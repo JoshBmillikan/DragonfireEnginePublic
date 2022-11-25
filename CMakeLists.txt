@@ -3,7 +3,7 @@ project(DragonfireEngine)
 
 set(CMAKE_CXX_STANDARD 20)
 include(cmake/download_dependencies.CMake)
-FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense nameof tinyobjloader concurrentQueue entt)
+FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense nameof tinyobjloader concurrentQueue entt libPng)
 
 add_subdirectory(core)
 add_subdirectory(client)
