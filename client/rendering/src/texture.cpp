@@ -33,7 +33,8 @@ Texture::Factory::Factory(Renderer* renderer)
     semaphore = device.createSemaphore(vk::SemaphoreCreateInfo());
 }
 
-static Image createImage(vk::Extent2D extent) {
+static Image createImage(vk::Extent2D extent)
+{
     vk::ImageCreateInfo createInfo;
     createInfo.extent = vk::Extent3D(extent, 1);
     createInfo.imageType = vk::ImageType::e2D;
@@ -105,7 +106,8 @@ Texture* Texture::Factory::create(vk::Extent2D extent)
     if (transferFamily == graphicsFamily) {
         imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    } else {
+    }
+    else {
         imageBarrier.srcQueueFamilyIndex = transferFamily;
         imageBarrier.dstQueueFamilyIndex = graphicsFamily;
     }
@@ -128,7 +130,8 @@ Texture* Texture::Factory::create(vk::Extent2D extent)
         submitInfo.signalSemaphoreCount = 1;
         transferQueue.submit(submitInfo);
         transferOwnership(texture);
-    } else
+    }
+    else
         transferQueue.submit(submitInfo, fence);
 
     vk::resultCheck(device.waitForFences(fence, true, UINT64_MAX), "Fence wait failed");
@@ -160,14 +163,7 @@ void Texture::Factory::transferOwnership(vk::Image texture)
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    cmd.pipelineBarrier(
-            vk::PipelineStageFlagBits::eTopOfPipe,
-            vk::PipelineStageFlagBits::eFragmentShader,
-            {},
-            {},
-            {},
-            barrier
-    );
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eFragmentShader, {}, {}, {}, barrier);
 
     secondaryCmd.end();
     vk::SubmitInfo submitInfo;

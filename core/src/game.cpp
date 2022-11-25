@@ -39,7 +39,9 @@ Game::~Game()
     spdlog::info("Goodbye!");
     spdlog::shutdown();
 }
+
 static auto START_TIME = std::chrono::steady_clock::now();
+
 void Game::run()
 {
     using namespace std::chrono;
@@ -93,6 +95,6 @@ void initLogging(const char* filename)
     set_default_logger(logger);
     set_level(level);
     set_pattern("[%T] [thread:%5t] [%^%=8!l%$] [%=12!n] %v %@");
-    info("Logging started to {}",logPath);
+    info("Logging started to {}", logPath);
 }
 }   // namespace df
