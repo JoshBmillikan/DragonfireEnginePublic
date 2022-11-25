@@ -4,7 +4,7 @@
 
 #include "game.h"
 #include "config.h"
-#include <ctime>
+#include <chrono>
 #include <physfs.h>
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -39,16 +39,17 @@ Game::~Game()
     spdlog::info("Goodbye!");
     spdlog::shutdown();
 }
-
+static auto START_TIME = std::chrono::steady_clock::now();
 void Game::run()
 {
-    clock_t lastTime = std::clock();
-    spdlog::info("Startup finished in {} seconds", (float) lastTime / CLOCKS_PER_SEC);
+    using namespace std::chrono;
+    time_point lastTime = steady_clock::now();
+    spdlog::info("Startup finished in {} seconds", duration<double>(lastTime - START_TIME).count());
     while (running) {
-        clock_t now = std::clock();
-        double delta = (double) (now - lastTime) / CLOCKS_PER_SEC;
+        auto now = steady_clock::now();
+        auto delta = duration<double>(now - lastTime);
         lastTime = now;
-        mainLoop(delta);
+        mainLoop(delta.count());
     }
 }
 

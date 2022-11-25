@@ -3,7 +3,6 @@
 //
 
 #include "game_client.h"
-#include "../rendering/src/render_asset_loaders.h"
 
 namespace df {
 
@@ -55,6 +54,19 @@ void GameClient::mainLoop(double deltaSeconds)
 
 void GameClient::update(double deltaSeconds)
 {
+    static bool direction = true;
+    for (auto&& [entity, transform] : registry.view<Transform>().each()) {
+        if (direction) {
+            if (3 - transform.position.z < 0.01)
+                direction = !direction;
+            transform.position = lerp(transform.position, transform.position + glm::vec3(0, 0, 3), (float) deltaSeconds);
+        } else {
+            if (transform.position.z < -1.01)
+                direction = !direction;
+            transform.position = lerp(transform.position, transform.position + glm::vec3(0, 0, -3), (float) deltaSeconds);
+        }
+    }
+
     auto renderObjects = registry.group<Model, Transform>();
     for (auto&& [entity, model, transform] : renderObjects.each()) {
         renderContext->enqueueModel(&model, transform);
