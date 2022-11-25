@@ -19,6 +19,7 @@
 
 namespace df {
 class Renderer {
+    friend class Swapchain;
     friend class Mesh::Factory;
     friend class Texture::Factory;
 

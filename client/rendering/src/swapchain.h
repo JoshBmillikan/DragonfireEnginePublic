@@ -11,6 +11,7 @@ namespace df {
 class Swapchain {
 public:
     Swapchain() = default;
+    Swapchain(class Renderer* renderer, SDL_Window* window);
     Swapchain(
             vk::PhysicalDevice physicalDevice,
             vk::Device device,
@@ -45,7 +46,7 @@ public:
     [[nodiscard]] vk::ImageView getCurrentView() const noexcept { return views[currentImageIndex]; }
 
 private:
-    vk::SwapchainKHR swapchain;
+    vk::SwapchainKHR swapchain = nullptr;
     UInt imageCount = 0, currentImageIndex = 0;
     vk::Image* images = nullptr;
     vk::ImageView* views = nullptr;

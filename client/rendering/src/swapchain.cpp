@@ -4,11 +4,26 @@
 
 #include "swapchain.h"
 #include "renderer.h"
+#include <config.h>
 #include <alloca.h>
 
 namespace df {
 static vk::SurfaceFormatKHR getSurfaceFormat(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface);
 static vk::PresentModeKHR getPresentMode(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface, bool vsync);
+
+Swapchain::Swapchain(Renderer* renderer, SDL_Window* window)
+    : Swapchain(
+            renderer->physicalDevice,
+            renderer->device,
+            window,
+            renderer->surface,
+            renderer->queues.graphicsFamily,
+            renderer->queues.presentFamily,
+            Config::get().graphics.vsync,
+            renderer->swapchain.swapchain
+    )
+{
+}
 
 Swapchain::Swapchain(
         vk::PhysicalDevice physicalDevice,

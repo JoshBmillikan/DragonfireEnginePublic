@@ -432,42 +432,11 @@ void Renderer::imageToPresentSrc(vk::CommandBuffer cmd) const
     );
 }
 
-/// callback to log debug messages from the validation layers
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData
-)
-{
-    auto logger = reinterpret_cast<spdlog::logger*>(pUserData);
-    switch (messageSeverity) {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            logger->error("Validation Layer: {}", pCallbackData->pMessage);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            logger->warn("Validation Layer: {}", pCallbackData->pMessage);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: logger->info("Validation Layer: {}", pCallbackData->pMessage); break;
-        default: logger->trace("Validation Layer: {}", pCallbackData->pMessage);
-    }
-
-    return VK_FALSE;
-}
-
-static vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* logger)
-{
-    vk::DebugUtilsMessengerCreateInfoEXT createInfo;
-    createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
-                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
-                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
-                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
-    createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
-                             | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation;
-    createInfo.pfnUserCallback = &debugCallback;
-    createInfo.pUserData = logger;
-    return createInfo;
-}
+/*
+ * ***********************************************************************************************************
+ *                                         VULKAN INITIALIZATION CODE
+ * ***********************************************************************************************************
+ */
 
 Renderer::Renderer(SDL_Window* window)
 {
@@ -475,6 +444,9 @@ Renderer::Renderer(SDL_Window* window)
     init(window, validation);
 }
 
+/// List of device extensions to enable
+/// Some extension are now core and don't need to be enabled,
+/// but are still listed here for backwards compatability
 static std::array<const char*, 6> DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
@@ -483,6 +455,8 @@ static std::array<const char*, 6> DEVICE_EXTENSIONS = {
         VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
         VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 };
+
+static vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* logger);
 
 void Renderer::init(SDL_Window* window, bool validation)
 {
@@ -509,7 +483,7 @@ void Renderer::init(SDL_Window* window, bool validation)
             queues.transferFamily
     );
     initAllocator();
-    swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily, cfg.vsync);
+    swapchain = Swapchain(this, window);
     logger->info("Using swapchain extent {}x{}", swapchain.getExtent().width, swapchain.getExtent().height);
     createDepthImage();
     allocateUniformBuffer();
@@ -586,6 +560,43 @@ void Renderer::createInstance(SDL_Window* window, bool validation)
 
     instance = vk::createInstance(createInfo);
     VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
+}
+
+/// callback to log debug messages from the validation layers
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData
+)
+{
+    auto logger = reinterpret_cast<spdlog::logger*>(pUserData);
+    switch (messageSeverity) {
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            logger->error("Validation Layer: {}", pCallbackData->pMessage);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            logger->warn("Validation Layer: {}", pCallbackData->pMessage);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: logger->info("Validation Layer: {}", pCallbackData->pMessage); break;
+        default: logger->trace("Validation Layer: {}", pCallbackData->pMessage);
+    }
+
+    return VK_FALSE;
+}
+
+vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* logger)
+{
+    vk::DebugUtilsMessengerCreateInfoEXT createInfo;
+    createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
+                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
+                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
+                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+    createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+                             | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation;
+    createInfo.pfnUserCallback = &debugCallback;
+    createInfo.pUserData = logger;
+    return createInfo;
 }
 
 static bool isValidDevice(vk::PhysicalDevice device)

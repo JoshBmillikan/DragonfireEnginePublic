@@ -164,7 +164,6 @@ void PipelineFactory::loadShaders() noexcept
         crash("Failed to enumerate files in shader directory: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
     std::vector<UInt> data;
     data.reserve(1024);
-    char name[40];
     char path[MAX_FILEPATH_LENGTH];
     const auto dirNameLen = strlen("assets/shaders");
     for (char* filename = *files; filename != nullptr; filename = *++files) {
@@ -188,14 +187,13 @@ void PipelineFactory::loadShaders() noexcept
             createInfo.codeSize = length;
             createInfo.pCode = data.data();
             vk::ShaderModule module = device.createShaderModule(createInfo);
-            Long len = 39;
-            char* dot = strrchr(filename, '.');
-            if (dot) {
-                auto distance = std::distance(filename, dot);
-                len = std::clamp(distance, 1l, len);
-            }
-            strncpy(name, filename, len);
-            name[len] = '\0';
+
+            std::string name = filename;
+            auto pos = name.rfind('.');
+            if (pos != std::string::npos)
+                name.erase(pos);
+            if (shaders.contains(name))
+                logger->warn("Shader module \"{}\" already loaded, it will be overwritten!", name);
             shaders.emplace(name, module);
             logger->info("loaded shader module \"{}\"", name);
         }
