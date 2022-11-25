@@ -204,4 +204,53 @@ void Texture::Factory::createStagingBuffer(vk::DeviceSize size)
     stagingBuffer = Buffer(createInfo, allocInfo);
 }
 
+void Texture::Factory::destroy() noexcept
+{
+    if (device) {
+        device.destroy(pool);
+        device.destroy(secondaryPool);
+        device.destroy(fence);
+        device.destroy(semaphore);
+        stagingBuffer.destroy();
+        device = nullptr;
+    }
+}
+
+Texture::Factory::Factory(Texture::Factory&& other) noexcept
+{
+    if (this != &other) {
+        device = other.device;
+        stagingBuffer = std::move(other.stagingBuffer);
+        pool = other.pool;
+        cmd = other.cmd;
+        secondaryCmd = other.secondaryCmd;
+        graphicsFamily = other.graphicsFamily;
+        transferFamily = other.transferFamily;
+        transferQueue = other.transferQueue;
+        graphicsQueue = other.graphicsQueue;
+        fence = other.fence;
+        semaphore = other.semaphore;
+        other.device = nullptr;
+    }
+}
+
+Texture::Factory& Texture::Factory::operator=(Texture::Factory&& other) noexcept
+{
+    if (this != &other) {
+        device = other.device;
+        stagingBuffer = std::move(other.stagingBuffer);
+        pool = other.pool;
+        cmd = other.cmd;
+        secondaryCmd = other.secondaryCmd;
+        graphicsFamily = other.graphicsFamily;
+        transferFamily = other.transferFamily;
+        transferQueue = other.transferQueue;
+        graphicsQueue = other.graphicsQueue;
+        fence = other.fence;
+        semaphore = other.semaphore;
+        other.device = nullptr;
+    }
+    return *this;
+}
+
 }   // namespace df

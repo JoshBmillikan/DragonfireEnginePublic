@@ -14,14 +14,19 @@ class Texture : public Asset {
 
 public:
     Texture(Image&& image, vk::Extent2D extent) : image(std::move(image)), imageExtent(extent) {}
-    [[nodiscard]] vk::Extent2D getExtent() const noexcept { return imageExtent;}
+    [[nodiscard]] vk::Extent2D getExtent() const noexcept { return imageExtent; }
     class Factory {
     public:
         explicit Factory(class Renderer* renderer);
+        ~Factory() noexcept { destroy(); }
+        void destroy() noexcept;
         Factory() = delete;
         Texture* create(vk::Extent2D extent);
         Texture* create(vk::Extent2D extent, void const* buffer, Size size);
         void* getBufferMemory(vk::DeviceSize size);
+        DF_NO_COPY(Factory);
+        Factory(Factory&& other) noexcept;
+        Factory& operator=(Factory&& other) noexcept;
 
     private:
         Buffer stagingBuffer;
