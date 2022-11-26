@@ -19,4 +19,11 @@ inline const char* getFileExtension(const std::string_view path) noexcept
 {
     return getFileExtension(path.data());
 };
+
+inline constexpr Size constStrlen(const char* str) noexcept {
+    Size len = 0;
+    for (char c = *str; c != '\0'; c = *++str)
+        len++;
+    return len;
+}
 }   // namespace df

@@ -4,6 +4,7 @@
 
 #include "game.h"
 #include "config.h"
+#include "util.h"
 #include <chrono>
 #include <physfs.h>
 #include <spdlog/async.h>
@@ -18,14 +19,22 @@ static void initLogging(const char* filename);
 
 Game::Game(int argc, char** argv)
 {
+    std::array<char, constStrlen(APP_NAME) + 1> appFilename{};
+    strcpy(appFilename.data(), APP_NAME);
+    for (char& c : appFilename) {
+        if (c == ' ')
+            c = '_';
+        else if (isupper(c))
+            c = (char) tolower(c);
+    }
     int err = PHYSFS_init(argc > 0 ? *argv : nullptr);
     if (err != 0)
-        err = PHYSFS_setSaneConfig("org", APP_NAME, "zip", false, false);
+        err = PHYSFS_setSaneConfig("org", appFilename.data(), "zip", false, false);
     if (err != 0)
         err = PHYSFS_mount(ASSET_PATH, "assets", false);
     if (err == 0)
         crash("PhysFS initialization failed: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
-    initLogging(APP_NAME);
+    initLogging(appFilename.data());
     spdlog::info("Loading application \"{}\"", APP_NAME);
     Config::loadConfigFile("config.json");
     spdlog::info("PhysFS initialized");
