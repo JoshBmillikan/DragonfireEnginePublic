@@ -306,10 +306,8 @@ void Renderer::destroy() noexcept
         device.destroy(descriptorPool);
         device.destroy(globalDescriptorSetLayout);
         globalUniformBuffer.destroy();
-        if (rasterSamples != vk::SampleCountFlagBits::e1) {
-            device.destroy(msaaView);
-            msaaImage.destroy();
-        }
+        device.destroy(msaaView);
+        msaaImage.destroy();
         device.destroy(depthView);
         depthImage.destroy();
         swapchain.destroy();
