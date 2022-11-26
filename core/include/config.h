@@ -10,6 +10,7 @@ namespace df {
 
 struct GraphicsSettings {
     std::string windowTitle;
+    float fov = 60;
     bool vsync = true;
     std::array<UInt, 2> resolution = {800, 600};
     enum class WindowMode {
@@ -17,7 +18,15 @@ struct GraphicsSettings {
         fullscreen,
         windowed,
     } windowMode = WindowMode::borderless;
-    float fov = 60;
+    enum class AntiAliasingMode {
+        none,
+        msaa2,
+        msaa4,
+        msaa8,
+        msaa16,
+        msaa32,
+        msaa64,
+    } antiAliasing = AntiAliasingMode::none;
 };
 
 class Config {
@@ -39,6 +48,19 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         }
 );
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GraphicsSettings, vsync, resolution, windowMode, fov);
+NLOHMANN_JSON_SERIALIZE_ENUM(
+        GraphicsSettings::AntiAliasingMode,
+        {
+                {GraphicsSettings::AntiAliasingMode::none, "none"},
+                {GraphicsSettings::AntiAliasingMode::msaa2, "msaa2x"},
+                {GraphicsSettings::AntiAliasingMode::msaa4, "msaa4x"},
+                {GraphicsSettings::AntiAliasingMode::msaa8, "msaa8x"},
+                {GraphicsSettings::AntiAliasingMode::msaa16, "msaa16x"},
+                {GraphicsSettings::AntiAliasingMode::msaa32, "msaa32x"},
+                {GraphicsSettings::AntiAliasingMode::msaa64, "msaa64x"},
+        }
+);
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GraphicsSettings, vsync, resolution, windowMode, fov, antiAliasing);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Config, graphics);
 }   // namespace df

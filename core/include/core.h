@@ -1,6 +1,7 @@
-//
+// This file contains some common definitions
 // Created by josh on 11/9/22.
 //
+#include "glm/vec3.hpp"
 #include <ankerl/unordered_dense.h>
 #include <cstdint>
 
@@ -20,6 +21,9 @@ using Int = std::int32_t;
 using Long = std::int64_t;
 using IntPtr = std::intptr_t;
 using Size = std::size_t;
+
+/// A unit vector in the up direction
+constexpr glm::vec3 UP = {0, 0, 1};
 
 constexpr UInt MAX_FILEPATH_LENGTH = 128;
 }   // namespace df

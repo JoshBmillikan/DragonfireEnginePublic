@@ -77,9 +77,10 @@ private:
     vk::PhysicalDevice physicalDevice;
     vk::PhysicalDeviceLimits limits;
     vk::Device device;
+    vk::RenderPass mainPass;
     Swapchain swapchain;
-    Image depthImage;
-    vk::ImageView depthView;
+    Image depthImage, msaaImage;
+    vk::ImageView depthView, msaaView;
     PipelineFactory pipelineFactory;
     Buffer globalUniformBuffer;
     vk::DeviceSize globalUniformOffset = 0;
@@ -151,11 +152,7 @@ private:
     bool cullTest(Model* model, const glm::mat4& matrix);
     /// Start recording a command buffer
     void beginCommandRecording();
-    /// Record commands to transition the swapchain image from color attachment to present src
-    void imageToPresentSrc(vk::CommandBuffer cmd) const;
-    /// Record commands to transition the swapchain/depth image to be written
-    void imageToColorWrite(vk::CommandBuffer cmd) const;
-    /// Recreate the swapchain and assicated data
+    /// Recreate the swapchain and associated data
     void recreateSwapchain();
     /// Initialize the renderer
     void init(SDL_Window* window, bool validation);
@@ -163,12 +160,18 @@ private:
     void createInstance(SDL_Window* window, bool validation);
     /// Get the gpu handle to use
     void getPhysicalDevice();
+    /// Get the msaa sample count
+    void getSampleCount();
     /// Create the vulkan device handle
     void createDevice();
+    /// Creates the main render pass
+    void createRenderPass();
     /// Initialize the VMA allocator
     void initAllocator() const;
     /// Create the depth image and view
     void createDepthImage();
+    /// Create the buffer for MSAA sampling
+    void createMsaaImage();
     /// Allocate the global uniform buffer
     void allocateUniformBuffer();
     /// Create the descriptor pool and layout

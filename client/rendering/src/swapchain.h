@@ -26,7 +26,7 @@ public:
     Swapchain(Swapchain&& other) noexcept;
     Swapchain& operator=(Swapchain&& other) noexcept;
     ~Swapchain() noexcept;
-
+    void createFramebuffers(vk::RenderPass renderPass, vk::ImageView depthView, vk::ImageView msaaView = nullptr);
     /**
      * Acquire the next swapchain image
      * @param semaphore semaphore to signal
@@ -44,12 +44,14 @@ public:
     [[nodiscard]] const vk::Extent2D& getExtent() const noexcept { return extent; }
     [[nodiscard]] vk::Image getCurrentImage() const noexcept { return images[currentImageIndex]; }
     [[nodiscard]] vk::ImageView getCurrentView() const noexcept { return views[currentImageIndex]; }
+    [[nodiscard]] vk::Framebuffer getCurrentFramebuffer() const noexcept { return framebuffers[currentImageIndex]; }
 
 private:
     vk::SwapchainKHR swapchain = nullptr;
     UInt imageCount = 0, currentImageIndex = 0;
     vk::Image* images = nullptr;
     vk::ImageView* views = nullptr;
+    vk::Framebuffer* framebuffers = nullptr;
     vk::Format format{};
     vk::Extent2D extent;
     vk::Device device;

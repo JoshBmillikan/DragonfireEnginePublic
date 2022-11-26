@@ -16,6 +16,7 @@ public:
             vk::Device device,
             vk::Format imageFormat,
             vk::Format depthFormat,
+            vk::RenderPass renderPass,
             spdlog::logger* logger,
             vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1
     );
@@ -24,7 +25,7 @@ public:
     DF_NO_COPY(PipelineFactory);
     PipelineFactory(PipelineFactory&& other) noexcept;
     PipelineFactory& operator=(PipelineFactory&& other) noexcept;
-    vk::Pipeline createPipeline(const nlohmann::json& pipelineDescription, vk::PipelineLayout layout);
+    vk::Pipeline createPipeline(const nlohmann::json& pipelineDescription, vk::PipelineLayout layout, vk::RenderPass renderPass = nullptr);
     void saveCache();
     static constexpr const char* CACHE_PATH = "cache/shader_pipeline.cache";
 
@@ -35,6 +36,7 @@ private:
     vk::Device device = nullptr;
     vk::PipelineCache cache;
     vk::Format imageFormat{}, depthFormat{};
+    vk::RenderPass mainPass;
     vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
     spdlog::logger* logger = nullptr;
 };

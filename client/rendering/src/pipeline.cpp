@@ -19,10 +19,16 @@ PipelineFactory::PipelineFactory(
         vk::Device device,
         vk::Format imageFormat,
         vk::Format depthFormat,
+        vk::RenderPass renderPass,
         spdlog::logger* logger,
         vk::SampleCountFlagBits msaaSamples
 )
-    : device(device), imageFormat(imageFormat), depthFormat(depthFormat), msaaSamples(msaaSamples), logger(logger)
+    : device(device),
+      imageFormat(imageFormat),
+      depthFormat(depthFormat),
+      mainPass(renderPass),
+      msaaSamples(msaaSamples),
+      logger(logger)
 {
     if (PHYSFS_mount(SHADER_DIR, "assets/shaders", false) == 0)
         throw PhysFsException();
@@ -37,7 +43,7 @@ PipelineFactory::PipelineFactory(
     loadShaders();
 }
 
-vk::Pipeline PipelineFactory::createPipeline(const nlohmann::json& pipelineDescription, vk::PipelineLayout layout)
+vk::Pipeline PipelineFactory::createPipeline(const nlohmann::json& pipelineDescription, vk::PipelineLayout layout, vk::RenderPass renderPass)
 {
     vk::PipelineShaderStageCreateInfo stageInfos[5];
     const UInt stageCount = getStageCreateInfo(stageInfos, pipelineDescription);
@@ -96,13 +102,7 @@ vk::Pipeline PipelineFactory::createPipeline(const nlohmann::json& pipelineDescr
     colorBlend.pAttachments = &colorBlendAttachment;
     colorBlend.attachmentCount = 1;
 
-    vk::PipelineRenderingCreateInfo renderState;
-    renderState.pColorAttachmentFormats = &imageFormat;
-    renderState.colorAttachmentCount = 1;
-    renderState.depthAttachmentFormat = depthFormat;
-
     vk::GraphicsPipelineCreateInfo createInfo;
-    createInfo.pNext = &renderState;
     createInfo.pDynamicState = &dynamicStateInfo;
     createInfo.pVertexInputState = &vertexInput;
     createInfo.pViewportState = &viewport;
@@ -114,7 +114,8 @@ vk::Pipeline PipelineFactory::createPipeline(const nlohmann::json& pipelineDescr
     createInfo.pRasterizationState = &rasterState;
     createInfo.pDepthStencilState = &depth;
     createInfo.pColorBlendState = &colorBlend;
-    createInfo.renderPass = nullptr;
+    createInfo.renderPass = renderPass ? renderPass : mainPass;
+    createInfo.subpass = 0;
 
     auto [result, pipeline] = device.createGraphicsPipeline(cache, createInfo);
     vk::resultCheck(result, "Failed to create graphics pipeline");
@@ -249,6 +250,7 @@ PipelineFactory::PipelineFactory(PipelineFactory&& other) noexcept
         depthFormat = other.depthFormat;
         msaaSamples = other.msaaSamples;
         logger = other.logger;
+        mainPass = other.mainPass;
         other.device = nullptr;
     }
 }
@@ -263,6 +265,7 @@ PipelineFactory& PipelineFactory::operator=(PipelineFactory&& other) noexcept
         depthFormat = other.depthFormat;
         msaaSamples = other.msaaSamples;
         logger = other.logger;
+        mainPass = other.mainPass;
         other.device = nullptr;
     }
     return *this;

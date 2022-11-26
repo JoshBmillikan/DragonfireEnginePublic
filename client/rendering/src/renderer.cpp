@@ -87,8 +87,7 @@ void Renderer::endRendering()
     Frame& frame = getCurrentFrame();
     vk::CommandBuffer cmd = frame.buffer;
     cmd.executeCommands(renderThreadCount, secondaryBuffers);
-    cmd.endRendering();
-    imageToPresentSrc(cmd);
+    cmd.endRenderPass();
     cmd.end();
 
     std::unique_lock lock(presentLock);
@@ -132,14 +131,11 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 cmd = buffers[frameCount % FRAMES_IN_FLIGHT];
                 device.resetCommandPool(pool);
                 auto fmt = swapchain.getFormat();
-                vk::CommandBufferInheritanceRenderingInfo renderingInfo;
-                renderingInfo.colorAttachmentCount = 1;
-                renderingInfo.pColorAttachmentFormats = &fmt;
-                renderingInfo.depthAttachmentFormat = depthImage.getFormat();
-                renderingInfo.rasterizationSamples = rasterSamples;
 
                 vk::CommandBufferInheritanceInfo inheritanceInfo;
-                inheritanceInfo.pNext = &renderingInfo;
+                inheritanceInfo.renderPass = mainPass;
+                inheritanceInfo.subpass = 0;
+                inheritanceInfo.framebuffer = swapchain.getCurrentFramebuffer();
                 vk::CommandBufferBeginInfo beginInfo;
                 beginInfo.pInheritanceInfo = &inheritanceInfo;
                 beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
@@ -310,10 +306,15 @@ void Renderer::destroy() noexcept
         device.destroy(descriptorPool);
         device.destroy(globalDescriptorSetLayout);
         globalUniformBuffer.destroy();
+        if (rasterSamples != vk::SampleCountFlagBits::e1) {
+            device.destroy(msaaView);
+            msaaImage.destroy();
+        }
         device.destroy(depthView);
         depthImage.destroy();
         swapchain.destroy();
         Allocation::shutdownAllocator();
+        device.destroy(mainPass);
         device.destroy();
         instance.destroy(surface);
         if (debugMessenger)
@@ -338,98 +339,17 @@ void Renderer::beginCommandRecording()
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
     frame.buffer.begin(beginInfo);
-    imageToColorWrite(frame.buffer);
-    vk::RenderingAttachmentInfo color, depth;
-    color.imageView = swapchain.getCurrentView();
-    color.imageLayout = vk::ImageLayout::eAttachmentOptimal;
-    color.loadOp = vk::AttachmentLoadOp::eClear;
-    color.storeOp = vk::AttachmentStoreOp::eStore;
-    color.clearValue = vk::ClearValue(vk::ClearColorValue(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}));
-    depth.imageView = depthView;
-    depth.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
-    depth.loadOp = vk::AttachmentLoadOp::eClear;
-    depth.storeOp = vk::AttachmentStoreOp::eDontCare;
-    depth.clearValue = vk::ClearValue(vk::ClearDepthStencilValue(1.0, 0.0));
 
-    vk::RenderingInfo info;
-    info.colorAttachmentCount = 1;
-    info.pColorAttachments = &color;
-    info.pDepthAttachment = &depth;
-    info.layerCount = 1;
-    info.renderArea = vk::Rect2D(vk::Offset2D(), swapchain.getExtent());
-    info.flags = vk::RenderingFlagBits::eContentsSecondaryCommandBuffers;
-    frame.buffer.beginRendering(info);
-}
+    vk::RenderPassBeginInfo info;
+    info.renderPass = mainPass;
+    info.renderArea.extent = swapchain.getExtent();
+    info.clearValueCount = 2;
 
-void Renderer::imageToColorWrite(vk::CommandBuffer cmd) const
-{
-    vk::ImageMemoryBarrier image, depth;
-    image.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-    image.oldLayout = vk::ImageLayout::eUndefined;
-    image.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
-    image.image = swapchain.getCurrentImage();
-    image.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-    image.subresourceRange.baseMipLevel = 0;
-    image.subresourceRange.levelCount = 1;
-    image.subresourceRange.baseArrayLayer = 0;
-    image.subresourceRange.layerCount = 1;
-    image.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    image.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    vk::ClearValue clears[] = {(vk::ClearColorValue(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f})), vk::ClearDepthStencilValue(1,0)};
+    info.pClearValues = clears;
+    info.framebuffer = swapchain.getCurrentFramebuffer();
 
-    depth.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-    depth.oldLayout = vk::ImageLayout::eUndefined;
-    depth.newLayout = vk::ImageLayout::eDepthAttachmentOptimal;
-    depth.image = depthImage;
-    depth.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    depth.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    depth.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
-    depth.subresourceRange.baseMipLevel = 0;
-    depth.subresourceRange.levelCount = 1;
-    depth.subresourceRange.baseArrayLayer = 0;
-    depth.subresourceRange.layerCount = 1;
-
-    cmd.pipelineBarrier(
-            vk::PipelineStageFlagBits::eTopOfPipe,
-            vk::PipelineStageFlagBits::eColorAttachmentOutput,
-            {},
-            {},
-            {},
-            image
-    );
-
-    cmd.pipelineBarrier(
-            vk::PipelineStageFlagBits::eTopOfPipe,
-            vk::PipelineStageFlagBits::eEarlyFragmentTests,
-            {},
-            {},
-            {},
-            depth
-    );
-}
-
-void Renderer::imageToPresentSrc(vk::CommandBuffer cmd) const
-{
-    vk::ImageMemoryBarrier barrier;
-    barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-    barrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
-    barrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
-    barrier.image = swapchain.getCurrentImage();
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-
-    cmd.pipelineBarrier(
-            vk::PipelineStageFlagBits::eColorAttachmentOutput,
-            vk::PipelineStageFlagBits::eBottomOfPipe,
-            {},
-            {},
-            {},
-            barrier
-    );
+    frame.buffer.beginRenderPass(info, vk::SubpassContents::eSecondaryCommandBuffers);
 }
 
 /*
@@ -447,9 +367,8 @@ Renderer::Renderer(SDL_Window* window)
 /// List of device extensions to enable
 /// Some extension are now core and don't need to be enabled,
 /// but are still listed here for backwards compatability
-static std::array<const char*, 6> DEVICE_EXTENSIONS = {
+static std::array<const char*, 5> DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
         VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
@@ -472,6 +391,7 @@ void Renderer::init(SDL_Window* window, bool validation)
     if (SDL_Vulkan_CreateSurface(window, instance, reinterpret_cast<VkSurfaceKHR*>(&surface)) != SDL_TRUE)
         crash("SDL failed to create vulkan surface: {}", SDL_GetError());
     getPhysicalDevice();
+    getSampleCount();
     createDevice();
     queues.graphics = device.getQueue(queues.graphicsFamily, 0);
     queues.present = device.getQueue(queues.presentFamily, 0);
@@ -484,11 +404,15 @@ void Renderer::init(SDL_Window* window, bool validation)
     );
     initAllocator();
     swapchain = Swapchain(this, window);
+    createRenderPass();
     logger->info("Using swapchain extent {}x{}", swapchain.getExtent().width, swapchain.getExtent().height);
     createDepthImage();
+    createMsaaImage();
+    swapchain.createFramebuffers(mainPass, depthView, msaaView);
     allocateUniformBuffer();
     createDescriptorPool();
-    pipelineFactory = PipelineFactory(device, swapchain.getFormat(), depthImage.getFormat(), logger.get());
+    pipelineFactory =
+            PipelineFactory(device, swapchain.getFormat(), depthImage.getFormat(), mainPass, logger.get(), rasterSamples);
     createFrames();
     logger->info("Using {} render threads", renderThreadCount);
     secondaryBuffers = new vk::CommandBuffer[renderThreadCount];
@@ -601,11 +525,9 @@ vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* logger)
 
 static bool isValidDevice(vk::PhysicalDevice device)
 {
-    vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures;
     vk::PhysicalDeviceVulkan12Features features12;
-    dynamicRenderingFeatures.pNext = &features12;
     vk::PhysicalDeviceFeatures2 features2;
-    features2.pNext = &dynamicRenderingFeatures;
+    features2.pNext = &features12;
     features2.features.sparseBinding = true;
     features2.features.samplerAnisotropy = true;
     features2.features.sampleRateShading = true;
@@ -671,6 +593,57 @@ void Renderer::getPhysicalDevice()
     );
 }
 
+void Renderer::getSampleCount()
+{
+    GraphicsSettings::AntiAliasingMode aaMode = Config::get().graphics.antiAliasing;
+    vk::SampleCountFlags validFlags = limits.framebufferColorSampleCounts & limits.framebufferDepthSampleCounts;
+    switch (aaMode) {
+        case GraphicsSettings::AntiAliasingMode::msaa64:
+            if (validFlags & vk::SampleCountFlagBits::e64) {
+                rasterSamples = vk::SampleCountFlagBits::e64;
+                logger->info("Using Anti-Aliasing mode: MSAA 64x");
+                break;
+            }
+            logger->warn("MSAA 64 not available, trying to fall back to MSAA 32");
+        case GraphicsSettings::AntiAliasingMode::msaa32:
+            if (validFlags & vk::SampleCountFlagBits::e32) {
+                rasterSamples = vk::SampleCountFlagBits::e32;
+                logger->info("Using Anti-Aliasing mode: MSAA 32x");
+                break;
+            }
+            logger->warn("MSAA 32 not available, trying to fall back to MSAA 16");
+        case GraphicsSettings::AntiAliasingMode::msaa16:
+            if (validFlags & vk::SampleCountFlagBits::e32) {
+                rasterSamples = vk::SampleCountFlagBits::e16;
+                logger->info("Using Anti-Aliasing mode: MSAA 16x");
+                break;
+            }
+            logger->warn("MSAA 16 not available, trying to fall back to MSAA 8");
+        case GraphicsSettings::AntiAliasingMode::msaa8:
+            if (validFlags & vk::SampleCountFlagBits::e8) {
+                rasterSamples = vk::SampleCountFlagBits::e8;
+                logger->info("Using Anti-Aliasing mode: MSAA 8x");
+                break;
+            }
+            logger->warn("MSAA 8 not available, trying to fall back to MSAA 4");
+        case GraphicsSettings::AntiAliasingMode::msaa4:
+            if (validFlags & vk::SampleCountFlagBits::e4) {
+                rasterSamples = vk::SampleCountFlagBits::e4;
+                logger->info("Using Anti-Aliasing mode: MSAA 4x");
+                break;
+            }
+            logger->warn("MSAA 4 not available, trying to fall back to MSAA 2");
+        case GraphicsSettings::AntiAliasingMode::msaa2:
+            if (validFlags & vk::SampleCountFlagBits::e2) {
+                rasterSamples = vk::SampleCountFlagBits::e2;
+                logger->info("Using Anti-Aliasing mode: MSAA 2x");
+                break;
+            }
+            logger->warn("MSAA 2 not available, anti-aliasing will be disabled");
+        default: rasterSamples = vk::SampleCountFlagBits::e1; break;
+    }
+}
+
 void Renderer::createDevice()
 {
     vk::DeviceQueueCreateInfo queueCreateInfos[3]{};
@@ -692,8 +665,6 @@ void Renderer::createDevice()
         queueCount++;
     }
 
-    vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures;
-    dynamicRenderingFeatures.dynamicRendering = true;
     vk::PhysicalDeviceFeatures features;
     features.sparseBinding = true;
     features.samplerAnisotropy = true;
@@ -703,7 +674,6 @@ void Renderer::createDevice()
         logger->info("Loaded device extension: {}", ext);
 
     vk::DeviceCreateInfo createInfo;
-    createInfo.pNext = &dynamicRenderingFeatures;
     createInfo.queueCreateInfoCount = queueCount;
     createInfo.pQueueCreateInfos = queueCreateInfos;
     createInfo.enabledExtensionCount = DEVICE_EXTENSIONS.size();
@@ -712,6 +682,84 @@ void Renderer::createDevice()
 
     device = physicalDevice.createDevice(createInfo);
     VULKAN_HPP_DEFAULT_DISPATCHER.init(device);
+}
+
+static vk::Format getDepthFormat(vk::PhysicalDevice physicalDevice)
+{
+    const std::array<vk::Format, 3> possibleFormats = {
+            vk::Format::eD32Sfloat,
+            vk::Format::eD32SfloatS8Uint,
+            vk::Format::eD24UnormS8Uint,
+    };
+    for (vk::Format fmt : possibleFormats) {
+        auto props = physicalDevice.getFormatProperties(fmt);
+        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+            return fmt;
+    }
+    crash("No valid depth image format found");
+}
+
+void Renderer::createRenderPass()
+{
+    vk::AttachmentDescription attachments[3];
+    attachments[0].format = swapchain.getFormat();
+    attachments[0].samples = rasterSamples;
+    attachments[0].loadOp = vk::AttachmentLoadOp::eClear;
+    attachments[0].storeOp = vk::AttachmentStoreOp::eStore;
+    attachments[0].stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+    attachments[0].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    attachments[0].initialLayout = vk::ImageLayout::eUndefined;
+    attachments[0].finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
+
+    attachments[1].format = getDepthFormat(physicalDevice);
+    attachments[1].samples = rasterSamples;
+    attachments[1].loadOp = vk::AttachmentLoadOp::eClear;
+    attachments[1].storeOp = vk::AttachmentStoreOp::eDontCare;
+    attachments[1].stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+    attachments[1].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    attachments[1].initialLayout = vk::ImageLayout::eUndefined;
+    attachments[1].finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+    attachments[2].format = swapchain.getFormat();
+    attachments[2].samples = vk::SampleCountFlagBits::e1;
+    attachments[2].loadOp = vk::AttachmentLoadOp::eDontCare;
+    attachments[2].storeOp = vk::AttachmentStoreOp::eStore;
+    attachments[2].stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+    attachments[2].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    attachments[2].initialLayout = vk::ImageLayout::eUndefined;
+    attachments[2].finalLayout = vk::ImageLayout::ePresentSrcKHR;
+
+    vk::AttachmentReference colorRef, depthRef, resolveRef;
+    colorRef.attachment = 0;
+    colorRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
+    depthRef.attachment = 1;
+    depthRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+    resolveRef.attachment = 2;
+    resolveRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
+
+    vk::SubpassDescription subpass;
+    subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorRef;
+    subpass.pDepthStencilAttachment = &depthRef;
+    subpass.pResolveAttachments = &resolveRef;
+
+    vk::SubpassDependency dependency;
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+
+    vk::RenderPassCreateInfo createInfo;
+    createInfo.attachmentCount = 3;
+    createInfo.pAttachments = attachments;
+    createInfo.subpassCount = 1;
+    createInfo.pSubpasses = &subpass;
+    createInfo.dependencyCount = 1;
+    createInfo.pDependencies = &dependency;
+
+    mainPass = device.createRenderPass(createInfo);
 }
 
 void Renderer::initAllocator() const
@@ -756,21 +804,6 @@ void Renderer::initAllocator() const
     Allocation::initAllocator(&createInfo);
 }
 
-static vk::Format getDepthFormat(vk::PhysicalDevice physicalDevice)
-{
-    const std::array<vk::Format, 3> possibleFormats = {
-            vk::Format::eD32Sfloat,
-            vk::Format::eD32SfloatS8Uint,
-            vk::Format::eD24UnormS8Uint,
-    };
-    for (vk::Format fmt : possibleFormats) {
-        auto props = physicalDevice.getFormatProperties(fmt);
-        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
-            return fmt;
-    }
-    crash("No valid depth image format found");
-}
-
 void Renderer::createDepthImage()
 {
     vk::ImageCreateInfo createInfo;
@@ -779,7 +812,7 @@ void Renderer::createDepthImage()
     createInfo.extent = vk::Extent3D(swapchain.getExtent(), 1);
     createInfo.mipLevels = 1;
     createInfo.arrayLayers = 1;
-    createInfo.samples = vk::SampleCountFlagBits::e1;
+    createInfo.samples = rasterSamples;
     createInfo.tiling = vk::ImageTiling::eOptimal;
     createInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
     createInfo.sharingMode = vk::SharingMode::eExclusive;
@@ -797,6 +830,34 @@ void Renderer::createDepthImage()
     depthSubRange.baseArrayLayer = 0;
     depthSubRange.baseMipLevel = 0;
     depthView = depthImage.createView(device, depthSubRange);
+}
+
+void Renderer::createMsaaImage()
+{
+    vk::ImageCreateInfo createInfo;
+    createInfo.imageType = vk::ImageType::e2D;
+    createInfo.format = swapchain.getFormat();
+    createInfo.extent = vk::Extent3D(swapchain.getExtent(), 1);
+    createInfo.mipLevels = 1;
+    createInfo.arrayLayers = 1;
+    createInfo.samples = rasterSamples;
+    createInfo.tiling = vk::ImageTiling::eOptimal;
+    createInfo.usage = vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment;
+    createInfo.sharingMode = vk::SharingMode::eExclusive;
+    createInfo.initialLayout = vk::ImageLayout::eUndefined;
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    msaaImage = Image(createInfo, allocInfo);
+
+    vk::ImageSubresourceRange imageSubRange;
+    imageSubRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    imageSubRange.layerCount = 1;
+    imageSubRange.levelCount = 1;
+    imageSubRange.baseArrayLayer = 0;
+    imageSubRange.baseMipLevel = 0;
+    msaaView = msaaImage.createView(device, imageSubRange);
 }
 
 void Renderer::allocateUniformBuffer()

@@ -4,12 +4,12 @@
 
 #include "swapchain.h"
 #include "renderer.h"
-#include <config.h>
 #include <alloca.h>
+#include <config.h>
 
 namespace df {
-static vk::SurfaceFormatKHR getSurfaceFormat(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface);
 static vk::PresentModeKHR getPresentMode(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface, bool vsync);
+static vk::SurfaceFormatKHR getSurfaceFormat(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface);
 
 Swapchain::Swapchain(Renderer* renderer, SDL_Window* window)
     : Swapchain(
@@ -74,8 +74,9 @@ Swapchain::Swapchain(
 
     vk::resultCheck(device.getSwapchainImagesKHR(swapchain, &imageCount, nullptr), "Failed to get swapchain images");
     images = new vk::Image[imageCount];
-    views = new vk::ImageView[imageCount];
+    UInt i = 0;
     try {
+        views = new vk::ImageView[imageCount];
         vk::resultCheck(device.getSwapchainImagesKHR(swapchain, &imageCount, images), "Failed to get swapchain images");
         vk::ImageSubresourceRange subresourceRange;
         subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -83,7 +84,7 @@ Swapchain::Swapchain(
         subresourceRange.levelCount = 1;
         subresourceRange.baseArrayLayer = 0;
         subresourceRange.layerCount = 1;
-        for (UInt i = 0; i < imageCount; i++) {
+        for (; i < imageCount; i++) {
             vk::ImageViewCreateInfo viewCreateInfo;
             viewCreateInfo.image = images[i];
             viewCreateInfo.viewType = vk::ImageViewType::e2D;
@@ -97,9 +98,36 @@ Swapchain::Swapchain(
         }
     }
     catch (const std::exception& err) {
+        for (UInt j = 0; j < i; j++)
+            device.destroy(views[j]);
         delete[] images;
         delete[] views;
-        throw err;
+        device.destroy(swapchain);
+        throw;
+    }
+}
+
+void Swapchain::createFramebuffers(vk::RenderPass renderPass, vk::ImageView depthView, vk::ImageView msaaView)
+{
+    framebuffers = new vk::Framebuffer[imageCount];
+    UInt i;
+    try {
+        for (i = 0; i < imageCount; i++) {
+            vk::ImageView attachments[] = {msaaView, depthView, views[i]};
+            vk::FramebufferCreateInfo framebufferCreateInfo;
+            framebufferCreateInfo.renderPass = renderPass;
+            framebufferCreateInfo.attachmentCount = msaaView ? 3 : 2;
+            framebufferCreateInfo.pAttachments = attachments;
+            framebufferCreateInfo.width = extent.width;
+            framebufferCreateInfo.height = extent.height;
+            framebufferCreateInfo.layers = 1;
+
+            framebuffers[i] = device.createFramebuffer(framebufferCreateInfo);
+        }
+    } catch (const std::exception& e) {
+        for (UInt j=0; j<i;j++)
+            device.destroy(framebuffers[j]);
+        throw;
     }
 }
 
@@ -113,10 +141,14 @@ vk::Result Swapchain::next(vk::Semaphore semaphore)
 void Swapchain::destroy() noexcept
 {
     if (swapchain) {
-        for (UInt i = 0; i < imageCount; i++)
+        for (UInt i = 0; i < imageCount; i++) {
             device.destroy(views[i]);
+            if (framebuffers)
+                device.destroy(framebuffers[i]);
+        }
         delete[] images;
         delete[] views;
+        delete[] framebuffers;
         device.destroy(swapchain);
         swapchain = nullptr;
     }

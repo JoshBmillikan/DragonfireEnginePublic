@@ -32,7 +32,7 @@ public:
 
     void lookAt(glm::vec3 target)
     {
-        glm::mat4 look = glm::lookAtRH(position, target, glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 look = glm::lookAtRH(position, target, UP);
         position = glm::vec3(look[3]);
         rotation = glm::toQuat(look);
     }
