@@ -25,7 +25,11 @@ public:
     DF_NO_COPY(PipelineFactory);
     PipelineFactory(PipelineFactory&& other) noexcept;
     PipelineFactory& operator=(PipelineFactory&& other) noexcept;
-    vk::Pipeline createPipeline(const nlohmann::json& pipelineDescription, vk::PipelineLayout layout, vk::RenderPass renderPass = nullptr);
+    vk::Pipeline createPipeline(
+            const nlohmann::json& pipelineDescription,
+            vk::PipelineLayout layout,
+            vk::RenderPass renderPass = nullptr
+    );
     void saveCache();
     static constexpr const char* CACHE_PATH = "cache/shader_pipeline.cache";
 

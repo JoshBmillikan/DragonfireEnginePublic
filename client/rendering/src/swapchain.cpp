@@ -124,8 +124,9 @@ void Swapchain::createFramebuffers(vk::RenderPass renderPass, vk::ImageView dept
 
             framebuffers[i] = device.createFramebuffer(framebufferCreateInfo);
         }
-    } catch (...) {
-        for (UInt j=0; j<i;j++)
+    }
+    catch (...) {
+        for (UInt j = 0; j < i; j++)
             device.destroy(framebuffers[j]);
         throw;
     }

@@ -64,7 +64,8 @@ void GameClient::update(double deltaSeconds)
         else {
             if (transform.position.z < -1.01)
                 direction = !direction;
-            transform.position = lerp(transform.position, transform.position + glm::vec3(0, 0, -3), (float) deltaSeconds / 5.0f);
+            transform.position =
+                    lerp(transform.position, transform.position + glm::vec3(0, 0, -3), (float) deltaSeconds / 5.0f);
         }
     }
 

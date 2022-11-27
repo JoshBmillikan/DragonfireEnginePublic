@@ -20,26 +20,29 @@ class ThreadPool {
     class Task : public ITask {
         std::promise<T> promise;
         std::function<T()> function;
+
     public:
         Task(std::function<T()>&& func) : function(std::move(func)) {}
         void run() override
         {
-           try {
-               promise.set_value(function());
-           } catch(...) {
-               promise.set_exception(std::current_exception());
-           }
+            try {
+                promise.set_value(function());
+            }
+            catch (...) {
+                promise.set_exception(std::current_exception());
+            }
         }
-        std::future<T> getFuture() {return promise.get_future();}
+        std::future<T> getFuture() { return promise.get_future(); }
     };
 
     class VoidTask : public ITask {
         std::promise<void> promise;
         std::function<void()> function;
+
     public:
         VoidTask(std::function<void()>&& func) : function(std::move(func)) {}
         void run() override;
-        std::future<void> getFuture() {return promise.get_future();}
+        std::future<void> getFuture() { return promise.get_future(); }
     };
 
 public:
@@ -47,8 +50,8 @@ public:
     ~ThreadPool();
     DF_NO_MOVE_COPY(ThreadPool);
 
-    template <typename T>
-    requires (!std::is_void_v<T>)
+    template<typename T>
+        requires(!std::is_void_v<T>)
     std::future<T> spawn(std::function<T()>&& func)
     {
         auto task = std::make_unique<Task<T>>(std::move(func));
@@ -57,7 +60,7 @@ public:
         return future;
     }
 
-    template <typename T>
+    template<typename T>
         requires std::is_void_v<T>
     std::future<T> spawn(std::function<T()>&& func)
     {
@@ -68,6 +71,7 @@ public:
     }
 
     static ThreadPool globalPool;
+
 private:
     static constexpr Int TIMEOUT_U_SEC = 1000 * 1000;
     std::vector<std::thread> workerThreads;

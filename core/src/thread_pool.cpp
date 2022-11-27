@@ -29,12 +29,14 @@ void ThreadPool::workerThread(const std::stop_token& stopToken)
             task->run();
     }
 }
+
 void ThreadPool::VoidTask::run()
 {
     try {
         function();
         promise.set_value();
-    } catch(...) {
+    }
+    catch (...) {
         promise.set_exception(std::current_exception());
     }
 }

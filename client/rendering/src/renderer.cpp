@@ -343,7 +343,9 @@ void Renderer::beginCommandRecording()
     info.renderArea.extent = swapchain.getExtent();
     info.clearValueCount = 2;
 
-    vk::ClearValue clears[] = {(vk::ClearColorValue(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f})), vk::ClearDepthStencilValue(1,0)};
+    vk::ClearValue clears[] = {
+            (vk::ClearColorValue(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f})),
+            vk::ClearDepthStencilValue(1, 0)};
     info.pClearValues = clears;
     info.framebuffer = swapchain.getCurrentFramebuffer();
 
@@ -745,8 +747,10 @@ void Renderer::createRenderPass()
     vk::SubpassDependency dependency;
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
-    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
-    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput
+                              | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput
+                              | vk::PipelineStageFlagBits::eEarlyFragmentTests;
     dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
 
     vk::RenderPassCreateInfo createInfo;

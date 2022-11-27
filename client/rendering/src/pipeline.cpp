@@ -43,7 +43,11 @@ PipelineFactory::PipelineFactory(
     loadShaders();
 }
 
-vk::Pipeline PipelineFactory::createPipeline(const nlohmann::json& pipelineDescription, vk::PipelineLayout layout, vk::RenderPass renderPass)
+vk::Pipeline PipelineFactory::createPipeline(
+        const nlohmann::json& pipelineDescription,
+        vk::PipelineLayout layout,
+        vk::RenderPass renderPass
+)
 {
     vk::PipelineShaderStageCreateInfo stageInfos[5];
     const UInt stageCount = getStageCreateInfo(stageInfos, pipelineDescription);
