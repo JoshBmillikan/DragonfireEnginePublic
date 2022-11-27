@@ -5,7 +5,7 @@
 #include "thread_pool.h"
 
 namespace df {
-ThreadPool ThreadPool::globalThreadPool;
+ThreadPool ThreadPool::globalPool;
 
 ThreadPool::ThreadPool(UInt threadCount)
 {
@@ -24,10 +24,18 @@ ThreadPool::~ThreadPool()
 void ThreadPool::workerThread(const std::stop_token& stopToken)
 {
     while (!stopToken.stop_requested()) {
-        std::function<void()> fn;
-
-        if (queue.wait_dequeue_timed(fn, TIMEOUT_U_SEC))
-            fn();
+        std::unique_ptr<ITask> task;
+        if (queue.wait_dequeue_timed(task, TIMEOUT_U_SEC))
+            task->run();
+    }
+}
+void ThreadPool::VoidTask::run()
+{
+    try {
+        function();
+        promise.set_value();
+    } catch(...) {
+        promise.set_exception(std::current_exception());
     }
 }
 }   // namespace df
