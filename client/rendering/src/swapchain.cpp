@@ -97,7 +97,7 @@ Swapchain::Swapchain(
             views[i] = device.createImageView(viewCreateInfo);
         }
     }
-    catch (const std::exception& err) {
+    catch (...) {
         for (UInt j = 0; j < i; j++)
             device.destroy(views[j]);
         delete[] images;
@@ -124,7 +124,7 @@ void Swapchain::createFramebuffers(vk::RenderPass renderPass, vk::ImageView dept
 
             framebuffers[i] = device.createFramebuffer(framebufferCreateInfo);
         }
-    } catch (const std::exception& e) {
+    } catch (...) {
         for (UInt j=0; j<i;j++)
             device.destroy(framebuffers[j]);
         throw;
