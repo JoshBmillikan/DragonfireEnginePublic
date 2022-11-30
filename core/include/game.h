@@ -31,6 +31,7 @@ public:
     void stop() noexcept { running = false; }
 
     AssetRegistry assetRegistry;
+    entt::registry& getRegistry() noexcept { return registry; }
 
 protected:
     /**

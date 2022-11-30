@@ -118,7 +118,7 @@ vk::Pipeline PipelineFactory::createPipeline(
     createInfo.pRasterizationState = &rasterState;
     createInfo.pDepthStencilState = &depth;
     createInfo.pColorBlendState = &colorBlend;
-    createInfo.renderPass = renderPass ? renderPass : mainPass;
+    createInfo.renderPass = renderPass;
     createInfo.subpass = 0;
 
     auto [result, pipeline] = device.createGraphicsPipeline(cache, createInfo);

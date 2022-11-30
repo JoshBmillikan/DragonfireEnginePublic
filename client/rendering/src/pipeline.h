@@ -28,8 +28,12 @@ public:
     vk::Pipeline createPipeline(
             const nlohmann::json& pipelineDescription,
             vk::PipelineLayout layout,
-            vk::RenderPass renderPass = nullptr
+            vk::RenderPass renderPass
     );
+    vk::Pipeline createPipeline(const nlohmann::json& pipelineDescription, vk::PipelineLayout layout)
+    {
+        return createPipeline(pipelineDescription, layout, mainPass);
+    };
     void saveCache();
     static constexpr const char* CACHE_PATH = "cache/shader_pipeline.cache";
 

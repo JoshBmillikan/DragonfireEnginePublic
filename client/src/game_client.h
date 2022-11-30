@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "input.h"
 #include <SDL.h>
 #include <game.h>
 #include <render_context.h>
@@ -21,6 +22,8 @@ private:
     RenderContext* renderContext;
     void loadAssets();
     void update(double deltaSeconds);
+    void processSdlEvents(const SDL_Event& event);
+    void resetInputs();
 };
 
 }   // namespace df

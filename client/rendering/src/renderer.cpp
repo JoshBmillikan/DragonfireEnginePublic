@@ -30,7 +30,7 @@ void Renderer::beginRendering(const Camera& camera)
             vk::throwResultException(lastResult, "Swapchain presentation/acquire error");
         lastResult = swapchain.next(frame.presentSemaphore);
         retryCount++;
-    } while (lastResult != vk::Result::eSuccess && retryCount < 10);
+    } while (lastResult != vk::Result::eSuccess && retryCount < 3);
     if (lastResult != vk::Result::eSuccess)
         crash("Failed to resize swapchain");
 
@@ -130,7 +130,6 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 pool = pools[frameCount % FRAMES_IN_FLIGHT];
                 cmd = buffers[frameCount % FRAMES_IN_FLIGHT];
                 device.resetCommandPool(pool);
-                auto fmt = swapchain.getFormat();
 
                 vk::CommandBufferInheritanceInfo inheritanceInfo;
                 inheritanceInfo.renderPass = mainPass;
