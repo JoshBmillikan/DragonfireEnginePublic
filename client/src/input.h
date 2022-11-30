@@ -30,9 +30,9 @@ struct Axis2DState {
 struct InputBinding {};
 struct InputComponent {
     entt::entity entity;
-    ButtonState& getButton(entt::registry& registry) const noexcept {return registry.get<ButtonState>(entity);}
-    AxisState& getAxis(entt::registry& registry) const noexcept {return registry.get<AxisState>(entity);}
-    Axis2DState& getAxis2D(entt::registry& registry) const noexcept {return registry.get<Axis2DState>(entity);}
+    ButtonState& getButton(entt::registry& registry) const noexcept { return registry.get<ButtonState>(entity); }
+    AxisState& getAxis(entt::registry& registry) const noexcept { return registry.get<AxisState>(entity); }
+    Axis2DState& getAxis2D(entt::registry& registry) const noexcept { return registry.get<Axis2DState>(entity); }
 };
 
 void createInputBindings(entt::registry& registry, const char* filepath = "input_mapping.json");

@@ -19,7 +19,7 @@ protected:
     void mainLoop(double deltaSeconds) override;
 
 private:
-    RenderContext* renderContext;
+    std::unique_ptr<RenderContext> renderContext;
     void loadAssets();
     void update(double deltaSeconds);
     void processSdlEvents(const SDL_Event& event);

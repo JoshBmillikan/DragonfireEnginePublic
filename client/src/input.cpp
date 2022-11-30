@@ -60,8 +60,9 @@ void createInputBindings(entt::registry& registry, const char* filepath)
             if (binding["key"].is_number_unsigned()) {
                 SDL_KeyCode code = static_cast<SDL_KeyCode>(binding["key"].get<unsigned char>());
                 registry.emplace<SDL_KeyCode>(entity, code);
-            } else {
-                //todo
+            }
+            else {
+                // todo
             }
         }
     }

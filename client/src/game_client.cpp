@@ -13,7 +13,7 @@ GameClient::GameClient(int argc, char** argv) : Game(argc, argv)
     SDL_version version;
     SDL_GetVersion(&version);
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
-    renderContext = new RenderContext();
+    renderContext = std::make_unique<RenderContext>();
     loadAssets();
     createInputBindings(registry);
     auto entity = registry.create();
@@ -33,7 +33,7 @@ GameClient::~GameClient()
     renderContext->stopRendering();
     registry.clear<>();
     assetRegistry.destroy();
-    delete renderContext;
+    renderContext.reset();
     SDL_Quit();
 }
 
@@ -79,7 +79,7 @@ void GameClient::update(double deltaSeconds)
     for (auto&& [entity, transform, input] : registry.view<Transform, InputComponent>().each()) {
         auto& button = input.getButton(registry);
         if (button.pressed)
-            transform.position.z = lerp(transform.position.z, transform.position.z + 1.0f, (float)deltaSeconds);
+            transform.position.z = lerp(transform.position.z, transform.position.z + 1.0f, (float) deltaSeconds);
     }
 
     auto renderObjects = registry.group<Model, Transform>();

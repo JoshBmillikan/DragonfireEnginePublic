@@ -10,7 +10,7 @@ namespace df {
 class Event {
     enum class Type {
         button,
-    }k;
+    } k;
 };
 
 class EventBuss {
