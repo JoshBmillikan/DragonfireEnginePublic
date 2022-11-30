@@ -22,7 +22,7 @@ private:
     std::unique_ptr<RenderContext> renderContext;
     void loadAssets();
     void update(double deltaSeconds);
-    void processSdlEvents(const SDL_Event& event);
+    void processSdlEvent(const SDL_Event& event);
     void resetInputs();
 };
 

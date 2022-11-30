@@ -27,7 +27,11 @@ struct Axis2DState {
     float multiplier = 1;
 };
 
-struct InputBinding {};
+struct InputBinding {
+    UInt id;
+    InputBinding(const char* str) { id = entt::hashed_string::value(str); }
+};
+
 struct InputComponent {
     entt::entity entity;
     ButtonState& getButton(entt::registry& registry) const noexcept { return registry.get<ButtonState>(entity); }

@@ -6,6 +6,7 @@
 
 namespace df {
 using namespace entt::literals;
+
 GameClient::GameClient(int argc, char** argv) : Game(argc, argv)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) != 0)
@@ -41,12 +42,12 @@ void GameClient::mainLoop(double deltaSeconds)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
-        processSdlEvents(event);
+        processSdlEvent(event);
     update(deltaSeconds);
     resetInputs();
 }
 
-void GameClient::processSdlEvents(const SDL_Event& event)
+void GameClient::processSdlEvent(const SDL_Event& event)
 {
     switch (event.type) {
         case SDL_QUIT:
