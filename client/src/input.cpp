@@ -79,7 +79,7 @@ void createInputBindings(entt::registry& registry, const char* filepath)
 
 InputComponent getBindingByName(entt::registry& registry, std::string_view name)
 {
-    for (auto&& [entity, bindingName] : registry.view<std::string, InputBinding>().each()) {
+    for (auto&& [entity, bindingName, binding] : registry.view<std::string, InputBinding>().each()) {
         if (name == bindingName)
             return {entity};
     }
