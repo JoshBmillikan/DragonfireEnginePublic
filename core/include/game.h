@@ -4,6 +4,8 @@
 
 #pragma once
 #include "asset.h"
+#include "physics.h"
+#include "world.h"
 #include <entt/entt.hpp>
 
 namespace df {
@@ -31,7 +33,8 @@ public:
     void stop() noexcept { running = false; }
 
     AssetRegistry assetRegistry;
-    entt::registry& getRegistry() noexcept { return registry; }
+    World* getWorld() noexcept { return world.get(); }
+    static Game& get() noexcept { return *game; }
 
 protected:
     /**
@@ -39,10 +42,13 @@ protected:
      * Will be called once every frame
      * @param deltaSeconds number of seconds since the last frame
      */
-    virtual void mainLoop(double deltaSeconds) = 0;
+    virtual void update(double deltaSeconds) = 0;
 
-    entt::registry registry;
     bool running = true;
+    std::unique_ptr<World> world;
+
+private:
+    static Game* game;
 };
 
 }   // namespace df

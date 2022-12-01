@@ -15,10 +15,13 @@
 #endif
 
 namespace df {
+Game* Game::game = nullptr;
+
 static void initLogging(const char* filename);
 
 Game::Game(int argc, char** argv)
 {
+    game = this;
     std::array<char, constStrlen(APP_NAME) + 1> appFilename{};
     strcpy(appFilename.data(), APP_NAME);
     for (char& c : appFilename) {
@@ -60,7 +63,7 @@ void Game::run()
         time_point now = steady_clock::now();
         auto delta = duration<double>(now - lastTime);
         lastTime = now;
-        mainLoop(delta.count());
+        update(delta.count());
     }
 }
 

@@ -16,12 +16,11 @@ public:
     ~GameClient() override;
     DF_NO_MOVE_COPY(GameClient)
 protected:
-    void mainLoop(double deltaSeconds) override;
+    void update(double deltaSeconds) override;
 
 private:
     std::unique_ptr<RenderContext> renderContext;
     void loadAssets();
-    void update(double deltaSeconds);
     void processSdlEvent(const SDL_Event& event);
     void resetInputs();
 };
