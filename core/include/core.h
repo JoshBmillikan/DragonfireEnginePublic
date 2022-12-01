@@ -2,6 +2,7 @@
 // Created by josh on 11/9/22.
 //
 #include "glm/vec3.hpp"
+#include "spdlog/fmt/bundled/core.h"
 #include <ankerl/unordered_dense.h>
 #include <cstdint>
 
@@ -26,6 +27,13 @@ using Size = std::size_t;
 constexpr glm::vec3 UP = {0, 0, 1};
 
 constexpr UInt MAX_FILEPATH_LENGTH = 128;
+
+struct FormattedException : public std::runtime_error {
+    template<typename... Args>
+    FormattedException(fmt::format_string<Args...> msg, Args&&... args) : std::runtime_error(fmt::format(msg, args...))
+    {
+    }
+};
 }   // namespace df
 
 #define DF_NO_MOVE(Class)                                                                                                      \
