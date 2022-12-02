@@ -10,11 +10,11 @@
 
 namespace df {
 
-class GameClient : public Game {
+class LocalGame : public BaseGame {
 public:
-    GameClient(int argc, char** argv);
-    ~GameClient() override;
-    DF_NO_MOVE_COPY(GameClient)
+    LocalGame(int argc, char** argv);
+    ~LocalGame() override;
+    DF_NO_MOVE_COPY(LocalGame)
 protected:
     void update(double deltaSeconds) override;
 

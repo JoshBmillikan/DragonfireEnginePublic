@@ -15,11 +15,11 @@
 #endif
 
 namespace df {
-Game* Game::game = nullptr;
+BaseGame* BaseGame::game = nullptr;
 
 static void initLogging(const char* filename);
 
-Game::Game(int argc, char** argv)
+BaseGame::BaseGame(int argc, char** argv)
 {
     game = this;
     std::array<char, constStrlen(APP_NAME) + 1> appFilename{};
@@ -43,7 +43,7 @@ Game::Game(int argc, char** argv)
     spdlog::info("PhysFS initialized");
 }
 
-Game::~Game()
+BaseGame::~BaseGame()
 {
     assetRegistry.destroy();
     Config::get().saveConfig("config.json");
@@ -54,7 +54,7 @@ Game::~Game()
 
 static auto START_TIME = std::chrono::steady_clock::now();
 
-void Game::run()
+void BaseGame::run()
 {
     using namespace std::chrono;
     time_point lastTime = steady_clock::now();

@@ -5,22 +5,22 @@
 #pragma once
 #include "asset.h"
 #include "physics.h"
-#include "world.h"
+#include "world/world.h"
 #include <entt/entt.hpp>
 
 namespace df {
 
-class Game {
+class BaseGame {
 public:
     /**
      * Initialize the game
      * @param argc number of args from the command line
      * @param argv program arguments array
      */
-    Game(int argc, char** argv);
+    BaseGame(int argc, char** argv);
 
-    virtual ~Game();
-    DF_NO_MOVE_COPY(Game);
+    virtual ~BaseGame();
+    DF_NO_MOVE_COPY(BaseGame);
 
     /**
      * Start the game
@@ -34,7 +34,7 @@ public:
 
     AssetRegistry assetRegistry;
     World* getWorld() noexcept { return world.get(); }
-    static Game& get() noexcept { return *game; }
+    static BaseGame& get() noexcept { return *game; }
 
 protected:
     /**
@@ -48,7 +48,7 @@ protected:
     std::unique_ptr<World> world;
 
 private:
-    static Game* game;
+    static BaseGame* game;
 };
 
 }   // namespace df

@@ -17,7 +17,7 @@ private:
 };
 
 class ChunkManager {
-
+    std::vector<Chunk> chunks;
 };
 
 }   // namespace df::voxel
