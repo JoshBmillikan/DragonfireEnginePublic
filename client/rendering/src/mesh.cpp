@@ -212,7 +212,8 @@ std::array<vk::VertexInputBindingDescription, 2> Mesh::vertexInputDescriptions =
         vk::VertexInputBindingDescription(1, sizeof(glm::mat4), vk::VertexInputRate::eInstance),
 };
 
-std::array<vk::VertexInputAttributeDescription, 7> Mesh::vertexAttributeDescriptions = {
+std::array<vk::VertexInputAttributeDescription, 7> Mesh::
+        vertexAttributeDescriptions = {
         vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, position)),
         vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)),
         vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, uv)),

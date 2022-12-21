@@ -6,7 +6,6 @@
 #include "world/local_world.h"
 
 namespace df {
-using namespace entt::literals;
 
 LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
 {
