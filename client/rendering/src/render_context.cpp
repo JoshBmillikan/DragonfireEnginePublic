@@ -38,7 +38,6 @@ static Camera createCamera(SDL_Window* window)
     auto& cfg = Config::get().graphics;
     int width, height;
     SDL_GetWindowSize(window, &width, &height);
-    spdlog::info("Aspect ratio {}", (float) width / (float) height);
     return Camera(cfg.fov, static_cast<UInt>(width), static_cast<UInt>(height));
 }
 
