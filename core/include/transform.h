@@ -11,6 +11,11 @@ class Transform {
 public:
     glm::vec3 position = glm::vec3(0.0f), scale = glm::vec3(1.0f);
     glm::quat rotation = glm::identity<glm::quat>();
+    Transform() = default;
+    Transform(glm::vec3 pos, glm::quat rotation = glm::identity<glm::quat>(), glm::vec3 scale = glm::vec3(1.0f))
+        : position(pos), scale(scale), rotation(rotation)
+    {
+    }
 
     bool operator==(const Transform& other) const noexcept
     {
