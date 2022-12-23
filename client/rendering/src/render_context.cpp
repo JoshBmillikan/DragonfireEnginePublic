@@ -11,7 +11,7 @@
 namespace df {
 static SDL_Window* createWindow()
 {
-    int flags = Renderer::SDL_WINDOW_FLAGS | SDL_WINDOW_MOUSE_CAPTURE;
+    UInt flags = Renderer::SDL_WINDOW_FLAGS | SDL_WINDOW_MOUSE_CAPTURE;
     auto& cfg = Config::get().graphics;
 
     switch (cfg.windowMode) {

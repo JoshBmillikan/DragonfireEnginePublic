@@ -40,6 +40,7 @@ void Renderer::beginRendering(const Camera& camera)
     glm::mat4 view = camera.getViewMatrix();
     data->viewPerspective = viewPerspective = camera.perspective * view;
     data->viewOrthographic = viewOrthographic = camera.orthographic * view;
+    data->sunAngle = glm::vec3(0, 0, 1);
 
     device.resetFences(frame.fence);
     beginCommandRecording();

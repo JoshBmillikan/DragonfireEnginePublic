@@ -9,8 +9,8 @@ namespace df {
 
 class Transform {
 public:
-    glm::vec3 position, scale = glm::vec3(1.0f);
-    glm::quat rotation;
+    glm::vec3 position = glm::vec3(0.0f), scale = glm::vec3(1.0f);
+    glm::quat rotation = glm::identity<glm::quat>();
 
     bool operator==(const Transform& other) const noexcept
     {
