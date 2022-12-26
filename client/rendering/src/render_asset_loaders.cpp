@@ -134,14 +134,28 @@ MaterialLoader::MaterialLoader(PipelineFactory* pipelineFactory, vk::Device devi
 
 std::vector<Asset*> PngLoader::load(const char* filename)
 {
-    File file(filename);
-    auto data = file.readBytes();
-    file.close();
     int width, height, pixelSize;
-    stbi_uc* pixels = stbi_load_from_memory(data.data(), (int) data.size(), &width, &height, &pixelSize, STBI_rgb_alpha);
+    stbi_uc* pixels;
+    {
+        File file(filename);
+        auto data = file.readBytes();
+        pixels = stbi_load_from_memory(data.data(), (int) data.size(), &width, &height, &pixelSize, STBI_rgb_alpha);
+    }
+    if (pixels == nullptr)
+        throw std::runtime_error(
+                fmt::format("STB image failed to load image \"{}\", reason: {}", filename, stbi_failure_reason())
+        );
 
-    // todo
-    return {};
+    vk::Extent2D extent(width, height);
+    try {
+        auto texture = factory.create(extent, pixels, width * height * pixelSize);
+        stbi_image_free(pixels);
+        return {texture};
+    }
+    catch (...) {
+        stbi_image_free(pixels);
+        throw;
+    }
 }
 
 }   // namespace df
