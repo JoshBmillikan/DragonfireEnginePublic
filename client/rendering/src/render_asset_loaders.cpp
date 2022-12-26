@@ -5,11 +5,11 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "render_asset_loaders.h"
 #include "renderer.h"
+#include "stb_image.h"
 #include <asset.h>
 #include <file.h>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include <png.h>
 
 namespace df {
 std::vector<Asset*> ObjLoader::load(const char* filename)
@@ -134,28 +134,15 @@ MaterialLoader::MaterialLoader(PipelineFactory* pipelineFactory, vk::Device devi
 
 std::vector<Asset*> PngLoader::load(const char* filename)
 {
-    png_image png;
+
     File file(filename);
     auto data = file.readBytes();
     file.close();
-    if (png_image_begin_read_from_memory(&png, data.data(), data.size()) == 0)
-        throw std::runtime_error(png.message);
-    png.format = PNG_FORMAT_RGBA;
+    int width, height, pixelSize;
+    stbi_uc* pixels = stbi_load_from_memory(data.data(), (int) data.size(), &width, &height, &pixelSize, STBI_rgb_alpha);
 
-    png_bytep ptr;
-    try {
-        ptr = static_cast<png_bytep>(factory.getBufferMemory(PNG_IMAGE_SIZE(png)));
-    }
-    catch (const std::exception& e) {
-        png_image_free(&png);
-        throw;
-    }
-    if (png_image_finish_read(&png, nullptr, ptr, 0, nullptr) == 0)
-        throw std::runtime_error(png.message);
-
-    vk::Extent2D extent(png.width, png.height);
-
-    return {factory.create(extent)};
+    //todo
+    return {};
 }
 
 }   // namespace df

@@ -54,8 +54,3 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/skypjack/entt.git
         GIT_TAG 76298bc26ae7d47e5e75baeb9da1bd5bf17bdadc
 )
-FetchContent_Declare(
-        libPng
-        GIT_REPOSITORY https://github.com/glennrp/libpng.git
-        GIT_TAG 07b8803110da160b158ebfef872627da6c85cbdf
-)
