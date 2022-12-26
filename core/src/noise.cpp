@@ -174,17 +174,16 @@ static float noise2UnskewedBase(const ULong seed, const float xs, const float ys
     float xmyi = xi - yi;
     if (t < UNSKEW_2D) {
         if (xi + xmyi > 1) {
-            float dx2 = dx0 - (float)(3 * UNSKEW_2D + 2);
-            float dy2 = dy0 - (float)(3 * UNSKEW_2D + 1);
+            float dx2 = dx0 - (float) (3 * UNSKEW_2D + 2);
+            float dy2 = dy0 - (float) (3 * UNSKEW_2D + 1);
             float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
             if (a2 > 0) {
                 value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp + (PRIME_X << 1), ysbp + PRIME_Y, dx2, dy2);
             }
         }
-        else
-        {
-            float dx2 = dx0 - (float)UNSKEW_2D;
-            float dy2 = dy0 - (float)(UNSKEW_2D + 1);
+        else {
+            float dx2 = dx0 - (float) UNSKEW_2D;
+            float dy2 = dy0 - (float) (UNSKEW_2D + 1);
             float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
             if (a2 > 0) {
                 value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp, ysbp + PRIME_Y, dx2, dy2);
@@ -192,37 +191,34 @@ static float noise2UnskewedBase(const ULong seed, const float xs, const float ys
         }
 
         if (yi - xmyi > 1) {
-            float dx3 = dx0 - (float)(3 * UNSKEW_2D + 1);
-            float dy3 = dy0 - (float)(3 * UNSKEW_2D + 2);
+            float dx3 = dx0 - (float) (3 * UNSKEW_2D + 1);
+            float dy3 = dy0 - (float) (3 * UNSKEW_2D + 2);
             float a3 = RSQUARED_2D - dx3 * dx3 - dy3 * dy3;
             if (a3 > 0) {
                 value += (a3 * a3) * (a3 * a3) * grad(seed, xsbp + PRIME_X, ysbp + (PRIME_Y << 1), dx3, dy3);
             }
         }
-        else
-        {
-            float dx3 = dx0 - (float)(UNSKEW_2D + 1);
-            float dy3 = dy0 - (float)UNSKEW_2D;
+        else {
+            float dx3 = dx0 - (float) (UNSKEW_2D + 1);
+            float dy3 = dy0 - (float) UNSKEW_2D;
             float a3 = RSQUARED_2D - dx3 * dx3 - dy3 * dy3;
             if (a3 > 0) {
                 value += (a3 * a3) * (a3 * a3) * grad(seed, xsbp + PRIME_X, ysbp, dx3, dy3);
             }
         }
     }
-    else
-    {
+    else {
         if (xi + xmyi < 0) {
-            float dx2 = dx0 + (float)(1 + UNSKEW_2D);
-            float dy2 = dy0 + (float)UNSKEW_2D;
+            float dx2 = dx0 + (float) (1 + UNSKEW_2D);
+            float dy2 = dy0 + (float) UNSKEW_2D;
             float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
             if (a2 > 0) {
                 value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp - PRIME_X, ysbp, dx2, dy2);
             }
         }
-        else
-        {
-            float dx2 = dx0 - (float)(UNSKEW_2D + 1);
-            float dy2 = dy0 - (float)UNSKEW_2D;
+        else {
+            float dx2 = dx0 - (float) (UNSKEW_2D + 1);
+            float dy2 = dy0 - (float) UNSKEW_2D;
             float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
             if (a2 > 0) {
                 value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp + PRIME_X, ysbp, dx2, dy2);
@@ -230,17 +226,16 @@ static float noise2UnskewedBase(const ULong seed, const float xs, const float ys
         }
 
         if (yi < xmyi) {
-            float dx2 = dx0 + (float)UNSKEW_2D;
-            float dy2 = dy0 + (float)(UNSKEW_2D + 1);
+            float dx2 = dx0 + (float) UNSKEW_2D;
+            float dy2 = dy0 + (float) (UNSKEW_2D + 1);
             float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
             if (a2 > 0) {
                 value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp, ysbp - PRIME_Y, dx2, dy2);
             }
         }
-        else
-        {
-            float dx2 = dx0 - (float)UNSKEW_2D;
-            float dy2 = dy0 - (float)(UNSKEW_2D + 1);
+        else {
+            float dx2 = dx0 - (float) UNSKEW_2D;
+            float dy2 = dy0 - (float) (UNSKEW_2D + 1);
             float a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
             if (a2 > 0) {
                 value += (a2 * a2) * (a2 * a2) * grad(seed, xsbp, ysbp + PRIME_Y, dx2, dy2);

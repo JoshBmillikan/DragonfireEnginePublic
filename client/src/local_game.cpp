@@ -16,7 +16,7 @@ LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
     renderContext = std::make_unique<RenderContext>();
     loadAssets();
-    world = std::make_unique<LocalWorld>("Test world",random());
+    world = std::make_unique<LocalWorld>("Test world", random());
 }
 
 LocalGame::~LocalGame()
@@ -53,16 +53,12 @@ void LocalGame::processSdlEvent(const SDL_Event& event)
         case SDL_KEYUP:
         case SDL_KEYDOWN:
             if (event.key.repeat == 0) {
-
             }
             break;
-        case SDL_MOUSEMOTION:
-            break;
-        case SDL_MOUSEWHEEL:
-            break;
+        case SDL_MOUSEMOTION: break;
+        case SDL_MOUSEWHEEL: break;
         case SDL_MOUSEBUTTONUP:
-        case SDL_MOUSEBUTTONDOWN:
-            break;
+        case SDL_MOUSEBUTTONDOWN: break;
     }
 }
 

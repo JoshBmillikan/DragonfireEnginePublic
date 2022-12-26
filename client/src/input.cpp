@@ -67,12 +67,12 @@ void createInputBindings(entt::registry& registry, const char* filepath)
 
         if (binding.contains("axis")) {
             registry.emplace<AxisState>(entity);
-            //todo
+            // todo
         }
 
         if (binding.contains("axis2d")) {
             registry.emplace<Axis2DState>(entity);
-            //todo
+            // todo
         }
     }
 }

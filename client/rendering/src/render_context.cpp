@@ -108,6 +108,7 @@ static void loadWindowIcon(SDL_Window* window)
     SDL_FreeSurface(surface);
     stbi_image_free(pixels);
 }
+
 SDL_Window* createWindow()
 {
     UInt flags = Renderer::SDL_WINDOW_FLAGS | SDL_WINDOW_MOUSE_CAPTURE;
@@ -127,16 +128,17 @@ SDL_Window* createWindow()
             (int) cfg.resolution[1],
             flags
     );
-    if (window) {
-        try {
-            loadWindowIcon(window);
-        }
-        catch (const std::exception& e) {
-            spdlog::error("Failed to load window icon: {}", e.what());
-        }
-        return window;
+    if (window == nullptr)
+        throw std::runtime_error(fmt::format("SDL failed to create window: {}", SDL_GetError()));
+
+    try {
+        loadWindowIcon(window);
     }
-    throw std::runtime_error(fmt::format("SDL failed to create window: {}", SDL_GetError()));
+    catch (const std::exception& e) {
+        spdlog::error("Failed to load window icon: {}", e.what());
+    }
+
+    return window;
 }
 
 }   // namespace df

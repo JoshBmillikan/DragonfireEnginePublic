@@ -134,14 +134,13 @@ MaterialLoader::MaterialLoader(PipelineFactory* pipelineFactory, vk::Device devi
 
 std::vector<Asset*> PngLoader::load(const char* filename)
 {
-
     File file(filename);
     auto data = file.readBytes();
     file.close();
     int width, height, pixelSize;
     stbi_uc* pixels = stbi_load_from_memory(data.data(), (int) data.size(), &width, &height, &pixelSize, STBI_rgb_alpha);
 
-    //todo
+    // todo
     return {};
 }
 

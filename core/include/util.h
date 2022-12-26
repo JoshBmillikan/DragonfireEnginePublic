@@ -33,7 +33,8 @@ inline constexpr Size constStrlen(const char* str) noexcept
  * @param value The value to round
  * @return The rounded value
  */
-inline constexpr Int intFloor(const float value) noexcept {
+inline constexpr Int intFloor(const float value) noexcept
+{
     Int i = static_cast<Int>(value);
     return value < i ? i - 1 : i;
 }
