@@ -6,6 +6,25 @@
 #include "renderer.h"
 
 namespace df {
+Texture::Texture(Image&& image, vk::Extent2D extent, vk::Device device)
+    : image(std::move(image)), imageExtent(extent), device(device)
+{
+    vk::ImageSubresourceRange range{};
+    range.aspectMask = vk::ImageAspectFlagBits::eColor;
+    range.baseMipLevel = 0;
+    range.levelCount = 1;
+    range.baseArrayLayer = 0;
+    range.layerCount = 1;
+    view = this->image.createView(device, range);
+}
+
+void Texture::destroy() noexcept
+{
+    if (view) {
+        device.destroy(view);
+        view = nullptr;
+    }
+}
 
 Texture::Factory::Factory(Renderer* renderer)
 {
@@ -136,7 +155,7 @@ Texture* Texture::Factory::create(vk::Extent2D extent)
 
     vk::resultCheck(device.waitForFences(fence, true, UINT64_MAX), "Fence wait failed");
     device.resetFences(fence);
-    return new Texture(std::move(texture), extent);
+    return new Texture(std::move(texture), extent, device);
 }
 
 Texture* Texture::Factory::create(vk::Extent2D extent, void const* buffer, Size size)
@@ -248,5 +267,4 @@ Texture::Factory& Texture::Factory::operator=(Texture::Factory&& other) noexcept
     }
     return *this;
 }
-
 }   // namespace df

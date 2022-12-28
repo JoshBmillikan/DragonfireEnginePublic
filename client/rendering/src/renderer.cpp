@@ -525,9 +525,14 @@ vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* logger)
 
 static bool isValidDevice(vk::PhysicalDevice device)
 {
-    vk::PhysicalDeviceVulkan12Features features12;
+    vk::PhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
+    indexingFeatures.descriptorBindingPartiallyBound = true;
+    indexingFeatures.runtimeDescriptorArray = true;
+    indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = true;
+    indexingFeatures.descriptorBindingVariableDescriptorCount = true;
+
     vk::PhysicalDeviceFeatures2 features2;
-    features2.pNext = &features12;
+    features2.pNext = &indexingFeatures;
     features2.features.sparseBinding = true;
     features2.features.samplerAnisotropy = true;
     features2.features.sampleRateShading = true;
@@ -665,10 +670,17 @@ void Renderer::createDevice()
         queueCount++;
     }
 
-    vk::PhysicalDeviceFeatures features;
-    features.sparseBinding = true;
-    features.samplerAnisotropy = true;
-    features.sampleRateShading = true;
+    vk::PhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
+    indexingFeatures.descriptorBindingPartiallyBound = true;
+    indexingFeatures.runtimeDescriptorArray = true;
+    indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = true;
+    indexingFeatures.descriptorBindingVariableDescriptorCount = true;
+
+    vk::PhysicalDeviceFeatures2 features2{};
+    features2.pNext = &indexingFeatures;
+    features2.features.sparseBinding = true;
+    features2.features.samplerAnisotropy = true;
+    features2.features.sampleRateShading = true;
 
     for (const char* ext : DEVICE_EXTENSIONS)
         logger->info("Loaded device extension: {}", ext);
@@ -678,7 +690,7 @@ void Renderer::createDevice()
     createInfo.pQueueCreateInfos = queueCreateInfos;
     createInfo.enabledExtensionCount = DEVICE_EXTENSIONS.size();
     createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
-    createInfo.pEnabledFeatures = &features;
+    createInfo.pNext = &features2;
 
     device = physicalDevice.createDevice(createInfo);
     VULKAN_HPP_DEFAULT_DISPATCHER.init(device);
@@ -892,23 +904,41 @@ bool Renderer::depthHasStencil() const noexcept
 
 void Renderer::createDescriptorPool()
 {
-    vk::DescriptorPoolSize size;
-    size.type = vk::DescriptorType::eUniformBuffer;
-    size.descriptorCount = 10;
+    vk::DescriptorPoolSize sizes[2];
+    sizes[0].type = vk::DescriptorType::eUniformBuffer;
+    sizes[0].descriptorCount = FRAMES_IN_FLIGHT;
+    sizes[1].type = vk::DescriptorType::eCombinedImageSampler;
+    sizes[1].descriptorCount = 1000;
     vk::DescriptorPoolCreateInfo poolCreateInfo;
-    poolCreateInfo.maxSets = 10;
-    poolCreateInfo.pPoolSizes = &size;
-    poolCreateInfo.poolSizeCount = 1;
+    poolCreateInfo.maxSets = 1024;
+    poolCreateInfo.pPoolSizes = sizes;
+    poolCreateInfo.poolSizeCount = 2;
+    poolCreateInfo.flags = vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind;
     descriptorPool = device.createDescriptorPool(poolCreateInfo);
 
-    vk::DescriptorSetLayoutBinding binding;
-    binding.binding = 0;
-    binding.descriptorCount = 1;
-    binding.descriptorType = vk::DescriptorType::eUniformBuffer;
-    binding.stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
+    vk::DescriptorSetLayoutBinding bindings[2]{};
+    bindings[0].binding = 0;
+    bindings[0].descriptorCount = 1;
+    bindings[0].descriptorType = vk::DescriptorType::eUniformBuffer;
+    bindings[0].stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
+    bindings[1].binding = 1;
+    bindings[1].descriptorCount = 1;
+    bindings[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+    bindings[1].pImmutableSamplers = nullptr;
+    bindings[1].stageFlags = vk::ShaderStageFlagBits::eFragment;
+
+    vk::DescriptorBindingFlags flags[] = {
+            (vk::DescriptorBindingFlagBits) 0,
+            vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind
+                    | vk::DescriptorBindingFlagBits::eVariableDescriptorCount};
+    vk::DescriptorSetLayoutBindingFlagsCreateInfo flagInfo{};
+    flagInfo.bindingCount = 2;
+    flagInfo.pBindingFlags = flags;
     vk::DescriptorSetLayoutCreateInfo layoutCreateInfo;
-    layoutCreateInfo.pBindings = &binding;
-    layoutCreateInfo.bindingCount = 1;
+    layoutCreateInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool;
+    layoutCreateInfo.pBindings = bindings;
+    layoutCreateInfo.bindingCount = 2;
+    layoutCreateInfo.pNext = &flagInfo;
     globalDescriptorSetLayout = device.createDescriptorSetLayout(layoutCreateInfo);
 }
 
