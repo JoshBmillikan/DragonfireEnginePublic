@@ -1,2 +1,6 @@
 add_library(StbImage stb/stb_image.h stb/impl.c)
 target_include_directories(StbImage PUBLIC stb)
+set(CEF_USE_SANDBOX CACHE BOOL OFF "CEF-CMake: Enable or disable use of the CEF sandbox.")
+set(CEF_CMAKE_OUTPUT_DIR ${CMAKE_BINARY_DIR}/client)
+include(cef/cmake/cef_cmake.cmake)
+add_subdirectory(cef)
