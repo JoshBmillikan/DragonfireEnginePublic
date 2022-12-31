@@ -908,9 +908,9 @@ void Renderer::createDescriptorPool()
     sizes[0].type = vk::DescriptorType::eUniformBuffer;
     sizes[0].descriptorCount = FRAMES_IN_FLIGHT;
     sizes[1].type = vk::DescriptorType::eCombinedImageSampler;
-    sizes[1].descriptorCount = 1000;
+    sizes[1].descriptorCount = MAX_TEXTURE_DESCRIPTORS;
     vk::DescriptorPoolCreateInfo poolCreateInfo;
-    poolCreateInfo.maxSets = 1024;
+    poolCreateInfo.maxSets = 64;
     poolCreateInfo.pPoolSizes = sizes;
     poolCreateInfo.poolSizeCount = 2;
     poolCreateInfo.flags = vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind;

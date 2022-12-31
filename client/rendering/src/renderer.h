@@ -69,6 +69,7 @@ public:
 
 private:
     static constexpr Size FRAMES_IN_FLIGHT = 2;
+    static constexpr UInt MAX_TEXTURE_DESCRIPTORS = 4096;
     ULong frameCount = 0;
     std::shared_ptr<spdlog::logger> logger;
     vk::DebugUtilsMessengerEXT debugMessenger;
@@ -87,9 +88,7 @@ private:
     vk::DescriptorSetLayout globalDescriptorSetLayout;
     vk::DescriptorPool descriptorPool;
     vk::SampleCountFlagBits rasterSamples = vk::SampleCountFlagBits::e1;
-
-    glm::mat4 viewPerspective{};
-    glm::mat4 viewOrthographic{};
+    glm::mat4 viewPerspective{}, viewOrthographic{};
 
     std::stop_source threadStop;
     std::mutex presentLock;
