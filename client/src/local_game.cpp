@@ -3,11 +3,13 @@
 //
 
 #include "local_game.h"
+#include "ui/ui.h"
 #include "world/local_world.h"
+#include <utility>
 
 namespace df {
 
-LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
+LocalGame::LocalGame(int argc, char** argv, CefRefPtr<ui::Application> uiApp) : BaseGame(argc, argv), uiApp(std::move(uiApp))
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) != 0)
         crash("Failed to initialize SDL: {}", SDL_GetError());

@@ -381,7 +381,6 @@ void Renderer::init(SDL_Window* window, bool validation)
 {
     logger = spdlog::default_logger()->clone("Rendering");
     logger->info("Initializing rendering engine");
-    auto& cfg = Config::get().graphics;
     spdlog::register_logger(logger);
     createInstance(window, validation);
     if (validation) {

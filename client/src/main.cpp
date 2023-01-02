@@ -3,10 +3,13 @@
 //
 #include "local_game.h"
 #include <SDL2/SDL_main.h>
+#include "ui/ui.h"
 
 // declared extern c for compatability with SDL_main
 extern "C" int main(int argc, char** argv)
 {
-    df::LocalGame game(argc, argv);
+    auto ui = df::ui::initCEF(argc, argv);
+    df::LocalGame game(argc, argv, std::move(ui));
     game.run();
+    CefShutdown();
 }
