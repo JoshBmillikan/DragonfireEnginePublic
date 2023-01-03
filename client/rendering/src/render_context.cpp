@@ -46,7 +46,7 @@ void RenderContext::drawFrame()
         renderer->beginRendering(camera);
         for (auto& [model, matrices] : models) {
             if (!matrices.empty())
-                renderer->render(model, matrices);
+                renderer->render(&model, matrices);
         }
         renderer->endRendering();
         for (auto& [model, matrices] : models)

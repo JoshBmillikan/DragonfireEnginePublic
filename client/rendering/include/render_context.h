@@ -21,7 +21,7 @@ public:
      * @param model
      * @param transform
      */
-    void enqueueModel(Model* model, const Transform& transform) { models[model].push_back(transform); }
+    void enqueueModel(Model model, const Transform& transform) { models[model].push_back(transform); }
 
     /** @brief renders all queued models and draws the next frame
      *
@@ -49,7 +49,7 @@ private:
     Camera camera{};
     class Renderer* renderer = nullptr;
     SDL_Window* window = nullptr;
-    HashMap<Model*, std::vector<glm::mat4>> models;
+    HashMap<Model, std::vector<glm::mat4>> models;
 };
 
 }   // namespace df

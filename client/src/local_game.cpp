@@ -39,7 +39,7 @@ void LocalGame::update(double deltaSeconds)
         world->update(deltaSeconds);
         auto renderObjects = world->getRegistry().group<Model, const Transform>();
         for (auto&& [entity, model, transform] : renderObjects.each())
-            renderContext->enqueueModel(&model, transform);
+            renderContext->enqueueModel(model, transform);
     }
     renderContext->drawFrame();
     resetInputs();
