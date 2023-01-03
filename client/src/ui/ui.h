@@ -6,5 +6,5 @@
 #include "application.h"
 
 namespace df::ui {
-    CefRefPtr<Application> initCEF(int argc, char** argv);
+CefRefPtr<Application> initCEF(int argc, char** argv);
 }   // namespace df::ui
