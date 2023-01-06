@@ -22,6 +22,7 @@ class Renderer {
     friend class Swapchain;
     friend class Mesh::Factory;
     friend class Texture::Factory;
+    friend class VulkanUIRenderer;
 
 public:
     /**
@@ -47,6 +48,8 @@ public:
      * @param matrices the matrices for each model instance
      */
     void render(Model* model, const std::vector<glm::mat4>& matrices);
+
+    void render(class VulkanUIRenderer& uiRenderer);
 
     /**
      * End rendering the current frame and present it
@@ -98,7 +101,7 @@ private:
 
     UInt renderThreadCount = std::max(std::thread::hardware_concurrency() / 2, 1u), currentThread = 0;
     std::barrier<> renderBarrier{renderThreadCount + 1};
-    vk::CommandBuffer* secondaryBuffers = nullptr;
+    vk::CommandBuffer* secondaryBuffers = nullptr, uiBuffer = nullptr;
 
     enum class RenderCommand {
         waiting,

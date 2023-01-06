@@ -11,5 +11,4 @@ extern "C" int main(int argc, char** argv)
     auto ui = df::ui::initCEF(argc, argv);
     df::LocalGame game(argc, argv, std::move(ui));
     game.run();
-    CefShutdown();
 }

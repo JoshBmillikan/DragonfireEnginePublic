@@ -7,6 +7,7 @@
 #include "material.h"
 #include <SDL_vulkan.h>
 #include <alloca.h>
+#include "vulkan_ui_renderer.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -71,6 +72,12 @@ void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
     }
     data.cond.notify_one();
     threadIndex = (threadIndex + 1) % renderThreadCount;
+}
+
+void Renderer::render(VulkanUIRenderer& uiRenderer)
+{
+    std::unique_lock lock(presentLock);
+    uiBuffer = uiRenderer.getCmdBuffer();
 }
 
 void Renderer::endRendering()
@@ -245,13 +252,20 @@ void Renderer::presentThread(const std::stop_token& token)
         if (token.stop_requested())
             break;
         vk::PipelineStageFlags mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+        vk::CommandBuffer buffers[2];
+        UInt bufferCount = 1;
+        buffers[0] = presentingFrame->buffer;
+        if (uiBuffer) {
+            buffers[1] = uiBuffer;
+            bufferCount++;
+        }
         vk::SubmitInfo submitInfo;
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = &presentingFrame->presentSemaphore;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &presentingFrame->renderSemaphore;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &presentingFrame->buffer;
+        submitInfo.commandBufferCount = bufferCount;
+        submitInfo.pCommandBuffers = buffers;
         submitInfo.pWaitDstStageMask = &mask;
 
         queues.graphics.submit(submitInfo, presentingFrame->fence);
@@ -267,6 +281,7 @@ void Renderer::presentThread(const std::stop_token& token)
 
         presentResult = queues.present.presentKHR(presentInfo);
         presentingFrame = nullptr;
+        uiBuffer = nullptr;
         lock.unlock();
         presentCond.notify_one();
     }

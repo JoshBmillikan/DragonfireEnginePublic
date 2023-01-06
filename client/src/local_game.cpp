@@ -17,6 +17,9 @@ LocalGame::LocalGame(int argc, char** argv, CefRefPtr<ui::Application> uiApp) : 
     SDL_GetVersion(&version);
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
     renderContext = std::make_unique<RenderContext>();
+    auto uiRenderer = renderContext->getUIRenderer();
+    ui = CefRefPtr<ui::UI>(new ui::UI(uiRenderer));
+    uiBrowser = ui::createBrowser(ui);
     loadAssets();
     world = std::make_unique<LocalWorld>("Test world", random());
 }
@@ -26,6 +29,7 @@ LocalGame::~LocalGame()
     renderContext->stopRendering();
     world.reset();
     assetRegistry.destroy();
+    CefShutdown();
     renderContext.reset();
     SDL_Quit();
 }
@@ -52,15 +56,27 @@ void LocalGame::processSdlEvent(const SDL_Event& event)
             spdlog::info("Quit requested");
             stop();
             break;
+
         case SDL_KEYUP:
         case SDL_KEYDOWN:
             if (event.key.repeat == 0) {
             }
             break;
+
         case SDL_MOUSEMOTION: break;
         case SDL_MOUSEWHEEL: break;
         case SDL_MOUSEBUTTONUP:
         case SDL_MOUSEBUTTONDOWN: break;
+
+        case SDL_WINDOWEVENT_HIDDEN:
+        case SDL_WINDOWEVENT_MINIMIZED:
+            uiBrowser->GetHost()->WasHidden(true);
+            break;
+
+        case SDL_WINDOWEVENT_SHOWN:
+        case SDL_WINDOWEVENT_RESTORED:
+            uiBrowser->GetHost()->WasHidden(false);
+            break;
     }
 }
 

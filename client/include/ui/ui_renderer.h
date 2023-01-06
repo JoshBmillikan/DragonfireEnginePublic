@@ -51,5 +51,7 @@ public:
     void OnTextSelectionChanged(CefRefPtr<CefBrowser> browser, const CefString& selected_text, const CefRange& selected_range)
             override;
     void OnVirtualKeyboardRequested(CefRefPtr<CefBrowser> browser, TextInputMode input_mode) override;
+protected:
+
 };
 }   // namespace df::ui

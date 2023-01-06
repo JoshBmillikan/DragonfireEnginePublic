@@ -63,7 +63,6 @@ cert-str34-c
 cppcoreguidelines-interfaces-global-init
 cppcoreguidelines-narrowing-conversions
 cppcoreguidelines-pro-type-member-init
-cppcoreguidelines-pro-type-static-cast-downcast
 cppcoreguidelines-slicing
 google-runtime-operator
 hicpp-exception-baseclass
@@ -140,6 +139,7 @@ readability-uniqueptr-delete-release
 readability-use-anyofallof
 cppcoreguidelines-special-member-functions
 cppcoreguidelines-virtual-class-destructor'
+#cppcoreguidelines-pro-type-static-cast-downcast
 
 CheckOptions:
   - key: bugprone-exception-escape.FunctionsThatShouldNotThrow

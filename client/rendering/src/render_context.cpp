@@ -8,6 +8,7 @@
 #include "material.h"
 #include "render_asset_loaders.h"
 #include "renderer.h"
+#include "vulkan_ui_renderer.h"
 #include <stb_image.h>
 
 namespace df {
@@ -29,6 +30,7 @@ RenderContext::RenderContext()
     camera = createCamera(window);
     camera.position.x -= 5;
     camera.lookAt({0.0f, 0.0f, 0.0f});
+    uiRenderer = CefRefPtr<ui::UIRenderer>(new VulkanUIRenderer(renderer));
 }
 
 void RenderContext::destroy() noexcept
@@ -48,6 +50,8 @@ void RenderContext::drawFrame()
             if (!matrices.empty())
                 renderer->render(&model, matrices);
         }
+        if (uiRenderer)
+            renderer->render(*static_cast<VulkanUIRenderer*>(uiRenderer.get()));
         renderer->endRendering();
         for (auto& [model, matrices] : models)
             matrices.clear();
@@ -78,6 +82,7 @@ void RenderContext::loadModels(const char* path)
 void RenderContext::stopRendering()
 {
     renderer->stopRendering();
+    uiRenderer.reset();
 }
 
 static void loadWindowIcon(SDL_Window* window)
