@@ -13,4 +13,4 @@ Work in progress c++ vulkan game/rendering engine
 
 3. configure and build with cmake
 
-(The windows build has not been thoroughly tested and may not currently work correctly)
+(The windows build has currently not been tested and may or may not work correctly)
