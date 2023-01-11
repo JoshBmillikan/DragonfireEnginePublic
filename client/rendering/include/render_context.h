@@ -8,7 +8,6 @@
 #include "transform.h"
 #include "vertex.h"
 #include <SDL_video.h>
-#include <ui/ui_renderer.h>
 
 namespace df {
 
@@ -43,7 +42,7 @@ public:
     void loadTextures(const char* path);
     void loadMaterials(const char* path);
     void loadModels(const char* path);
-    [[nodiscard]] CefRefPtr<ui::UIRenderer> getUIRenderer() const noexcept { return uiRenderer;}
+    [[nodiscard]] SDL_Window* getWindow() const { return window; }
     ~RenderContext() noexcept { destroy(); }
     DF_NO_MOVE_COPY(RenderContext);
 
@@ -52,7 +51,6 @@ private:
     class Renderer* renderer = nullptr;
     SDL_Window* window = nullptr;
     HashMap<Model, std::vector<glm::mat4>> models;
-    CefRefPtr<ui::UIRenderer> uiRenderer = nullptr;
 };
 
 }   // namespace df

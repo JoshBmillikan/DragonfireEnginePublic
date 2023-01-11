@@ -13,19 +13,94 @@
 
 namespace df {
 
+void PipelineBuilder::build(vk::Pipeline* pipelines, UInt count)
+{
+    vk::PipelineShaderStageCreateInfo stageInfos[5];
+    assert("Pipeline description must not be null" && pipelineDescription);
+    UInt stageCount = parent.getStageCreateInfo(stageInfos, *pipelineDescription);
+
+    vk::DynamicState dynamicStates[2] = {vk::DynamicState::eScissor, vk::DynamicState::eViewport};
+    vk::PipelineDynamicStateCreateInfo dynamicStateInfo;
+    dynamicStateInfo.dynamicStateCount = 2;
+    dynamicStateInfo.pDynamicStates = dynamicStates;
+
+    vk::PipelineColorBlendStateCreateInfo colorBlend;
+    colorBlend.logicOpEnable = false;
+    colorBlend.pAttachments = &colorBlendAttachment;
+    colorBlend.attachmentCount = 1;
+
+    assert(count > 0);
+    auto createInfos = (vk::GraphicsPipelineCreateInfo*) alloca(count * sizeof(vk::GraphicsPipelineCreateInfo));
+    for(UInt i=0; i<count; i++) {
+        createInfos[i] = vk::GraphicsPipelineCreateInfo();
+        createInfos[i].pDynamicState = &dynamicStateInfo;
+        createInfos[i].pVertexInputState = &vertexInput;
+        createInfos[i].pViewportState = &viewport;
+        createInfos[i].layout = layout;
+        createInfos[i].pMultisampleState = &multisampling;
+        createInfos[i].stageCount = stageCount;
+        createInfos[i].pStages = stageInfos;
+        createInfos[i].pInputAssemblyState = &inputAsm;
+        createInfos[i].pRasterizationState = &rasterState;
+        createInfos[i].pDepthStencilState = &depth;
+        createInfos[i].pColorBlendState = &colorBlend;
+        createInfos[i].renderPass = renderPass;
+        createInfos[i].subpass = 0;
+    }
+
+    vk::resultCheck(parent.device.createGraphicsPipelines(parent.cache, count, createInfos, nullptr, pipelines), "Failed to create graphics pipeline");
+}
+
+PipelineBuilder::PipelineBuilder(PipelineFactory* parent) : parent(*parent)
+{
+    renderPass = parent->mainPass;
+    vertexInput.pVertexAttributeDescriptions = Mesh::vertexAttributeDescriptions.data();
+    vertexInput.vertexAttributeDescriptionCount = Mesh::vertexAttributeDescriptions.size();
+    vertexInput.pVertexBindingDescriptions = Mesh::vertexInputDescriptions.data();
+    vertexInput.vertexBindingDescriptionCount = Mesh::vertexInputDescriptions.size();
+
+    depth.depthTestEnable = true;
+    depth.depthWriteEnable = true;
+    depth.depthCompareOp = vk::CompareOp::eLessOrEqual;
+    depth.depthBoundsTestEnable = false;
+    depth.stencilTestEnable = false;
+    depth.minDepthBounds = 0;
+    depth.maxDepthBounds = 1;
+
+    viewport.viewportCount = 1;
+    viewport.scissorCount = 1;
+
+    inputAsm.topology = vk::PrimitiveTopology::eTriangleList;
+    inputAsm.primitiveRestartEnable = false;
+
+    rasterState.depthClampEnable = false;
+    rasterState.rasterizerDiscardEnable = false;
+    rasterState.polygonMode = vk::PolygonMode::eFill;
+    rasterState.cullMode = vk::CullModeFlagBits::eBack;
+    rasterState.frontFace = vk::FrontFace::eCounterClockwise;
+    rasterState.depthBiasEnable = false;
+    rasterState.lineWidth = 1;
+
+    multisampling.rasterizationSamples = parent->msaaSamples;
+    multisampling.sampleShadingEnable = true;
+    multisampling.minSampleShading = 0.2;
+    multisampling.alphaToOneEnable = false;
+    multisampling.alphaToCoverageEnable = false;
+
+    colorBlendAttachment.blendEnable = false;
+    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
+                                          | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+}
+
 static vk::PipelineCache loadCache(vk::Device device);
 
 PipelineFactory::PipelineFactory(
         vk::Device device,
-        vk::Format imageFormat,
-        vk::Format depthFormat,
         vk::RenderPass renderPass,
         spdlog::logger* logger,
         vk::SampleCountFlagBits msaaSamples
 )
     : device(device),
-      imageFormat(imageFormat),
-      depthFormat(depthFormat),
       mainPass(renderPass),
       msaaSamples(msaaSamples),
       logger(logger)
@@ -41,89 +116,6 @@ PipelineFactory::PipelineFactory(
         cache = device.createPipelineCache(createInfo);
     }
     loadShaders();
-}
-
-vk::Pipeline PipelineFactory::createPipeline(
-        const nlohmann::json& pipelineDescription,
-        vk::PipelineLayout layout,
-        vk::RenderPass renderPass
-)
-{
-    vk::PipelineShaderStageCreateInfo stageInfos[5];
-    const UInt stageCount = getStageCreateInfo(stageInfos, pipelineDescription);
-
-    vk::PipelineVertexInputStateCreateInfo vertexInput;
-    vertexInput.pVertexAttributeDescriptions = Mesh::vertexAttributeDescriptions.data();
-    vertexInput.vertexAttributeDescriptionCount = Mesh::vertexAttributeDescriptions.size();
-    vertexInput.pVertexBindingDescriptions = Mesh::vertexInputDescriptions.data();
-    vertexInput.vertexBindingDescriptionCount = Mesh::vertexInputDescriptions.size();
-
-    vk::PipelineDepthStencilStateCreateInfo depth;
-    depth.depthTestEnable = true;
-    depth.depthWriteEnable = true;
-    depth.depthCompareOp = vk::CompareOp::eLessOrEqual;
-    depth.depthBoundsTestEnable = false;
-    depth.stencilTestEnable = false;
-    depth.minDepthBounds = 0;
-    depth.maxDepthBounds = 1;
-
-    vk::DynamicState dynamicStates[2] = {vk::DynamicState::eScissor, vk::DynamicState::eViewport};
-    vk::PipelineDynamicStateCreateInfo dynamicStateInfo;
-    dynamicStateInfo.dynamicStateCount = 2;
-    dynamicStateInfo.pDynamicStates = dynamicStates;
-
-    vk::PipelineViewportStateCreateInfo viewport;
-    viewport.viewportCount = 1;
-    viewport.scissorCount = 1;
-
-    vk::PipelineInputAssemblyStateCreateInfo inputAsm;
-    inputAsm.topology = vk::PrimitiveTopology::eTriangleList;
-    inputAsm.primitiveRestartEnable = false;
-
-    vk::PipelineRasterizationStateCreateInfo rasterState;
-    rasterState.depthClampEnable = false;
-    rasterState.rasterizerDiscardEnable = false;
-    rasterState.polygonMode = vk::PolygonMode::eFill;
-    rasterState.cullMode = vk::CullModeFlagBits::eBack;
-    rasterState.frontFace = vk::FrontFace::eCounterClockwise;
-    rasterState.depthBiasEnable = false;
-    rasterState.lineWidth = 1;
-
-    vk::PipelineMultisampleStateCreateInfo multisampling;
-    multisampling.rasterizationSamples = msaaSamples;
-    multisampling.sampleShadingEnable = true;
-    multisampling.minSampleShading = 0.2;
-    multisampling.alphaToOneEnable = false;
-    multisampling.alphaToCoverageEnable = false;
-
-    vk::PipelineColorBlendAttachmentState colorBlendAttachment;
-    colorBlendAttachment.blendEnable = false;
-    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
-                                          | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-
-    vk::PipelineColorBlendStateCreateInfo colorBlend;
-    colorBlend.logicOpEnable = false;
-    colorBlend.pAttachments = &colorBlendAttachment;
-    colorBlend.attachmentCount = 1;
-
-    vk::GraphicsPipelineCreateInfo createInfo;
-    createInfo.pDynamicState = &dynamicStateInfo;
-    createInfo.pVertexInputState = &vertexInput;
-    createInfo.pViewportState = &viewport;
-    createInfo.layout = layout;
-    createInfo.pMultisampleState = &multisampling;
-    createInfo.stageCount = stageCount;
-    createInfo.pStages = stageInfos;
-    createInfo.pInputAssemblyState = &inputAsm;
-    createInfo.pRasterizationState = &rasterState;
-    createInfo.pDepthStencilState = &depth;
-    createInfo.pColorBlendState = &colorBlend;
-    createInfo.renderPass = renderPass;
-    createInfo.subpass = 0;
-
-    auto [result, pipeline] = device.createGraphicsPipeline(cache, createInfo);
-    vk::resultCheck(result, "Failed to create graphics pipeline");
-    return pipeline;
 }
 
 UInt PipelineFactory::getStageCreateInfo(vk::PipelineShaderStageCreateInfo* stages, const nlohmann::json& json)
@@ -250,8 +242,6 @@ PipelineFactory::PipelineFactory(PipelineFactory&& other) noexcept
         shaders = std::move(other.shaders);
         device = other.device;
         cache = other.cache;
-        imageFormat = other.imageFormat;
-        depthFormat = other.depthFormat;
         msaaSamples = other.msaaSamples;
         logger = other.logger;
         mainPass = other.mainPass;
@@ -265,8 +255,6 @@ PipelineFactory& PipelineFactory::operator=(PipelineFactory&& other) noexcept
         shaders = std::move(other.shaders);
         device = other.device;
         cache = other.cache;
-        imageFormat = other.imageFormat;
-        depthFormat = other.depthFormat;
         msaaSamples = other.msaaSamples;
         logger = other.logger;
         mainPass = other.mainPass;

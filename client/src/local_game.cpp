@@ -3,13 +3,13 @@
 //
 
 #include "local_game.h"
-#include "ui/ui.h"
 #include "world/local_world.h"
 #include <utility>
+#include <physfs.h>
 
 namespace df {
 
-LocalGame::LocalGame(int argc, char** argv, CefRefPtr<ui::Application> uiApp) : BaseGame(argc, argv), uiApp(std::move(uiApp))
+LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) != 0)
         crash("Failed to initialize SDL: {}", SDL_GetError());
@@ -17,11 +17,9 @@ LocalGame::LocalGame(int argc, char** argv, CefRefPtr<ui::Application> uiApp) : 
     SDL_GetVersion(&version);
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
     renderContext = std::make_unique<RenderContext>();
-    auto uiRenderer = renderContext->getUIRenderer();
-    ui = CefRefPtr<ui::UI>(new ui::UI(uiRenderer));
-    uiBrowser = ui::createBrowser(ui);
     loadAssets();
     world = std::make_unique<LocalWorld>("Test world", random());
+
 }
 
 LocalGame::~LocalGame()
@@ -29,9 +27,9 @@ LocalGame::~LocalGame()
     renderContext->stopRendering();
     world.reset();
     assetRegistry.destroy();
-    CefShutdown();
     renderContext.reset();
     SDL_Quit();
+    spdlog::info("SDL shutdown");
 }
 
 void LocalGame::update(double deltaSeconds)
@@ -70,12 +68,10 @@ void LocalGame::processSdlEvent(const SDL_Event& event)
 
         case SDL_WINDOWEVENT_HIDDEN:
         case SDL_WINDOWEVENT_MINIMIZED:
-            uiBrowser->GetHost()->WasHidden(true);
             break;
 
         case SDL_WINDOWEVENT_SHOWN:
         case SDL_WINDOWEVENT_RESTORED:
-            uiBrowser->GetHost()->WasHidden(false);
             break;
     }
 }

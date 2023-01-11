@@ -8,14 +8,41 @@
 #include <nlohmann/json_fwd.hpp>
 
 namespace df {
+class PipelineBuilder {
+    class PipelineFactory& parent;
+
+public:
+    PipelineBuilder(PipelineFactory* parent);
+    vk::PipelineLayout layout = nullptr;
+    vk::RenderPass renderPass = nullptr;
+    vk::PipelineVertexInputStateCreateInfo vertexInput;
+    vk::PipelineDepthStencilStateCreateInfo depth;
+    vk::PipelineViewportStateCreateInfo viewport;
+    vk::PipelineMultisampleStateCreateInfo multisampling;
+    vk::PipelineInputAssemblyStateCreateInfo inputAsm;
+    vk::PipelineRasterizationStateCreateInfo rasterState;
+    vk::PipelineColorBlendAttachmentState colorBlendAttachment;
+    const nlohmann::json* pipelineDescription = nullptr;
+
+    vk::Pipeline build()
+    {
+        vk::Pipeline pipeline;
+        build(&pipeline, 1);
+        return pipeline;
+    }
+    void build(vk::Pipeline* pipelines, UInt count);
+
+    vk::Pipeline operator()() { return build(); }
+    void operator()(vk::Pipeline* pipelines, UInt count) { return build(pipelines, count); }
+};
 
 class PipelineFactory {
+    friend class PipelineBuilder;
+
 public:
     PipelineFactory() = default;
     PipelineFactory(
             vk::Device device,
-            vk::Format imageFormat,
-            vk::Format depthFormat,
             vk::RenderPass renderPass,
             spdlog::logger* logger,
             vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1
@@ -25,16 +52,20 @@ public:
     DF_NO_COPY(PipelineFactory);
     PipelineFactory(PipelineFactory&& other) noexcept;
     PipelineFactory& operator=(PipelineFactory&& other) noexcept;
-    vk::Pipeline createPipeline(
-            const nlohmann::json& pipelineDescription,
-            vk::PipelineLayout layout,
-            vk::RenderPass renderPass
-    );
+    vk::Pipeline createPipeline(const nlohmann::json& pipelineDescription, vk::PipelineLayout layout, vk::RenderPass renderPass)
+    {
+        auto builder = getBuilder();
+        builder.pipelineDescription = &pipelineDescription;
+        builder.layout = layout;
+        builder.renderPass = renderPass;
+        return builder();
+    }
     vk::Pipeline createPipeline(const nlohmann::json& pipelineDescription, vk::PipelineLayout layout)
     {
         return createPipeline(pipelineDescription, layout, mainPass);
     };
     void saveCache();
+    PipelineBuilder getBuilder() { return PipelineBuilder(this); }
     static constexpr const char* CACHE_PATH = "cache/shader_pipeline.cache";
 
 private:
@@ -43,7 +74,6 @@ private:
     HashMap<std::string, vk::ShaderModule> shaders;
     vk::Device device = nullptr;
     vk::PipelineCache cache;
-    vk::Format imageFormat{}, depthFormat{};
     vk::RenderPass mainPass;
     vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
     spdlog::logger* logger = nullptr;

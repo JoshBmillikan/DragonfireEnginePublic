@@ -49,8 +49,6 @@ public:
      */
     void render(Model* model, const std::vector<glm::mat4>& matrices);
 
-    void render(class VulkanUIRenderer& uiRenderer);
-
     /**
      * End rendering the current frame and present it
      */
@@ -101,7 +99,7 @@ private:
 
     UInt renderThreadCount = std::max(std::thread::hardware_concurrency() / 2, 1u), currentThread = 0;
     std::barrier<> renderBarrier{renderThreadCount + 1};
-    vk::CommandBuffer* secondaryBuffers = nullptr, uiBuffer = nullptr;
+    vk::CommandBuffer* secondaryBuffers = nullptr;
 
     enum class RenderCommand {
         waiting,

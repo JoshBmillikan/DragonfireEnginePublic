@@ -25,6 +25,14 @@ public:
 
     void unmap() { vmaUnmapMemory(allocator, allocation); }
 
+    void flush()
+    {
+        vk::resultCheck(
+                static_cast<vk::Result>(vmaFlushAllocation(allocator, allocation, 0, VK_WHOLE_SIZE)),
+                "Failed to flush memory range"
+        );
+    }
+
 protected:
     Allocation() = default;
     VmaAllocation allocation{};
