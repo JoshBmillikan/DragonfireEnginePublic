@@ -13,7 +13,7 @@
 
 namespace df {
 
-void PipelineBuilder::build(vk::Pipeline* pipelines, UInt count)
+void PipelineInfo::build(vk::Pipeline* pipelines, UInt count)
 {
     vk::PipelineShaderStageCreateInfo stageInfos[5];
     assert("Pipeline description must not be null" && pipelineDescription);
@@ -31,7 +31,7 @@ void PipelineBuilder::build(vk::Pipeline* pipelines, UInt count)
 
     assert(count > 0);
     auto createInfos = (vk::GraphicsPipelineCreateInfo*) alloca(count * sizeof(vk::GraphicsPipelineCreateInfo));
-    for(UInt i=0; i<count; i++) {
+    for (UInt i = 0; i < count; i++) {
         createInfos[i] = vk::GraphicsPipelineCreateInfo();
         createInfos[i].pDynamicState = &dynamicStateInfo;
         createInfos[i].pVertexInputState = &vertexInput;
@@ -48,10 +48,13 @@ void PipelineBuilder::build(vk::Pipeline* pipelines, UInt count)
         createInfos[i].subpass = 0;
     }
 
-    vk::resultCheck(parent.device.createGraphicsPipelines(parent.cache, count, createInfos, nullptr, pipelines), "Failed to create graphics pipeline");
+    vk::resultCheck(
+            parent.device.createGraphicsPipelines(parent.cache, count, createInfos, nullptr, pipelines),
+            "Failed to create graphics pipeline"
+    );
 }
 
-PipelineBuilder::PipelineBuilder(PipelineFactory* parent) : parent(*parent)
+PipelineInfo::PipelineInfo(PipelineFactory* parent) : parent(*parent)
 {
     renderPass = parent->mainPass;
     vertexInput.pVertexAttributeDescriptions = Mesh::vertexAttributeDescriptions.data();
@@ -100,10 +103,7 @@ PipelineFactory::PipelineFactory(
         spdlog::logger* logger,
         vk::SampleCountFlagBits msaaSamples
 )
-    : device(device),
-      mainPass(renderPass),
-      msaaSamples(msaaSamples),
-      logger(logger)
+    : device(device), mainPass(renderPass), msaaSamples(msaaSamples), logger(logger)
 {
     if (PHYSFS_mount(SHADER_DIR, "assets/shaders", false) == 0)
         throw PhysFsException();

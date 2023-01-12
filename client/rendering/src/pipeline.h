@@ -8,11 +8,11 @@
 #include <nlohmann/json_fwd.hpp>
 
 namespace df {
-class PipelineBuilder {
+class PipelineInfo {
     class PipelineFactory& parent;
 
 public:
-    PipelineBuilder(PipelineFactory* parent);
+    PipelineInfo(PipelineFactory* parent);
     vk::PipelineLayout layout = nullptr;
     vk::RenderPass renderPass = nullptr;
     vk::PipelineVertexInputStateCreateInfo vertexInput;
@@ -37,7 +37,7 @@ public:
 };
 
 class PipelineFactory {
-    friend class PipelineBuilder;
+    friend class PipelineInfo;
 
 public:
     PipelineFactory() = default;
@@ -65,7 +65,7 @@ public:
         return createPipeline(pipelineDescription, layout, mainPass);
     };
     void saveCache();
-    PipelineBuilder getBuilder() { return PipelineBuilder(this); }
+    PipelineInfo getBuilder() { return PipelineInfo(this); }
     static constexpr const char* CACHE_PATH = "cache/shader_pipeline.cache";
 
 private:

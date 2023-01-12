@@ -5,4 +5,4 @@ add_library(Client src/local_game.h src/local_game.cpp rendering/src/renderer.cp
 add_executable(Game src/main.cpp)
 target_link_libraries(Game SDL2::SDL2main Client)
 target_include_directories(Client PUBLIC include)
-target_link_libraries(Client PUBLIC SDL2::SDL2 Core Renderer)
+target_link_libraries(Client PUBLIC SDL2::SDL2 Core Renderer imgui)

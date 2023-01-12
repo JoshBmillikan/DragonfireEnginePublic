@@ -4,8 +4,7 @@
 
 #include "local_game.h"
 #include "world/local_world.h"
-#include <utility>
-#include <physfs.h>
+#include <imgui.h>
 
 namespace df {
 
@@ -19,7 +18,6 @@ LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
     renderContext = std::make_unique<RenderContext>();
     loadAssets();
     world = std::make_unique<LocalWorld>("Test world", random());
-
 }
 
 LocalGame::~LocalGame()
@@ -67,12 +65,10 @@ void LocalGame::processSdlEvent(const SDL_Event& event)
         case SDL_MOUSEBUTTONDOWN: break;
 
         case SDL_WINDOWEVENT_HIDDEN:
-        case SDL_WINDOWEVENT_MINIMIZED:
-            break;
+        case SDL_WINDOWEVENT_MINIMIZED: break;
 
         case SDL_WINDOWEVENT_SHOWN:
-        case SDL_WINDOWEVENT_RESTORED:
-            break;
+        case SDL_WINDOWEVENT_RESTORED: break;
     }
 }
 

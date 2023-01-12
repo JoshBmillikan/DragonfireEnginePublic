@@ -17,9 +17,7 @@ class Texture : public Asset {
 public:
     Texture(Image&& image, vk::Extent2D extent, vk::Device device);
     [[nodiscard]] vk::Extent2D getExtent() const noexcept { return imageExtent; }
-    ~Texture() noexcept override {
-        destroy();
-    }
+    ~Texture() noexcept override { destroy(); }
     void destroy() noexcept;
     DF_NO_MOVE_COPY(Texture);
 
