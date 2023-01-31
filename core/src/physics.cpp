@@ -13,11 +13,11 @@ btDbvtBroadphase Physics::defaultBroadPhase;
 Physics::Physics(glm::vec3 gravity, btCollisionConfiguration* configuration, Int maxSteps)
     : maxSimulationSteps(maxSteps), config(configuration)
 {
-    btVector3 grav = btVector3(gravity.x, gravity.y, gravity.z);
     dispatcher = std::make_unique<btCollisionDispatcher>(config);
     broadPhase = std::make_unique<btDbvtBroadphase>();
     solver = std::make_unique<btSequentialImpulseConstraintSolver>();
     world = std::make_unique<btDiscreteDynamicsWorld>(dispatcher.get(), broadPhase.get(), solver.get(), config);
+    btVector3 grav = btVector3(gravity.x, gravity.y, gravity.z);
     world->setGravity(grav);
 }
 

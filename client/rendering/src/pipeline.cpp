@@ -25,7 +25,7 @@ void PipelineInfo::build(vk::Pipeline* pipelines, UInt count)
     dynamicStateInfo.pDynamicStates = dynamicStates;
 
     vk::PipelineColorBlendStateCreateInfo colorBlend;
-    colorBlend.logicOpEnable = false;
+    colorBlend.logicOpEnable = enableColorBlend;
     colorBlend.pAttachments = &colorBlendAttachment;
     colorBlend.attachmentCount = 1;
 

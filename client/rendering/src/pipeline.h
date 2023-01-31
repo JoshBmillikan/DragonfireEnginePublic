@@ -23,6 +23,7 @@ public:
     vk::PipelineRasterizationStateCreateInfo rasterState;
     vk::PipelineColorBlendAttachmentState colorBlendAttachment;
     const nlohmann::json* pipelineDescription = nullptr;
+    bool enableColorBlend = false;
 
     vk::Pipeline build()
     {

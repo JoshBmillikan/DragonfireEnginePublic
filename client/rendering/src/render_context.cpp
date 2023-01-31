@@ -8,6 +8,7 @@
 #include "material.h"
 #include "render_asset_loaders.h"
 #include "renderer.h"
+#include <imgui.h>
 #include <stb_image.h>
 
 namespace df {
@@ -29,6 +30,8 @@ RenderContext::RenderContext()
     camera = createCamera(window);
     camera.position.x -= 5;
     camera.lookAt({0.0f, 0.0f, 0.0f});
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
 }
 
 void RenderContext::destroy() noexcept
@@ -37,6 +40,7 @@ void RenderContext::destroy() noexcept
         delete renderer;
         SDL_DestroyWindow(window);
         window = nullptr;
+        ImGui::DestroyContext();
     }
 }
 
