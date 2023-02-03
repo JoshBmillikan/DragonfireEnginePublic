@@ -4,7 +4,6 @@
 
 #include "local_game.h"
 #include "world/local_world.h"
-#include <imgui.h>
 
 namespace df {
 
@@ -14,6 +13,7 @@ LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
         crash("Failed to initialize SDL: {}", SDL_GetError());
     SDL_version version;
     SDL_GetVersion(&version);
+    SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1");
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
     renderContext = std::make_unique<RenderContext>();
     loadAssets();
@@ -35,6 +35,8 @@ void LocalGame::update(double deltaSeconds)
     SDL_Event event;
     while (SDL_PollEvent(&event))
         processSdlEvent(event);
+    for (auto&& [entity, transform] : world->getRegistry().view<Transform>().each())
+        transform.rotation = glm::rotate(transform.rotation, (float) deltaSeconds, {0, 0, 1});
     if (world) {
         world->update(deltaSeconds);
         auto renderObjects = world->getRegistry().group<Model, const Transform>();
@@ -56,6 +58,8 @@ void LocalGame::processSdlEvent(const SDL_Event& event)
         case SDL_KEYUP:
         case SDL_KEYDOWN:
             if (event.key.repeat == 0) {
+                if (event.key.keysym.sym == SDL_KeyCode::SDLK_ESCAPE)
+                    stop();
             }
             break;
 

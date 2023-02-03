@@ -21,7 +21,7 @@ public:
         : buffer(std::move(buffer)), indexOffset(indexOffset), indexCount(indexCount)
     {
     }
-    void setName(const std::string& str) noexcept { name = std::move(str); }
+    void setName(const std::string& str) noexcept { name = str; }
     void destroy() noexcept { buffer.destroy(); }
     static std::array<vk::VertexInputBindingDescription, 2> vertexInputDescriptions;
     static std::array<vk::VertexInputAttributeDescription, 7> vertexAttributeDescriptions;

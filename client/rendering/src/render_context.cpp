@@ -63,6 +63,8 @@ void RenderContext::loadTextures(const char* path)
     PngLoader loader(renderer);
     auto& registry = AssetRegistry::getRegistry();
     registry.loadDir(path, loader);
+    auto textures = registry.allOf<Texture>();
+    renderer->updateTextures(textures.data(), textures.size());
 }
 
 void RenderContext::loadMaterials(const char* path)

@@ -6,6 +6,7 @@
 #include <concepts>
 #include <mutex>
 #include <nlohmann/json_fwd.hpp>
+#include <ranges>
 namespace df {
 
 class Asset {
@@ -38,6 +39,19 @@ public:
     T* operator[](const char* str)
     {
         return get<T>(str);
+    }
+
+    template<typename T>
+        requires std::is_base_of_v<Asset, T>
+    std::vector<T*> allOf()
+    {
+        std::vector<T*> out;
+        for (auto& [name, asset] : assets.values()) {
+            T* ptr = dynamic_cast<T*> (asset.get());
+            if (ptr)
+                out.push_back(ptr);
+        }
+        return out;
     }
 
     void insert(std::unique_ptr<Asset>&& asset) { assets[asset->getName()] = std::move(asset); }

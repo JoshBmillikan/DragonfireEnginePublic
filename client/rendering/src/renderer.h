@@ -64,12 +64,15 @@ public:
      */
     void destroy() noexcept;
 
+    void updateTextures(Texture** textures, Size count);
+
     ~Renderer() noexcept { destroy(); }
     DF_NO_MOVE_COPY(Renderer);
     static constexpr SDL_WindowFlags SDL_WINDOW_FLAGS = SDL_WINDOW_VULKAN;
 
-private:
     static constexpr Size FRAMES_IN_FLIGHT = 2;
+
+private:
     static constexpr UInt MAX_TEXTURE_DESCRIPTORS = 4096;
     ULong frameCount = 0;
     std::shared_ptr<spdlog::logger> logger;
@@ -89,6 +92,7 @@ private:
     vk::DescriptorSetLayout globalDescriptorSetLayout;
     vk::DescriptorPool descriptorPool;
     vk::SampleCountFlagBits rasterSamples = vk::SampleCountFlagBits::e1;
+    vk::Sampler defaultSampler;
     glm::mat4 viewPerspective{}, viewOrthographic{};
 
     std::stop_source threadStop;
@@ -137,6 +141,7 @@ private:
         alignas(16) glm::mat4 viewPerspective;
         alignas(16) glm::mat4 viewOrthographic;
         alignas(16) glm::vec3 sunAngle;
+        alignas(16) glm::vec2 resolution;
     };
 
 private:
@@ -178,6 +183,8 @@ private:
     void createDescriptorPool();
     /// Create per frame data
     void createFrames();
+    /// Create default sampler
+    void createDefaultSampler();
 
 public:
     PipelineFactory* getPipelineFactory() noexcept { return &pipelineFactory; }

@@ -44,6 +44,7 @@ public:
     void loadModels(const char* path);
     [[nodiscard]] SDL_Window* getWindow() const { return window; }
     ~RenderContext() noexcept { destroy(); }
+    void setMouseGrab(bool grabbed = true) const noexcept { SDL_SetWindowGrab(window, grabbed ? SDL_TRUE : SDL_FALSE); }
     DF_NO_MOVE_COPY(RenderContext);
 
 private:

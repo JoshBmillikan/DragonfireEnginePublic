@@ -58,7 +58,7 @@ void BaseGame::run()
 {
     using namespace std::chrono;
     time_point lastTime = steady_clock::now();
-    spdlog::info("Startup finished in {} seconds", duration<double>(lastTime - START_TIME).count());
+    spdlog::info("Startup finished in {:.3} seconds", duration<double>(lastTime - START_TIME).count());
     while (running) {
         time_point now = steady_clock::now();
         auto delta = duration<double>(now - lastTime);

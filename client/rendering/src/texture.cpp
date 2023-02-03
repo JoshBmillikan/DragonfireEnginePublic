@@ -16,6 +16,8 @@ Texture::Texture(Image&& image, vk::Extent2D extent, vk::Device device)
     range.baseArrayLayer = 0;
     range.layerCount = 1;
     view = this->image.createView(device, range);
+    static UInt textureIndex = 0;
+    index = textureIndex++;
 }
 
 void Texture::destroy() noexcept

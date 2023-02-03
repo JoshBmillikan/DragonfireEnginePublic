@@ -21,7 +21,7 @@ void Renderer::beginRendering(const Camera& camera)
     Frame& frame = getCurrentFrame();
 
     if (device.waitForFences(frame.fence, true, UINT64_MAX) != vk::Result::eSuccess)
-        logger->error("Render fence wait failed, things  may break");
+        logger->critical("Render fence wait failed, things  may break");
     UInt retryCount = 0;
     do {
         if (lastResult == vk::Result::eErrorOutOfDateKHR || lastResult == vk::Result::eSuboptimalKHR)
@@ -41,6 +41,7 @@ void Renderer::beginRendering(const Camera& camera)
     data->viewPerspective = viewPerspective = camera.perspective * view;
     data->viewOrthographic = viewOrthographic = camera.orthographic * view;
     data->sunAngle = glm::vec3(0, 0, 1);
+    data->resolution = glm::vec2(swapchain.getExtent().width, swapchain.getExtent().height);
 
     device.resetFences(frame.fence);
     beginCommandRecording();
@@ -153,7 +154,8 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 scissor.offset = vk::Offset2D();
                 scissor.extent = swapchain.getExtent();
                 cmd.setScissor(0, scissor);
-                bufferOffset = 0;
+                if (frameCount % FRAMES_IN_FLIGHT == 0)
+                    bufferOffset = 0;
             } break;
             case RenderCommand::render: {
                 if ((bufferOffset + data.matrixCount) * sizeof(glm::mat4) >= vertexBuffer.getInfo().size) {
@@ -302,6 +304,7 @@ void Renderer::destroy() noexcept
             device.destroy(frame.presentSemaphore);
             device.destroy(frame.pool);
         }
+        device.destroy(defaultSampler);
         pipelineFactory.destroy();
         device.destroy(descriptorPool);
         device.destroy(globalDescriptorSetLayout);
@@ -352,6 +355,31 @@ void Renderer::beginCommandRecording()
     frame.buffer.beginRenderPass(info, vk::SubpassContents::eSecondaryCommandBuffers);
 }
 
+void Renderer::updateTextures(Texture** textures, Size count)
+{
+    for (auto& frame : frames) {
+        std::vector<vk::WriteDescriptorSet> writes;
+        writes.resize(count);
+        for (Size i = 0; i < count; i++) {
+            Texture* texture = textures[i];
+            vk::Sampler sampler = texture->getSampler();
+            vk::DescriptorImageInfo info{};
+            info.imageView = texture->getView();
+            info.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+            info.sampler = sampler ? sampler : defaultSampler;
+
+            writes[i].dstSet = frame.globalDescriptorSet;
+            writes[i].dstArrayElement = texture->getIndex();
+            writes[i].descriptorCount = 1;
+            writes[i].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+            writes[i].dstBinding = 1;
+            writes[i].pImageInfo = &info;
+        }
+
+        device.updateDescriptorSets(writes, {});
+    }
+}
+
 /*
  * ***********************************************************************************************************
  *                                         VULKAN INITIALIZATION CODE
@@ -367,12 +395,13 @@ Renderer::Renderer(SDL_Window* window)
 /// List of device extensions to enable
 /// Some extension are now core and don't need to be enabled,
 /// but are still listed here for backwards compatability
-static std::array<const char*, 5> DEVICE_EXTENSIONS = {
+static std::array<const char*, 6> DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
         VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
         VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
 };
 
 static vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* logger);
@@ -412,6 +441,7 @@ void Renderer::init(SDL_Window* window, bool validation)
     createDescriptorPool();
     pipelineFactory = PipelineFactory(device, mainPass, logger.get(), rasterSamples);
     createFrames();
+    createDefaultSampler();
     logger->info("Using {} render threads", renderThreadCount);
     secondaryBuffers = new vk::CommandBuffer[renderThreadCount];
     threadData = new RenderThreadData[renderThreadCount]();
@@ -523,18 +553,20 @@ vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* logger)
 
 static bool isValidDevice(vk::PhysicalDevice device)
 {
+    vk::PhysicalDeviceBufferDeviceAddressFeatures bufferFeatures{};
     vk::PhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
-    indexingFeatures.descriptorBindingPartiallyBound = true;
-    indexingFeatures.runtimeDescriptorArray = true;
-    indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = true;
-    indexingFeatures.descriptorBindingVariableDescriptorCount = true;
-
+    indexingFeatures.pNext = &bufferFeatures;
     vk::PhysicalDeviceFeatures2 features2;
     features2.pNext = &indexingFeatures;
-    features2.features.sparseBinding = true;
-    features2.features.samplerAnisotropy = true;
-    features2.features.sampleRateShading = true;
     device.getFeatures2(&features2);
+    bool supportsFeatures = features2.features.sparseBinding && features2.features.samplerAnisotropy
+                            && features2.features.sampleRateShading && indexingFeatures.descriptorBindingPartiallyBound
+                            && indexingFeatures.runtimeDescriptorArray
+                            && indexingFeatures.descriptorBindingSampledImageUpdateAfterBind
+                            && indexingFeatures.descriptorBindingVariableDescriptorCount && bufferFeatures.bufferDeviceAddress;
+
+    if (!supportsFeatures)
+        return false;
 
     vk::ExtensionProperties* properties = nullptr;
     UInt count;
@@ -668,11 +700,15 @@ void Renderer::createDevice()
         queueCount++;
     }
 
+    vk::PhysicalDeviceBufferDeviceAddressFeatures bufferFeatures{};
+    bufferFeatures.bufferDeviceAddress = true;
+
     vk::PhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
     indexingFeatures.descriptorBindingPartiallyBound = true;
     indexingFeatures.runtimeDescriptorArray = true;
     indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = true;
     indexingFeatures.descriptorBindingVariableDescriptorCount = true;
+    indexingFeatures.pNext = &bufferFeatures;
 
     vk::PhysicalDeviceFeatures2 features2{};
     features2.pNext = &indexingFeatures;
@@ -810,7 +846,7 @@ void Renderer::initAllocator() const
     createInfo.device = device;
     createInfo.instance = instance;
     createInfo.pVulkanFunctions = &functions;
-    createInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+    createInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     createInfo.vulkanApiVersion = VK_API_VERSION_1_3;
 
     Allocation::initAllocator(&createInfo);
@@ -908,7 +944,7 @@ void Renderer::createDescriptorPool()
     sizes[1].type = vk::DescriptorType::eCombinedImageSampler;
     sizes[1].descriptorCount = MAX_TEXTURE_DESCRIPTORS;
     vk::DescriptorPoolCreateInfo poolCreateInfo;
-    poolCreateInfo.maxSets = 64;
+    poolCreateInfo.maxSets = MAX_TEXTURE_DESCRIPTORS + 16;
     poolCreateInfo.pPoolSizes = sizes;
     poolCreateInfo.poolSizeCount = 2;
     poolCreateInfo.flags = vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind;
@@ -920,7 +956,7 @@ void Renderer::createDescriptorPool()
     bindings[0].descriptorType = vk::DescriptorType::eUniformBuffer;
     bindings[0].stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
     bindings[1].binding = 1;
-    bindings[1].descriptorCount = 1;
+    bindings[1].descriptorCount = MAX_TEXTURE_DESCRIPTORS;
     bindings[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
     bindings[1].pImmutableSamplers = nullptr;
     bindings[1].stageFlags = vk::ShaderStageFlagBits::eFragment;
@@ -928,7 +964,8 @@ void Renderer::createDescriptorPool()
     vk::DescriptorBindingFlags flags[] = {
             (vk::DescriptorBindingFlagBits) 0,
             vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind
-                    | vk::DescriptorBindingFlagBits::eVariableDescriptorCount};
+                    | vk::DescriptorBindingFlagBits::eVariableDescriptorCount,
+    };
     vk::DescriptorSetLayoutBindingFlagsCreateInfo flagInfo{};
     flagInfo.bindingCount = 2;
     flagInfo.pBindingFlags = flags;
@@ -951,10 +988,16 @@ void Renderer::createFrames()
 
     std::array<vk::DescriptorSetLayout, FRAMES_IN_FLIGHT> layouts;
     layouts.fill(globalDescriptorSetLayout);
+
+    UInt count = MAX_TEXTURE_DESCRIPTORS - 1;
+    vk::DescriptorSetVariableDescriptorCountAllocateInfo countAllocateInfo{};
+    countAllocateInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
+    countAllocateInfo.pDescriptorCounts = &count;
     vk::DescriptorSetAllocateInfo descriptorSetInfo;
     descriptorSetInfo.descriptorPool = descriptorPool;
     descriptorSetInfo.pSetLayouts = layouts.data();
     descriptorSetInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
+    descriptorSetInfo.pNext = &countAllocateInfo;
     vk::DescriptorSet allocatedSets[FRAMES_IN_FLIGHT];
     vk::resultCheck(device.allocateDescriptorSets(&descriptorSetInfo, allocatedSets), "Failed to allocate descriptor sets");
 
@@ -981,6 +1024,28 @@ void Renderer::createFrames()
         writes[i].pBufferInfo = &bufferInfos[i];
     }
     device.updateDescriptorSets(writes, {});
+}
+
+void Renderer::createDefaultSampler()
+{
+    vk::SamplerCreateInfo createInfo{};
+    createInfo.magFilter = vk::Filter::eLinear;
+    createInfo.minFilter = vk::Filter::eLinear;
+    createInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+    createInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+    createInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+    createInfo.anisotropyEnable = true;
+    createInfo.maxAnisotropy = limits.maxSamplerAnisotropy;
+    createInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
+    createInfo.unnormalizedCoordinates = false;
+    createInfo.compareEnable = false;
+    createInfo.compareOp = vk::CompareOp::eAlways;
+    createInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+    createInfo.mipLodBias = 0;
+    createInfo.minLod = 0;
+    createInfo.maxLod = 0;
+
+    defaultSampler = device.createSampler(createInfo);
 }
 
 bool Renderer::Queues::getFamilies(vk::PhysicalDevice pDevice, vk::SurfaceKHR surfaceKhr)

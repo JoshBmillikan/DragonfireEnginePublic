@@ -9,6 +9,7 @@ layout (set=0, binding=0) uniform ubo {
     mat4 perspective;
     mat4 orthographic;
     vec3 sunDirection;
+    vec2 resolution;
 } ubo_data;
 
 layout(location = 0) out vec4 frag_color;

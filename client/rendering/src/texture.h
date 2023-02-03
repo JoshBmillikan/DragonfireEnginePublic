@@ -13,6 +13,8 @@ class Texture : public Asset {
     vk::Extent2D imageExtent;
     vk::ImageView view;
     vk::Device device;
+    vk::Sampler sampler;
+    UInt index;
 
 public:
     Texture(Image&& image, vk::Extent2D extent, vk::Device device);
@@ -20,6 +22,10 @@ public:
     ~Texture() noexcept override { destroy(); }
     void destroy() noexcept;
     DF_NO_MOVE_COPY(Texture);
+    [[nodiscard]] UInt getIndex() const noexcept { return index; }
+    [[nodiscard]] vk::ImageView getView() const noexcept { return view; }
+    [[nodiscard]] vk::Sampler getSampler() const noexcept { return sampler; }
+    Image& getImage() noexcept { return image; }
 
     class Factory {
     public:

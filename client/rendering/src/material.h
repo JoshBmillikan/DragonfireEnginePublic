@@ -4,6 +4,7 @@
 
 #pragma once
 #include "pipeline.h"
+#include "texture.h"
 #include "vulkan_includes.h"
 #include <asset.h>
 
@@ -14,6 +15,7 @@ class Material : public Asset {
     vk::Pipeline pipeline;
     vk::PipelineLayout layout;
     vk::Device device;
+    Texture *albedo = nullptr, *roughness = nullptr, *emissive = nullptr, *normal = nullptr;
 
 public:
     Material() = default;
