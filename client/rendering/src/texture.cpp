@@ -3,6 +3,7 @@
 //
 
 #include "texture.h"
+#include "error_texture.h"
 #include "renderer.h"
 
 namespace df {
@@ -135,25 +136,23 @@ Texture* Texture::Factory::create(vk::Extent2D extent)
 
     cmd.pipelineBarrier(
             vk::PipelineStageFlagBits::eTransfer,
-            vk::PipelineStageFlagBits::eFragmentShader,
+            transferFamily == graphicsFamily ? vk::PipelineStageFlagBits::eFragmentShader
+                                             : vk::PipelineStageFlagBits::eBottomOfPipe,
             {},
             {},
             {},
             imageBarrier
     );
 
-    cmd.end();
-    vk::SubmitInfo submitInfo;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmd;
-    if (transferFamily != graphicsFamily) {
-        submitInfo.pSignalSemaphores = &semaphore;
-        submitInfo.signalSemaphoreCount = 1;
-        transferQueue.submit(submitInfo);
-        transferOwnership(texture);
+    if (transferFamily == graphicsFamily) {
+        cmd.end();
+        vk::SubmitInfo submitInfo{};
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &cmd;
+        transferQueue.submit(submitInfo, fence);
     }
     else
-        transferQueue.submit(submitInfo, fence);
+        transferOwnership(texture);
 
     vk::resultCheck(device.waitForFences(fence, true, UINT64_MAX), "Fence wait failed");
     device.resetFences(fence);
@@ -169,6 +168,16 @@ Texture* Texture::Factory::create(vk::Extent2D extent, void const* buffer, Size 
 
 void Texture::Factory::transferOwnership(vk::Image texture)
 {
+    {
+        cmd.end();
+        vk::SubmitInfo submitInfo;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &cmd;
+        submitInfo.pSignalSemaphores = &semaphore;
+        submitInfo.signalSemaphoreCount = 1;
+        transferQueue.submit(submitInfo);
+    }
+
     device.resetCommandPool(secondaryPool);
     vk::CommandBufferBeginInfo beginInfo;
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
@@ -183,8 +192,10 @@ void Texture::Factory::transferOwnership(vk::Image texture)
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
+    barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+    barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eFragmentShader, {}, {}, {}, barrier);
+    secondaryCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eFragmentShader, {}, {}, {}, barrier);
 
     secondaryCmd.end();
     vk::SubmitInfo submitInfo;
@@ -203,6 +214,15 @@ void* Texture::Factory::getBufferMemory(vk::DeviceSize size)
     if (currentSize < size)
         createStagingBuffer(std::max(currentSize * 2, size));
     return stagingBuffer.getInfo().pMappedData;
+}
+
+Texture* Texture::Factory::createErrorTexture()
+{
+    vk::Extent2D extent(gimp_image.width, gimp_image.height);
+    UInt size = gimp_image.width * gimp_image.height;
+    UByte* ptr = (UByte*) getBufferMemory(size * gimp_image.bytes_per_pixel);
+    GIMP_IMAGE_RUN_LENGTH_DECODE(ptr, gimp_image.rle_pixel_data, size, gimp_image.bytes_per_pixel);
+    return create(extent);
 }
 
 void Texture::Factory::createStagingBuffer(vk::DeviceSize size)

@@ -35,6 +35,7 @@ public:
         Factory() = delete;
         Texture* create(vk::Extent2D extent);
         Texture* create(vk::Extent2D extent, void const* buffer, Size size);
+        Texture* createErrorTexture();
         void* getBufferMemory(vk::DeviceSize size);
         DF_NO_COPY(Factory);
         Factory(Factory&& other) noexcept;

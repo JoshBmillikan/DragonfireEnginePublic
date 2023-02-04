@@ -18,11 +18,13 @@ class Material : public Asset {
     Texture *albedo = nullptr, *roughness = nullptr, *emissive = nullptr, *normal = nullptr;
 
 public:
+    static constexpr int TEXTURE_COUNT = 4;
     Material() = default;
     ~Material() override;
     DF_NO_MOVE_COPY(Material);
     [[nodiscard]] vk::Pipeline getPipeline() const { return pipeline; }
     [[nodiscard]] vk::PipelineLayout getLayout() const { return layout; }
+    void pushTextureIndices(vk::CommandBuffer cmd, UInt offset = 0);
 };
 
 }   // namespace df

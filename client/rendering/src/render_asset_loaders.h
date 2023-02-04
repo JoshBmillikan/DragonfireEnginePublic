@@ -45,6 +45,7 @@ class PngLoader : public AssetRegistry::Loader {
 public:
     std::vector<Asset*> load(const char* filename) override;
     explicit PngLoader(Renderer* renderer) : factory(renderer) {}
+    Texture::Factory& getFactory() { return factory; }
 
 private:
     Texture::Factory factory;

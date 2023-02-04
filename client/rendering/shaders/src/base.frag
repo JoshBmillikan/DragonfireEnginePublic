@@ -4,9 +4,18 @@
 layout(location = 0) out vec4 outColor;
 
 layout(location = 0) in vec4 fragColor;
+layout(location = 1) in vec2 uv;
 
-layout(set=1, binding=1) uniform sampler2D textures[];
+layout(set=0, binding=1) uniform sampler2D textures[];
+
+layout(push_constant) uniform textureIndices
+{
+    uint albedo;
+    uint roughness;
+    uint emissive;
+    uint normal;
+};
 
 void main() {
-    outColor = fragColor;
+    outColor = texture(textures[albedo], uv);
 }

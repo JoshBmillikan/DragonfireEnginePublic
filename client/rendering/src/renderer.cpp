@@ -185,6 +185,7 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
 
                     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
                     cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, data.uboDescriptorSet, {});
+                    model->getMaterial().pushTextureIndices(cmd);
 
                     cmd.bindVertexBuffers(0, vertexBuffers, offsets);
                     cmd.bindIndexBuffer(
@@ -359,21 +360,22 @@ void Renderer::updateTextures(Texture** textures, Size count)
 {
     for (auto& frame : frames) {
         std::vector<vk::WriteDescriptorSet> writes;
+        std::vector<vk::DescriptorImageInfo> imageInfos;
         writes.resize(count);
+        imageInfos.resize(count);
         for (Size i = 0; i < count; i++) {
             Texture* texture = textures[i];
             vk::Sampler sampler = texture->getSampler();
-            vk::DescriptorImageInfo info{};
-            info.imageView = texture->getView();
-            info.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-            info.sampler = sampler ? sampler : defaultSampler;
+            imageInfos[i].imageView = texture->getView();
+            imageInfos[i].imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+            imageInfos[i].sampler = sampler ? sampler : defaultSampler;
 
             writes[i].dstSet = frame.globalDescriptorSet;
             writes[i].dstArrayElement = texture->getIndex();
             writes[i].descriptorCount = 1;
             writes[i].descriptorType = vk::DescriptorType::eCombinedImageSampler;
             writes[i].dstBinding = 1;
-            writes[i].pImageInfo = &info;
+            writes[i].pImageInfo = &imageInfos[i];
         }
 
         device.updateDescriptorSets(writes, {});

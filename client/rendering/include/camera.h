@@ -26,7 +26,7 @@ public:
         // flip y for compatibility with the Vulkan coordinate system instead of OpenGL
         perspective[1][1] *= -1;
         orthographic[1][1] *= -1;
-        spdlog::info("Camera FOV: {}, aspect ratio: {}", fov, (float) width / (float) height);
+        spdlog::info("Camera FOV: {}, aspect ratio: {:.3}", fov, (float) width / (float) height);
     }
 
     Camera() = default;

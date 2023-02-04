@@ -79,9 +79,15 @@ Mesh* ObjLoader::createMesh(const tinyobj::shape_t& shape, const tinyobj::attrib
 
 vk::PipelineLayout MaterialLoader::createPipelineLayout(nlohmann::json& json)
 {
+    vk::PushConstantRange pushConstantRange{};
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = Material::TEXTURE_COUNT * sizeof(UInt);
+    pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eFragment;
     vk::PipelineLayoutCreateInfo createInfo;
     createInfo.pSetLayouts = &setLayout;
     createInfo.setLayoutCount = 1;
+    createInfo.pPushConstantRanges = &pushConstantRange;
+    createInfo.pushConstantRangeCount = 1;
 
     return device.createPipelineLayout(createInfo);
 }
