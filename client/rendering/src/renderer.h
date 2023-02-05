@@ -147,8 +147,6 @@ private:
 private:
     /// Gets a reference to the current frame
     Frame& getCurrentFrame() noexcept { return frames[frameCount % FRAMES_IN_FLIGHT]; }
-    /// returns if the depth format has a stencil component
-    [[nodiscard]] bool depthHasStencil() const noexcept;
     /// The presentation thread function
     void presentThread(const std::stop_token& token);
     /// The render worker thread function

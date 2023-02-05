@@ -34,7 +34,7 @@ void Renderer::beginRendering(const Camera& camera)
     if (lastResult != vk::Result::eSuccess)
         crash("Failed to resize swapchain");
 
-    char* ptr = static_cast<char*>(globalUniformBuffer.getInfo().pMappedData);
+    char* ptr = reinterpret_cast<char*>(globalUniformBuffer.getInfo().pMappedData);
     ptr += globalUniformOffset * (frameCount % FRAMES_IN_FLIGHT);
     UboData* data = reinterpret_cast<UboData*>(ptr);
     glm::mat4 view = camera.getViewMatrix();
@@ -165,7 +165,7 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                     );
                     void* src = vertexBuffer.getInfo().pMappedData;
                     void* dst = newBuffer.getInfo().pMappedData;
-                    memcpy(dst, src, vertexBuffer.getInfo().size);
+                    memcpy(dst, src, vertexBuffer.getInfo().size); // TODO: use gpu copy commands instead
                     vertexBuffer = std::move(newBuffer);
                 }
                 UInt drawCount = 0;
@@ -940,11 +940,6 @@ void Renderer::allocateUniformBuffer()
     allocInfo.priority = 1;
 
     globalUniformBuffer = Buffer(createInfo, allocInfo);
-}
-
-bool Renderer::depthHasStencil() const noexcept
-{
-    return depthImage.getFormat() == vk::Format::eD24UnormS8Uint || depthImage.getFormat() == vk::Format::eD32SfloatS8Uint;
 }
 
 void Renderer::createDescriptorPool()
