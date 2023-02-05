@@ -84,9 +84,10 @@ vk::PipelineLayout MaterialLoader::createPipelineLayout(nlohmann::json& json)
     pushConstantRange.offset = 0;
     pushConstantRange.size = Material::TEXTURE_COUNT * sizeof(UInt);
     pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eFragment;
+    vk::DescriptorSetLayout layouts[2] = {setLayout, bindlessLayout};
     vk::PipelineLayoutCreateInfo createInfo;
-    createInfo.pSetLayouts = &setLayout;
-    createInfo.setLayoutCount = 1;
+    createInfo.pSetLayouts = layouts;
+    createInfo.setLayoutCount = 2;
     createInfo.pPushConstantRanges = &pushConstantRange;
     createInfo.pushConstantRangeCount = 1;
 
@@ -161,8 +162,8 @@ Material* MaterialLoader::createMaterial(nlohmann::json& json)
     return material;
 }
 
-MaterialLoader::MaterialLoader(PipelineFactory* pipelineFactory, vk::Device device, vk::DescriptorSetLayout setLayout)
-    : pipelineFactory(pipelineFactory), device(device), setLayout(setLayout)
+MaterialLoader::MaterialLoader(PipelineFactory* pipelineFactory, vk::Device device, vk::DescriptorSetLayout setLayout, vk::DescriptorSetLayout bindlessLayout)
+    : pipelineFactory(pipelineFactory), device(device), setLayout(setLayout), bindlessLayout(bindlessLayout)
 {
 }
 

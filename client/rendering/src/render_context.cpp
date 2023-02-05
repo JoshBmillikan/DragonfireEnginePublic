@@ -71,7 +71,7 @@ void RenderContext::loadTextures(const char* path)
 
 void RenderContext::loadMaterials(const char* path)
 {
-    MaterialLoader loader(renderer->getPipelineFactory(), renderer->getDevice(), renderer->getGlobalDescriptorSetLayout());
+    MaterialLoader loader(renderer->getPipelineFactory(), renderer->getDevice(), renderer->getGlobalDescriptorSetLayout(), renderer->getBindlessDescriptorSetLayout());
     auto& registry = AssetRegistry::getRegistry();
     registry.loadDir(path, loader);
 }

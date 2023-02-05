@@ -32,10 +32,10 @@ private:
 class MaterialLoader : public AssetRegistry::Loader {
     PipelineFactory* pipelineFactory;
     vk::Device device;
-    vk::DescriptorSetLayout setLayout;
+    vk::DescriptorSetLayout setLayout, bindlessLayout;
 
 public:
-    MaterialLoader(PipelineFactory* pipelineFactory, vk::Device device, vk::DescriptorSetLayout setLayout);
+    MaterialLoader(PipelineFactory* pipelineFactory, vk::Device device, vk::DescriptorSetLayout setLayout, vk::DescriptorSetLayout bindlessLayout);
     std::vector<Asset*> load(const char* filename) override;
     Material* createMaterial(nlohmann::json& json);
     vk::PipelineLayout createPipelineLayout(nlohmann::json& json);

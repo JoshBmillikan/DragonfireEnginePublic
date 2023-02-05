@@ -69,6 +69,7 @@ void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
         data.command = RenderCommand::render;
         data.model = model;
         data.uboDescriptorSet = getCurrentFrame().globalDescriptorSet;
+        data.bindlessSet = getCurrentFrame().bindlessSet;
     }
     data.cond.notify_one();
     threadIndex = (threadIndex + 1) % renderThreadCount;
@@ -184,7 +185,14 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                     vk::PipelineLayout pipelineLayout = model->getMaterial().getLayout();
 
                     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
-                    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, data.uboDescriptorSet, {});
+                    cmd.bindDescriptorSets(
+                            vk::PipelineBindPoint::eGraphics,
+                            pipelineLayout,
+                            0,
+                            {data.uboDescriptorSet, data.bindlessSet},
+                            {}
+                    );
+
                     model->getMaterial().pushTextureIndices(cmd);
 
                     cmd.bindVertexBuffers(0, vertexBuffers, offsets);
@@ -309,6 +317,7 @@ void Renderer::destroy() noexcept
         pipelineFactory.destroy();
         device.destroy(descriptorPool);
         device.destroy(globalDescriptorSetLayout);
+        device.destroy(bindlessLayout);
         globalUniformBuffer.destroy();
         device.destroy(msaaView);
         msaaImage.destroy();
@@ -358,26 +367,28 @@ void Renderer::beginCommandRecording()
 
 void Renderer::updateTextures(Texture** textures, Size count)
 {
-    for (auto & frame : frames) {
-        std::vector<vk::DescriptorImageInfo> imageInfos;
-        imageInfos.reserve(count);
-        for (Size j = 0; j < count; j++) {
-            Texture* texture = textures[j];
+    std::vector<vk::DescriptorImageInfo> imageInfos;
+    std::vector<vk::WriteDescriptorSet> writes;
+    writes.reserve(count * FRAMES_IN_FLIGHT);
+    imageInfos.reserve(count * FRAMES_IN_FLIGHT);
+    for (auto& frame : frames) {
+        for (Size i = 0; i < count; i++) {
+            Texture* texture = textures[i];
             vk::Sampler sampler = texture->getSampler();
             vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
             imageInfo.imageView = texture->getView();
             imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
             imageInfo.sampler = sampler ? sampler : defaultSampler;
+            vk::WriteDescriptorSet& write = writes.emplace_back();
+            write.dstSet = frame.bindlessSet;
+            write.dstArrayElement = texture->getIndex();
+            write.descriptorCount = 1;
+            write.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+            write.dstBinding = 0;
+            write.pImageInfo = &imageInfo;
         }
-        vk::WriteDescriptorSet write{};
-        write.dstSet = frame.globalDescriptorSet;
-        write.dstArrayElement = 0;
-        write.descriptorCount = imageInfos.size();
-        write.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-        write.dstBinding = 1;
-        write.pImageInfo = imageInfos.data();
-        device.updateDescriptorSets(write, {});
     }
+    device.updateDescriptorSets(writes, {});
 }
 
 /*
@@ -955,26 +966,27 @@ void Renderer::createDescriptorPool()
     bindings[0].descriptorCount = 1;
     bindings[0].descriptorType = vk::DescriptorType::eUniformBuffer;
     bindings[0].stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
-    bindings[1].binding = 1;
+    bindings[1].binding = 0;
     bindings[1].descriptorCount = MAX_TEXTURE_DESCRIPTORS;
     bindings[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
     bindings[1].pImmutableSamplers = nullptr;
     bindings[1].stageFlags = vk::ShaderStageFlagBits::eFragment;
 
-    vk::DescriptorBindingFlags flags[] = {
-            (vk::DescriptorBindingFlagBits) 0,
-            vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind
-                    | vk::DescriptorBindingFlagBits::eVariableDescriptorCount,
-    };
+    vk::DescriptorBindingFlags flags = vk::DescriptorBindingFlagBits::ePartiallyBound
+                                       | vk::DescriptorBindingFlagBits::eUpdateAfterBind
+                                       | vk::DescriptorBindingFlagBits::eVariableDescriptorCount;
     vk::DescriptorSetLayoutBindingFlagsCreateInfo flagInfo{};
-    flagInfo.bindingCount = 2;
-    flagInfo.pBindingFlags = flags;
+    flagInfo.bindingCount = 1;
+    flagInfo.pBindingFlags = &flags;
     vk::DescriptorSetLayoutCreateInfo layoutCreateInfo;
-    layoutCreateInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool;
     layoutCreateInfo.pBindings = bindings;
-    layoutCreateInfo.bindingCount = 2;
-    layoutCreateInfo.pNext = &flagInfo;
+    layoutCreateInfo.bindingCount = 1;
     globalDescriptorSetLayout = device.createDescriptorSetLayout(layoutCreateInfo);
+    layoutCreateInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool;
+    layoutCreateInfo.pBindings = &bindings[1];
+    layoutCreateInfo.bindingCount = 1;
+    layoutCreateInfo.pNext = &flagInfo;
+    bindlessLayout = device.createDescriptorSetLayout(layoutCreateInfo);
 }
 
 void Renderer::createFrames()
@@ -989,17 +1001,24 @@ void Renderer::createFrames()
     std::array<vk::DescriptorSetLayout, FRAMES_IN_FLIGHT> layouts;
     layouts.fill(globalDescriptorSetLayout);
 
-    UInt count = MAX_TEXTURE_DESCRIPTORS - 1;
-    vk::DescriptorSetVariableDescriptorCountAllocateInfo countAllocateInfo{};
-    countAllocateInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
-    countAllocateInfo.pDescriptorCounts = &count;
     vk::DescriptorSetAllocateInfo descriptorSetInfo;
     descriptorSetInfo.descriptorPool = descriptorPool;
     descriptorSetInfo.pSetLayouts = layouts.data();
     descriptorSetInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
-    descriptorSetInfo.pNext = &countAllocateInfo;
     vk::DescriptorSet allocatedSets[FRAMES_IN_FLIGHT];
     vk::resultCheck(device.allocateDescriptorSets(&descriptorSetInfo, allocatedSets), "Failed to allocate descriptor sets");
+
+    std::array<UInt, FRAMES_IN_FLIGHT> count{};
+    count.fill(MAX_TEXTURE_DESCRIPTORS - 1);
+    std::array<vk::DescriptorSetLayout, FRAMES_IN_FLIGHT> bindlessLayouts;
+    bindlessLayouts.fill(bindlessLayout);
+    vk::DescriptorSetVariableDescriptorCountAllocateInfo countAllocateInfo{};
+    countAllocateInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
+    countAllocateInfo.pDescriptorCounts = count.data();
+    descriptorSetInfo.pNext = &countAllocateInfo;
+    descriptorSetInfo.pSetLayouts = bindlessLayouts.data();
+    vk::DescriptorSet bindlessSets[FRAMES_IN_FLIGHT];
+    vk::resultCheck(device.allocateDescriptorSets(&descriptorSetInfo, bindlessSets), "Failed to allocate descriptor sets");
 
     std::array<vk::DescriptorBufferInfo, FRAMES_IN_FLIGHT> bufferInfos;
     std::array<vk::WriteDescriptorSet, FRAMES_IN_FLIGHT> writes;
@@ -1015,6 +1034,7 @@ void Renderer::createFrames()
         frame.presentSemaphore = device.createSemaphore(semaphoreCreateInfo);
         frame.renderSemaphore = device.createSemaphore(semaphoreCreateInfo);
         frame.globalDescriptorSet = allocatedSets[i];
+        frame.bindlessSet = bindlessSets[i];
         bufferInfos[i].buffer = globalUniformBuffer;
         bufferInfos[i].offset = globalUniformOffset * i;
         bufferInfos[i].range = sizeof(UboData);

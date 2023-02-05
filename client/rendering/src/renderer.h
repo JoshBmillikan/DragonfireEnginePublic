@@ -89,7 +89,7 @@ private:
     PipelineFactory pipelineFactory;
     Buffer globalUniformBuffer;
     vk::DeviceSize globalUniformOffset = 0;
-    vk::DescriptorSetLayout globalDescriptorSetLayout;
+    vk::DescriptorSetLayout globalDescriptorSetLayout, bindlessLayout;
     vk::DescriptorPool descriptorPool;
     vk::SampleCountFlagBits rasterSamples = vk::SampleCountFlagBits::e1;
     vk::Sampler defaultSampler;
@@ -120,7 +120,7 @@ private:
         const glm::mat4* matrices;
         UInt matrixCount = 0;
         Model* model;
-        vk::DescriptorSet uboDescriptorSet;
+        vk::DescriptorSet uboDescriptorSet, bindlessSet;
     }* threadData = nullptr;
 
     struct Queues {
@@ -134,7 +134,7 @@ private:
         vk::CommandBuffer buffer;
         vk::Fence fence;
         vk::Semaphore renderSemaphore, presentSemaphore;
-        vk::DescriptorSet globalDescriptorSet;
+        vk::DescriptorSet globalDescriptorSet, bindlessSet;
     } frames[FRAMES_IN_FLIGHT], *presentingFrame = nullptr;
 
     struct UboData {
@@ -190,6 +190,7 @@ public:
     PipelineFactory* getPipelineFactory() noexcept { return &pipelineFactory; }
     [[nodiscard]] vk::Device getDevice() const noexcept { return device; };
     [[nodiscard]] vk::DescriptorSetLayout getGlobalDescriptorSetLayout() const noexcept { return globalDescriptorSetLayout; }
+    [[nodiscard]] vk::DescriptorSetLayout getBindlessDescriptorSetLayout() const noexcept { return bindlessLayout; }
 };
 
 }   // namespace df
