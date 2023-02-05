@@ -16,4 +16,23 @@ const char* getFileExtension(const char* path) noexcept
         return nullptr;
     return it;
 }
+
+std::string nameFromPath(const char* path)
+{
+    if (path == nullptr || strlen(path) == 0)
+        return path;
+    const char* dot = strrchr(path, '.');
+    const char* slash = strrchr(path, '/');
+    if (slash == nullptr)
+        slash = strrchr(path, '\\');
+    if (slash == nullptr)
+        slash = path;
+
+    auto distance = std::distance(slash, dot) - 1;
+    std::string str;
+    str.resize(distance);
+    strncpy(str.data(), slash + 1, distance);
+
+    return str;
+}
 }   // namespace df

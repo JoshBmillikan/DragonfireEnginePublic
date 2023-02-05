@@ -3,5 +3,8 @@
   "shaders": {
     "fragment": "base.frag",
     "vertex": "base.vert"
+  },
+  "textures": {
+    "albedo": "test"
   }
 }

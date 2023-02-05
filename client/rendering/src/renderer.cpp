@@ -358,27 +358,25 @@ void Renderer::beginCommandRecording()
 
 void Renderer::updateTextures(Texture** textures, Size count)
 {
-    for (auto& frame : frames) {
-        std::vector<vk::WriteDescriptorSet> writes;
+    for (auto & frame : frames) {
         std::vector<vk::DescriptorImageInfo> imageInfos;
-        writes.resize(count);
-        imageInfos.resize(count);
-        for (Size i = 0; i < count; i++) {
-            Texture* texture = textures[i];
+        imageInfos.reserve(count);
+        for (Size j = 0; j < count; j++) {
+            Texture* texture = textures[j];
             vk::Sampler sampler = texture->getSampler();
-            imageInfos[i].imageView = texture->getView();
-            imageInfos[i].imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-            imageInfos[i].sampler = sampler ? sampler : defaultSampler;
-
-            writes[i].dstSet = frame.globalDescriptorSet;
-            writes[i].dstArrayElement = texture->getIndex();
-            writes[i].descriptorCount = 1;
-            writes[i].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-            writes[i].dstBinding = 1;
-            writes[i].pImageInfo = &imageInfos[i];
+            vk::DescriptorImageInfo& imageInfo = imageInfos.emplace_back();
+            imageInfo.imageView = texture->getView();
+            imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+            imageInfo.sampler = sampler ? sampler : defaultSampler;
         }
-
-        device.updateDescriptorSets(writes, {});
+        vk::WriteDescriptorSet write{};
+        write.dstSet = frame.globalDescriptorSet;
+        write.dstArrayElement = 0;
+        write.descriptorCount = imageInfos.size();
+        write.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+        write.dstBinding = 1;
+        write.pImageInfo = imageInfos.data();
+        device.updateDescriptorSets(write, {});
     }
 }
 

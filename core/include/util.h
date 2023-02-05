@@ -38,4 +38,10 @@ inline constexpr Int intFloor(const float value) noexcept
     Int i = static_cast<Int>(value);
     return value < i ? i - 1 : i;
 }
+
+std::string nameFromPath(const char* path);
+inline std::string nameFromPath(const std::string& path)
+{
+    return nameFromPath(path.c_str());
+}
 }   // namespace df

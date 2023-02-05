@@ -6,6 +6,7 @@
 #include "render_asset_loaders.h"
 #include "renderer.h"
 #include "stb_image.h"
+#include "util.h"
 #include <asset.h>
 #include <file.h>
 #include <mutex>
@@ -109,18 +110,45 @@ std::vector<Asset*> MaterialLoader::load(const char* filename)
     return out;
 }
 
+static Texture* getTexture(const std::string& name, const nlohmann::json& json, spdlog::logger& logger)
+{
+    try {
+        auto texture = json.at("textures").at(name).get<std::string>();
+        try {
+            return AssetRegistry::getRegistry().get<Texture>(texture);
+        }
+        catch (...) {
+            logger.warn("Missing {} texture (id {}) for material \"{}\"", name, texture, json.at("name").get<std::string>());
+            try {
+                return AssetRegistry::getRegistry().get<Texture>("error_texture");
+            }
+            catch (...) {
+                logger.error("Could not get error texture!");
+                return nullptr;
+            }
+        }
+    }
+    catch (...) {
+        return nullptr;
+    }
+}
+
 Material* MaterialLoader::createMaterial(nlohmann::json& json)
 {
     Material* material = nullptr;
     vk::Pipeline pipeline = nullptr;
     vk::PipelineLayout layout = createPipelineLayout(json);
     try {
-        pipeline = pipelineFactory->createPipeline(json["shaders"], layout);
+        pipeline = pipelineFactory->createPipeline(json.at("shaders"), layout);
         material = new Material();
         material->pipeline = pipeline;
         material->layout = layout;
         material->device = device;
-        material->name = json["name"].get<std::string>();
+        material->name = json.at("name").get<std::string>();
+        material->albedo = getTexture("albedo", json, *logger);
+        material->roughness = getTexture("roughness", json, *logger);
+        material->emissive = getTexture("emissive", json, *logger);
+        material->normal = getTexture("normal", json, *logger);
         logger->info("Loaded material \"{}\"", material->name);
     }
     catch (std::exception& e) {
@@ -154,8 +182,11 @@ std::vector<Asset*> PngLoader::load(const char* filename)
 
     vk::Extent2D extent(width, height);
     try {
-        auto texture = factory.create(extent, pixels, width * height * pixelSize);
+        Texture* texture = factory.create(extent, pixels, width * height * pixelSize);
         stbi_image_free(pixels);
+        std::string name = nameFromPath(filename);
+        texture->setName(name);
+        logger->info("Loaded texture \"{}\" at index {}", name, texture->getIndex());
         return {texture};
     }
     catch (...) {

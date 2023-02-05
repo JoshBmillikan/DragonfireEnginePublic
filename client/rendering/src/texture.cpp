@@ -7,6 +7,8 @@
 #include "renderer.h"
 
 namespace df {
+static std::atomic_uint32_t textureIndex = 0;
+
 Texture::Texture(Image&& image, vk::Extent2D extent, vk::Device device)
     : image(std::move(image)), imageExtent(extent), device(device)
 {
@@ -17,7 +19,6 @@ Texture::Texture(Image&& image, vk::Extent2D extent, vk::Device device)
     range.baseArrayLayer = 0;
     range.layerCount = 1;
     view = this->image.createView(device, range);
-    static UInt textureIndex = 0;
     index = textureIndex++;
 }
 
@@ -222,7 +223,9 @@ Texture* Texture::Factory::createErrorTexture()
     UInt size = gimp_image.width * gimp_image.height;
     UByte* ptr = (UByte*) getBufferMemory(size * gimp_image.bytes_per_pixel);
     GIMP_IMAGE_RUN_LENGTH_DECODE(ptr, gimp_image.rle_pixel_data, size, gimp_image.bytes_per_pixel);
-    return create(extent);
+    Texture* t = create(extent);
+    t->name = "error_texture";
+    return t;
 }
 
 void Texture::Factory::createStagingBuffer(vk::DeviceSize size)

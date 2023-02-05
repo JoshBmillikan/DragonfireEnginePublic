@@ -13,6 +13,8 @@ class Asset {
 public:
     virtual ~Asset() = default;
     [[nodiscard]] const std::string& getName() const noexcept { return name; }
+    void setName(const std::string& str) noexcept { name = str; }
+    void setName(const char* str) noexcept { name = str; }
 
 protected:
     std::string name;
@@ -29,6 +31,12 @@ public:
             return ptr;
         throw std::bad_cast();
     }
+    template<typename T>
+        requires std::is_base_of_v<Asset, T>
+    T* get(const std::string& name)
+    {
+        return get<T>(name.c_str());
+    }
 
     void destroy() noexcept;
 
@@ -40,14 +48,21 @@ public:
     {
         return get<T>(str);
     }
+    template<typename T>
+        requires std::is_base_of_v<Asset, T>
+    T* operator[](const std::string& str)
+    {
+        return get<T>(str);
+    }
 
     template<typename T>
         requires std::is_base_of_v<Asset, T>
     std::vector<T*> allOf()
     {
+        std::unique_lock lock(mutex);
         std::vector<T*> out;
         for (auto& [name, asset] : assets.values()) {
-            T* ptr = dynamic_cast<T*> (asset.get());
+            T* ptr = dynamic_cast<T*>(asset.get());
             if (ptr)
                 out.push_back(ptr);
         }
