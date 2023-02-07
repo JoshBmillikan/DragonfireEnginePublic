@@ -74,6 +74,7 @@ public:
 private:
     static constexpr UInt MAX_TEXTURE_DESCRIPTORS = 4096;
     ULong frameCount = 0;
+    SDL_Window* window = nullptr;
     std::shared_ptr<spdlog::logger> logger;
     vk::DebugUtilsMessengerEXT debugMessenger;
     vk::Instance instance;
@@ -157,9 +158,9 @@ private:
     /// Recreate the swapchain and associated data
     void recreateSwapchain();
     /// Initialize the renderer
-    void init(SDL_Window* window, bool validation);
+    void init(bool validation);
     /// Create the vulkan instance
-    void createInstance(SDL_Window* window, bool validation);
+    void createInstance(bool validation);
     /// Get the gpu handle to use
     void getPhysicalDevice();
     /// Get the msaa sample count

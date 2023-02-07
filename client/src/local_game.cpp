@@ -62,7 +62,7 @@ void LocalGame::processSdlEvent(const SDL_Event& event)
                     stop();
             }
             break;
-
+        case SDL_WINDOWEVENT_RESIZED: renderContext->resize(event.window.data1, event.window.data2); break;
         case SDL_MOUSEMOTION: break;
         case SDL_MOUSEWHEEL: break;
         case SDL_MOUSEBUTTONUP:

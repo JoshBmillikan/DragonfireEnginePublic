@@ -39,6 +39,8 @@ public:
     // Destroys all data related to the rendering context
     void destroy() noexcept;
 
+    void resize(int newWidth, int newHeight);
+
     void loadTextures(const char* path);
     void loadMaterials(const char* path);
     void loadModels(const char* path);

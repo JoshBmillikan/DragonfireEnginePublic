@@ -279,13 +279,30 @@ void Renderer::presentThread(const std::stop_token& token)
         presentInfo.pSwapchains = &chain;
         presentInfo.pImageIndices = &presentIndex;
 
-        presentResult = queues.present.presentKHR(presentInfo);
+        try {
+            presentResult = queues.present.presentKHR(presentInfo);
+        }
+        catch (const vk::OutOfDateKHRError& err) {
+            presentResult = vk::Result::eErrorOutOfDateKHR;
+        }
         presentingFrame = nullptr;
         lock.unlock();
         presentCond.notify_one();
     }
     queues.present.waitIdle();
     logger->info("Presentation thread destroyed");
+}
+
+void Renderer::recreateSwapchain()
+{
+    device.waitIdle();
+    swapchain = Swapchain(this, window);
+    logger->info("Resized swapchain to extent {}x{}", swapchain.getExtent().width, swapchain.getExtent().height);
+    device.destroy(depthView);
+    createDepthImage();
+    device.destroy(msaaView);
+    createMsaaImage();
+    swapchain.createFramebuffers(mainPass, depthView, msaaView);
 }
 
 void Renderer::stopRendering()
@@ -337,12 +354,6 @@ void Renderer::destroy() noexcept
         instance = nullptr;
         logger->info("Renderer destroy successfully");
     }
-}
-
-void Renderer::recreateSwapchain()
-{
-    // todo
-    crash("Not yet implemented");
 }
 
 void Renderer::beginCommandRecording()
@@ -400,10 +411,10 @@ void Renderer::updateTextures(Texture** textures, Size count)
  * ***********************************************************************************************************
  */
 
-Renderer::Renderer(SDL_Window* window)
+Renderer::Renderer(SDL_Window* window) : window(window)
 {
     bool validation = std::getenv("VALIDATION_LAYERS") != nullptr;
-    init(window, validation);
+    init(validation);
 }
 
 /// List of device extensions to enable
@@ -420,12 +431,12 @@ static std::array<const char*, 6> DEVICE_EXTENSIONS = {
 
 static vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(spdlog::logger* logger);
 
-void Renderer::init(SDL_Window* window, bool validation)
+void Renderer::init(bool validation)
 {
     logger = spdlog::default_logger()->clone("Rendering");
     logger->info("Initializing rendering engine");
     spdlog::register_logger(logger);
-    createInstance(window, validation);
+    createInstance(validation);
     if (validation) {
         auto debugInfo = getDebugCreateInfo(logger.get());
         debugMessenger = instance.createDebugUtilsMessengerEXT(debugInfo);
@@ -466,7 +477,7 @@ void Renderer::init(SDL_Window* window, bool validation)
     logger->info("Vulkan initialization complete");
 }
 
-void Renderer::createInstance(SDL_Window* window, bool validation)
+void Renderer::createInstance(bool validation)
 {
     void* proc = SDL_Vulkan_GetVkGetInstanceProcAddr();
     if (proc == nullptr)

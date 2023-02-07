@@ -67,7 +67,12 @@ void RenderContext::loadTextures(const char* path)
 
 void RenderContext::loadMaterials(const char* path)
 {
-    MaterialLoader loader(renderer->getPipelineFactory(), renderer->getDevice(), renderer->getGlobalDescriptorSetLayout(), renderer->getBindlessDescriptorSetLayout());
+    MaterialLoader loader(
+            renderer->getPipelineFactory(),
+            renderer->getDevice(),
+            renderer->getGlobalDescriptorSetLayout(),
+            renderer->getBindlessDescriptorSetLayout()
+    );
     auto& registry = AssetRegistry::getRegistry();
     registry.loadDir(path, loader);
 }
@@ -82,6 +87,12 @@ void RenderContext::loadModels(const char* path)
 void RenderContext::stopRendering()
 {
     renderer->stopRendering();
+}
+
+void RenderContext::resize(int width, int height)
+{
+    auto& cfg = Config::get().graphics;
+    camera = Camera(cfg.fov, static_cast<UInt>(width), static_cast<UInt>(height));
 }
 
 static void loadWindowIcon(SDL_Window* window)
