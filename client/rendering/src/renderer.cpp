@@ -165,7 +165,7 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                     );
                     void* src = vertexBuffer.getInfo().pMappedData;
                     void* dst = newBuffer.getInfo().pMappedData;
-                    memcpy(dst, src, vertexBuffer.getInfo().size); // TODO: use gpu copy commands instead
+                    memcpy(dst, src, vertexBuffer.getInfo().size);   // TODO: use gpu copy commands instead
                     vertexBuffer = std::move(newBuffer);
                 }
                 UInt drawCount = 0;
@@ -227,6 +227,9 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
 
 bool Renderer::cullTest(Model* model, const glm::mat4& matrix)
 {
+    if (!model->shouldCull())
+        return true;
+
     return true;   // TODO
 }
 

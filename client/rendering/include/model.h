@@ -12,11 +12,13 @@ class Model {
     friend class std::hash<df::Model>;
     Mesh* mesh;
     Material* material;
+    bool cull = true;
 
 public:
     Model(const char* meshId, const char* materialId);
     Mesh& getMesh() noexcept { return *mesh; }
     Material& getMaterial() noexcept { return *material; }
+    [[nodiscard]] bool shouldCull() const noexcept {return cull;}
 
     bool operator==(const Model& other) const noexcept { return mesh == other.mesh && material == other.material; }
 };

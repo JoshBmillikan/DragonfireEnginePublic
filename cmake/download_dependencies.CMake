@@ -28,11 +28,6 @@ FetchContent_Declare(
 )
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 FetchContent_Declare(
-        nameof
-        GIT_REPOSITORY https://github.com/Neargye/nameof.git
-        GIT_TAG c04b72fc51e4ac75f55462632de000c79a7b65b5
-)
-FetchContent_Declare(
         tinyobjloader
         GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader.git
         GIT_TAG f48bd0bfb9b00ed1f5b13dbcdbd7909ca8bd49b5
@@ -41,13 +36,6 @@ FetchContent_Declare(
         concurrentQueue
         GIT_REPOSITORY https://github.com/cameron314/concurrentqueue.git
         GIT_TAG 3747268264d0fa113e981658a99ceeae4dad05b7
-)
-FetchContent_Declare(
-        threadPool
-        GIT_REPOSITORY https://github.com/bshoshany/thread-pool.git
-        GIT_TAG 67fad04348b91cf93bdfad7495d298f54825602c
-        CONFIGURE_COMMAND ""
-        BUILD_COMMAND ""
 )
 FetchContent_Declare(
         entt
