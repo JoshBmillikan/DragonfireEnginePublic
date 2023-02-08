@@ -7,6 +7,7 @@
 #include "physics.h"
 #include "world/world.h"
 #include <entt/entt.hpp>
+#include <sol/sol.hpp>
 
 namespace df {
 
@@ -46,6 +47,7 @@ protected:
 
     bool running = true;
     std::unique_ptr<World> world;
+    sol::state lua;
 
 private:
     static BaseGame* game;

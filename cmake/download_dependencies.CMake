@@ -27,6 +27,12 @@ FetchContent_Declare(
         GIT_TAG a7ece061e831e0b9f954ded1b25e06a5f9e3287c
 )
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
+set(SOL2_LUA_VERSION "LuaJIT" CACHE STRING "The version of Lua needed. Can be 5.1, 5.2, 5.3, 5.4, LuaJIT, or a more specific 3-part version number for a specifc Lua (e.g., 5.4.4 or luajit-2.0.5)" )
+FetchContent_Declare(
+        sol2
+        GIT_REPOSITORY https://github.com/ThePhD/sol2.git
+        GIT_TAG eba86625b707e3c8c99bbfc4624e51f42dc9e561
+)
 FetchContent_Declare(
         tinyobjloader
         GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader.git

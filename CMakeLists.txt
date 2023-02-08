@@ -3,7 +3,8 @@ project(DragonfireEngine)
 
 set(CMAKE_CXX_STANDARD 20)
 include(cmake/download_dependencies.CMake)
-FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense tinyobjloader concurrentQueue entt)
+FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense tinyobjloader concurrentQueue entt sol2)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)

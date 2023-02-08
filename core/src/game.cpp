@@ -41,6 +41,8 @@ BaseGame::BaseGame(int argc, char** argv)
     spdlog::info("Loading application \"{}\"", APP_NAME);
     Config::loadConfigFile("config.json");
     spdlog::info("PhysFS initialized");
+    lua.open_libraries(sol::lib::base);
+    spdlog::info("Lua version {} loaded", lua.get<std::string>("_VERSION"));
 }
 
 BaseGame::~BaseGame()
