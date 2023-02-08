@@ -50,6 +50,8 @@ void RenderContext::drawFrame()
             if (!matrices.empty())
                 renderer->render(&model, matrices);
         }
+        if(imGuiEnabled)
+            renderer->renderUI();
         renderer->endRendering();
         for (auto& [model, matrices] : models)
             matrices.clear();

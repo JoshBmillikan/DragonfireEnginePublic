@@ -50,6 +50,7 @@ public:
     ~RenderContext() noexcept { destroy(); }
     void setMouseGrab(bool grabbed = true) const noexcept { SDL_SetWindowGrab(window, grabbed ? SDL_TRUE : SDL_FALSE); }
     DF_NO_MOVE_COPY(RenderContext);
+    bool imGuiEnabled = true;
 
 private:
     Camera camera{};

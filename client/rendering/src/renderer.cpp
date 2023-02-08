@@ -57,14 +57,6 @@ void Renderer::beginRendering(const Camera& camera)
         l.unlock();
         threadData[i].cond.notify_one();
     }
-    if (enableImGui) {
-        auto& data = threadData[renderThreadCount - 1];
-        std::unique_lock l(data.mutex);
-        data.cond.wait(l, [&] { return data.command == RenderCommand::waiting; });
-        data.command = RenderCommand::renderUI;
-        l.unlock();
-        data.cond.notify_one();
-    }
 }
 
 void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
@@ -85,6 +77,17 @@ void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
     threadIndex = (threadIndex + 1) % renderThreadCount;
 }
 
+void Renderer::renderUI()
+{
+    auto& frame = getCurrentFrame();
+    vk::CommandBuffer cmd = frame.uiBuffer;
+    beginSecondaryBuffer(cmd);
+    ImGui::Render();
+    auto data = ImGui::GetDrawData();
+    ImGui_ImplVulkan_RenderDrawData(data, cmd);
+    cmd.end();
+}
+
 void Renderer::endRendering()
 {
     if (threadData == nullptr)
@@ -100,6 +103,7 @@ void Renderer::endRendering()
     Frame& frame = getCurrentFrame();
     vk::CommandBuffer cmd = frame.buffer;
     cmd.executeCommands(renderThreadCount, secondaryBuffers);
+    cmd.executeCommands(frame.uiBuffer);
     cmd.endRenderPass();
     cmd.end();
 
@@ -143,28 +147,7 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 pool = pools[frameCount % FRAMES_IN_FLIGHT];
                 cmd = buffers[frameCount % FRAMES_IN_FLIGHT];
                 device.resetCommandPool(pool);
-
-                vk::CommandBufferInheritanceInfo inheritanceInfo;
-                inheritanceInfo.renderPass = mainPass;
-                inheritanceInfo.subpass = 0;
-                inheritanceInfo.framebuffer = swapchain.getCurrentFramebuffer();
-                vk::CommandBufferBeginInfo beginInfo;
-                beginInfo.pInheritanceInfo = &inheritanceInfo;
-                beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
-                                  | vk::CommandBufferUsageFlagBits::eRenderPassContinue;
-                cmd.begin(beginInfo);
-                vk::Viewport viewport;
-                viewport.x = 0;
-                viewport.y = 0;
-                viewport.width = static_cast<float>(swapchain.getExtent().width);
-                viewport.height = static_cast<float>(swapchain.getExtent().height);
-                viewport.minDepth = 0.0;
-                viewport.maxDepth = 1.0;
-                cmd.setViewport(0, viewport);
-                vk::Rect2D scissor;
-                scissor.offset = vk::Offset2D();
-                scissor.extent = swapchain.getExtent();
-                cmd.setScissor(0, scissor);
+                beginSecondaryBuffer(cmd);
                 if (frameCount % FRAMES_IN_FLIGHT == 0)
                     bufferOffset = 0;
             } break;
@@ -215,11 +198,6 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 }
                 bufferOffset += drawCount;
             } break;
-            case RenderCommand::renderUI: {
-                ImGui::Render();
-                ImDrawData* drawData = ImGui::GetDrawData();
-                ImGui_ImplVulkan_RenderDrawData(drawData, cmd);
-            } break;
             case RenderCommand::end:
                 cmd.end();
                 secondaryBuffers[threadIndex] = cmd;
@@ -238,6 +216,31 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
         device.destroy(p);
     }
     logger->trace("Render thread {} destroyed", threadIndex);
+}
+
+void Renderer::beginSecondaryBuffer(vk::CommandBuffer cmd)
+{
+    vk::CommandBufferInheritanceInfo inheritanceInfo;
+    inheritanceInfo.renderPass = mainPass;
+    inheritanceInfo.subpass = 0;
+    inheritanceInfo.framebuffer = swapchain.getCurrentFramebuffer();
+    vk::CommandBufferBeginInfo beginInfo;
+    beginInfo.pInheritanceInfo = &inheritanceInfo;
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
+                      | vk::CommandBufferUsageFlagBits::eRenderPassContinue;
+    cmd.begin(beginInfo);
+    vk::Viewport viewport;
+    viewport.x = 0;
+    viewport.y = 0;
+    viewport.width = static_cast<float>(swapchain.getExtent().width);
+    viewport.height = static_cast<float>(swapchain.getExtent().height);
+    viewport.minDepth = 0.0;
+    viewport.maxDepth = 1.0;
+    cmd.setViewport(0, viewport);
+    vk::Rect2D scissor;
+    scissor.offset = vk::Offset2D();
+    scissor.extent = swapchain.getExtent();
+    cmd.setScissor(0, scissor);
 }
 
 bool Renderer::cullTest(Model* model, const glm::mat4& matrix)
@@ -1056,6 +1059,8 @@ void Renderer::createFrames()
         allocInfo.commandPool = frame.pool;
         allocInfo.level = vk::CommandBufferLevel::ePrimary;
         vk::resultCheck(device.allocateCommandBuffers(&allocInfo, &frame.buffer), "Failed to allocate command buffer");
+        allocInfo.level = vk::CommandBufferLevel::eSecondary;
+        vk::resultCheck(device.allocateCommandBuffers(&allocInfo, &frame.uiBuffer), "Failed to allocate command buffer");
         frame.fence = device.createFence(fenceCreateInfo);
         frame.presentSemaphore = device.createSemaphore(semaphoreCreateInfo);
         frame.renderSemaphore = device.createSemaphore(semaphoreCreateInfo);

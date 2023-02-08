@@ -47,6 +47,7 @@ public:
      * @param matrices the matrices for each model instance
      */
     void render(Model* model, const std::vector<glm::mat4>& matrices);
+    void renderUI();
 
     /**
      * End rendering the current frame and present it
@@ -70,8 +71,6 @@ public:
     static constexpr SDL_WindowFlags SDL_WINDOW_FLAGS = SDL_WINDOW_VULKAN;
 
     static constexpr Size FRAMES_IN_FLIGHT = 2;
-
-    bool enableImGui = true;
 
 private:
     static constexpr UInt MAX_TEXTURE_DESCRIPTORS = 4096;
@@ -111,7 +110,6 @@ private:
         waiting,
         begin,
         render,
-        renderUI,
         end,
     };
 
@@ -134,7 +132,7 @@ private:
 
     struct Frame {
         vk::CommandPool pool;
-        vk::CommandBuffer buffer;
+        vk::CommandBuffer buffer, uiBuffer;
         vk::Fence fence;
         vk::Semaphore renderSemaphore, presentSemaphore;
         vk::DescriptorSet globalDescriptorSet, bindlessSet;
@@ -154,6 +152,7 @@ private:
     void presentThread(const std::stop_token& token);
     /// The render worker thread function
     void renderThread(const std::stop_token& token, UInt threadIndex);
+    void beginSecondaryBuffer(vk::CommandBuffer cmd);
     /// Returns true if the model should be rendered with the given transform
     bool cullTest(Model* model, const glm::mat4& matrix);
     /// Start recording a command buffer
