@@ -12,6 +12,7 @@ Work in progress c++ vulkan game/rendering engine
    These libraries must be installed and visible to cmake's find_package command, all others will be automatically downloaded by cmake
     * [The Vulkan sdk](https://vulkan.lunarg.com/)
     * [FreeType](https://freetype.org/index.html)
+    * [LuaJIT](https://luajit.org/index.html)
 
 3. #### Configure and build with cmake
 
