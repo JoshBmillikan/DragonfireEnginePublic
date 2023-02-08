@@ -7,7 +7,6 @@
 #include <SDL.h>
 #include <game.h>
 #include <render_context.h>
-#include "ui/ui.h"
 
 namespace df {
 
@@ -21,7 +20,6 @@ protected:
 
 private:
     std::unique_ptr<RenderContext> renderContext;
-    ui::UIContext uiContext;
     void loadAssets();
     void processSdlEvent(const SDL_Event& event);
     void resetInputs();

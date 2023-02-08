@@ -45,6 +45,7 @@ public:
     [[nodiscard]] vk::Image getCurrentImage() const noexcept { return images[currentImageIndex]; }
     [[nodiscard]] vk::ImageView getCurrentView() const noexcept { return views[currentImageIndex]; }
     [[nodiscard]] vk::Framebuffer getCurrentFramebuffer() const noexcept { return framebuffers[currentImageIndex]; }
+    [[nodiscard]] UInt getImageCount() const noexcept { return imageCount; }
 
 private:
     vk::SwapchainKHR swapchain = nullptr;

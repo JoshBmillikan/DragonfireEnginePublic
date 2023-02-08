@@ -4,6 +4,9 @@
 
 #include "local_game.h"
 #include "world/local_world.h"
+#include <imgui.h>
+#include <backends/imgui_impl_sdl.h>
+#include "ui.h"
 
 namespace df {
 
@@ -15,6 +18,9 @@ LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
     SDL_GetVersion(&version);
     SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1");
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
     renderContext = std::make_unique<RenderContext>();
     loadAssets();
     world = std::make_unique<LocalWorld>("Test world", random());
@@ -26,6 +32,8 @@ LocalGame::~LocalGame()
     world.reset();
     assetRegistry.destroy();
     renderContext.reset();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
     SDL_Quit();
     spdlog::info("SDL shutdown");
 }
@@ -43,12 +51,15 @@ void LocalGame::update(double deltaSeconds)
         for (auto&& [entity, model, transform] : renderObjects.each())
             renderContext->enqueueModel(model, transform);
     }
+    renderContext->beginImGuiFrame();
+    renderUI(deltaSeconds);
     renderContext->drawFrame();
     resetInputs();
 }
 
 void LocalGame::processSdlEvent(const SDL_Event& event)
 {
+    ImGui_ImplSDL2_ProcessEvent(&event);
     switch (event.type) {
         case SDL_QUIT:
             spdlog::info("Quit requested");

@@ -71,6 +71,8 @@ public:
 
     static constexpr Size FRAMES_IN_FLIGHT = 2;
 
+    bool enableImGui = true;
+
 private:
     static constexpr UInt MAX_TEXTURE_DESCRIPTORS = 4096;
     ULong frameCount = 0;
@@ -109,6 +111,7 @@ private:
         waiting,
         begin,
         render,
+        renderUI,
         end,
     };
 
@@ -183,6 +186,8 @@ private:
     void createFrames();
     /// Create default sampler
     void createDefaultSampler();
+    /// Initialize imgui rendering
+    void initImGui();
 
 public:
     PipelineFactory* getPipelineFactory() noexcept { return &pipelineFactory; }

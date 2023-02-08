@@ -8,6 +8,8 @@
 #include "material.h"
 #include "render_asset_loaders.h"
 #include "renderer.h"
+#include <backends/imgui_impl_sdl.h>
+#include <backends/imgui_impl_vulkan.h>
 #include <stb_image.h>
 
 namespace df {
@@ -93,6 +95,12 @@ void RenderContext::resize(int width, int height)
 {
     auto& cfg = Config::get().graphics;
     camera = Camera(cfg.fov, static_cast<UInt>(width), static_cast<UInt>(height));
+}
+void RenderContext::beginImGuiFrame()
+{
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
 }
 
 static void loadWindowIcon(SDL_Window* window)

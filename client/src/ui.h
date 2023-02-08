@@ -2,7 +2,8 @@
 // Created by josh on 2/6/23.
 //
 
-#include "widget.h"
+#pragma once
 
-namespace df::ui {
+namespace df {
+void renderUI(double delta);
 }   // namespace df

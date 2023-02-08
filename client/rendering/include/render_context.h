@@ -41,6 +41,8 @@ public:
 
     void resize(int newWidth, int newHeight);
 
+    void beginImGuiFrame();
+
     void loadTextures(const char* path);
     void loadMaterials(const char* path);
     void loadModels(const char* path);

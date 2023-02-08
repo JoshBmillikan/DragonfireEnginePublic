@@ -68,6 +68,7 @@ public:
     void saveCache();
     PipelineInfo getBuilder() { return PipelineInfo(this); }
     static constexpr const char* CACHE_PATH = "cache/shader_pipeline.cache";
+    [[nodiscard]] vk::PipelineCache getCache() const noexcept { return cache; }
 
 private:
     void loadShaders() noexcept;

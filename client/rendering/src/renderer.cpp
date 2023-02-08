@@ -7,6 +7,8 @@
 #include "material.h"
 #include <SDL_vulkan.h>
 #include <alloca.h>
+#include <backends/imgui_impl_vulkan.h>
+#include <backends/imgui_impl_sdl.h>
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -36,12 +38,12 @@ void Renderer::beginRendering(const Camera& camera)
 
     char* ptr = reinterpret_cast<char*>(globalUniformBuffer.getInfo().pMappedData);
     ptr += globalUniformOffset * (frameCount % FRAMES_IN_FLIGHT);
-    UboData* data = reinterpret_cast<UboData*>(ptr);
+    UboData* ubo = reinterpret_cast<UboData*>(ptr);
     glm::mat4 view = camera.getViewMatrix();
-    data->viewPerspective = viewPerspective = camera.perspective * view;
-    data->viewOrthographic = viewOrthographic = camera.orthographic * view;
-    data->sunAngle = glm::vec3(0, 0, 1);
-    data->resolution = glm::vec2(swapchain.getExtent().width, swapchain.getExtent().height);
+    ubo->viewPerspective = viewPerspective = camera.perspective * view;
+    ubo->viewOrthographic = viewOrthographic = camera.orthographic * view;
+    ubo->sunAngle = glm::vec3(0, 0, 1);
+    ubo->resolution = glm::vec2(swapchain.getExtent().width, swapchain.getExtent().height);
 
     device.resetFences(frame.fence);
     beginCommandRecording();
@@ -54,6 +56,14 @@ void Renderer::beginRendering(const Camera& camera)
         threadData[i].command = RenderCommand::begin;
         l.unlock();
         threadData[i].cond.notify_one();
+    }
+    if (enableImGui) {
+        auto& data = threadData[renderThreadCount - 1];
+        std::unique_lock l(data.mutex);
+        data.cond.wait(l, [&] { return data.command == RenderCommand::waiting; });
+        data.command = RenderCommand::renderUI;
+        l.unlock();
+        data.cond.notify_one();
     }
 }
 
@@ -205,6 +215,11 @@ void Renderer::renderThread(const std::stop_token& token, const UInt threadIndex
                 }
                 bufferOffset += drawCount;
             } break;
+            case RenderCommand::renderUI: {
+                ImGui::Render();
+                ImDrawData* drawData = ImGui::GetDrawData();
+                ImGui_ImplVulkan_RenderDrawData(drawData, cmd);
+            } break;
             case RenderCommand::end:
                 cmd.end();
                 secondaryBuffers[threadIndex] = cmd;
@@ -327,6 +342,7 @@ void Renderer::destroy() noexcept
     if (instance) {
         if (threadData)
             stopRendering();
+        ImGui_ImplVulkan_Shutdown();
         for (Frame& frame : frames) {
             device.destroy(frame.fence);
             device.destroy(frame.renderSemaphore);
@@ -474,6 +490,7 @@ void Renderer::init(bool validation)
         threadData[i].thread = std::thread(&Renderer::renderThread, this, threadStop.get_token(), i);
 
     presentThreadHandle = std::thread(&Renderer::presentThread, this, threadStop.get_token());
+    initImGui();
     logger->info("Vulkan initialization complete");
 }
 
@@ -1075,6 +1092,40 @@ void Renderer::createDefaultSampler()
     createInfo.maxLod = 0;
 
     defaultSampler = device.createSampler(createInfo);
+}
+
+void Renderer::initImGui()
+{
+    ImGui_ImplSDL2_InitForVulkan(window);
+    ImGui_ImplVulkan_InitInfo info{};
+    info.Instance = instance;
+    info.PhysicalDevice = physicalDevice;
+    info.Device = device;
+    info.QueueFamily = queues.graphicsFamily;
+    info.Queue = queues.graphics;
+    info.PipelineCache = pipelineFactory.getCache();
+    info.DescriptorPool = descriptorPool;
+    info.Subpass = 0;
+    info.MSAASamples = static_cast<VkSampleCountFlagBits>(rasterSamples);
+    info.ImageCount = swapchain.getImageCount();
+    info.MinImageCount = FRAMES_IN_FLIGHT;
+    info.Allocator = nullptr;
+    info.CheckVkResultFn = nullptr;
+    ImGui_ImplVulkan_Init(&info, mainPass);
+
+    vk::CommandBuffer cmd = frames[0].buffer;
+    vk::CommandBufferBeginInfo begin{};
+    begin.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+    cmd.begin(begin);
+    ImGui_ImplVulkan_CreateFontsTexture(cmd);
+    cmd.end();
+    vk::SubmitInfo submitInfo{};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+    queues.graphics.submit(submitInfo);
+    queues.graphics.waitIdle();
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
+    logger->info("ImGui rendering initialized");
 }
 
 bool Renderer::Queues::getFamilies(vk::PhysicalDevice pDevice, vk::SurfaceKHR surfaceKhr)
