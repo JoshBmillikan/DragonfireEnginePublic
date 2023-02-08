@@ -53,6 +53,7 @@ void LocalGame::update(double deltaSeconds)
     }
     renderContext->beginImGuiFrame();
     renderUI(deltaSeconds);
+    ImGui::Render();
     renderContext->drawFrame();
     resetInputs();
 }

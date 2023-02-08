@@ -82,7 +82,6 @@ void Renderer::renderUI()
     auto& frame = getCurrentFrame();
     vk::CommandBuffer cmd = frame.uiBuffer;
     beginSecondaryBuffer(cmd);
-    ImGui::Render();
     auto data = ImGui::GetDrawData();
     ImGui_ImplVulkan_RenderDrawData(data, cmd);
     cmd.end();
