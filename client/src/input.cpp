@@ -7,82 +7,80 @@
 #include <nlohmann/json.hpp>
 
 namespace df {
-using namespace entt::literals;
 
-static nlohmann::json DEFAULT_BINDINGS = R"([
-    {
-        "name": "forward",
-        "key": 119
-    },
-    {
-        "name": "backward",
-        "key": 115
-    },
-    {
-        "name": "left",
-        "key": 97
-    },
-    {
-        "name": "right",
-        "key": 100
-    },
-    {
-        "name": "look",
-        "axis2d": "mouse_delta"
-    }
-])"_json;
-
-void createInputBindings(entt::registry& registry, const char* filepath)
+void InputManager::processEvent(const SDL_Event& event)
 {
-    nlohmann::json json;
-    try {
-        File file(filepath);
-        json = nlohmann::json::parse(file.readToString());
-        spdlog::info("Loaded input mapping: \"{}\"", filepath);
-    }
-    catch (...) {
-        json = DEFAULT_BINDINGS;
-        spdlog::info("Default input mapping loaded");
-    }
-
-    for (auto& binding : json) {
-        auto name = binding["name"].get<std::string>();
-        auto entity = registry.create();
-        registry.emplace<InputBinding>(entity, name.c_str());
-        registry.emplace<std::string>(entity, std::move(name));
-        if (binding.contains("key")) {
-            registry.emplace<ButtonState>(entity);
-            if (binding["key"].is_number_unsigned()) {
-                SDL_KeyCode code = static_cast<SDL_KeyCode>(binding["key"].get<unsigned char>());
-                registry.emplace<SDL_KeyCode>(entity, code);
-            }
-            else if (binding["key"].is_string()) {
-                auto str = binding["key"].get<std::string>();
-                unsigned char c = str[0];
-                registry.emplace<SDL_KeyCode>(entity, static_cast<SDL_KeyCode>(c));
-            }
-            else
-                spdlog::error("Invalid keybinding for {}", binding["key"]);
-        }
-
-        if (binding.contains("axis")) {
-            registry.emplace<AxisState>(entity);
-            // todo
-        }
-
-        if (binding.contains("axis2d")) {
-            registry.emplace<Axis2DState>(entity);
-            // todo
-        }
+    switch (event.type) {
     }
 }
 
-InputComponent getBindingByName(entt::registry& registry, std::string_view name)
+static void setKeyBinding(HashMap<SDL_KeyCode, std::string>& map, const std::string& name, const nlohmann::json& json)
 {
-    for (auto&& [entity, bindingName, binding] : registry.view<std::string, InputBinding>().each()) {
-        if (name == bindingName)
-            return {entity};
+    SDL_KeyCode code = SDLK_UNKNOWN;
+    if (json.is_number_integer())
+        code = json.get<SDL_KeyCode>();
+    else if (json.is_string())
+        code = static_cast<SDL_KeyCode>(SDL_GetKeyFromName(json.get<std::string>().c_str()));
+
+    if (code != SDLK_UNKNOWN) {
+        map.emplace(code, name);
+        spdlog::info(R"(Loaded key binding "{}" for key "{}")", name, SDL_GetKeyName(code));
     }
-    throw std::out_of_range("No input binding for the giving name");
+    else
+        spdlog::error("Invalid key binding: \"{}\"", to_string(json));
+}
+
+void InputManager::loadBindingsFromJson(const nlohmann::json& json)
+{
+    for (auto& binding : json.items()) {
+        if (binding.value().contains("key"))
+            setKeyBinding(keyBindings, binding.key(), binding.value()["key"]);
+    }
+}
+
+void InputManager::saveInputBindingFile(const char* filename)
+{
+    nlohmann::json json;
+    for (auto& [key, name] : keyBindings) {
+        nlohmann::json binding;
+        binding.emplace("key", SDL_GetKeyName(key));
+        json[name] = binding;
+    }
+
+    File file(filename, File::Mode::write);
+    file.writeString(json.dump(2));
+    spdlog::info("Input bindings saved");
+}
+
+static nlohmann::json DEFAULT_BINDINGS = R"({
+    "forward": {
+        "key": 119
+    },
+    "backward": {
+        "key": 115
+    },
+    "left": {
+        "key": 97
+    },
+    "right": {
+        "key": 100
+    },
+    "look": {
+        "axis2d": "mouse_delta"
+    }
+})"_json;
+
+InputManager::InputManager(const char* filename)
+{
+    try {
+        File file(filename);
+        nlohmann::json json = nlohmann::json::parse(file.readToString());
+        file.close();
+        loadBindingsFromJson(json);
+    }
+    catch (...) {
+        spdlog::warn("Failed to load input bindings file");
+        loadBindingsFromJson(DEFAULT_BINDINGS);
+    }
 }
 }   // namespace df

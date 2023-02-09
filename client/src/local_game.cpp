@@ -18,6 +18,7 @@ LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
     SDL_GetVersion(&version);
     SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1");
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
+    input = InputManager("input.json");
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -34,6 +35,7 @@ LocalGame::~LocalGame()
     renderContext.reset();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
+    input.saveInputBindingFile("input.json");
     SDL_Quit();
     spdlog::info("SDL shutdown");
 }
@@ -61,6 +63,7 @@ void LocalGame::update(double deltaSeconds)
 void LocalGame::processSdlEvent(const SDL_Event& event)
 {
     ImGui_ImplSDL2_ProcessEvent(&event);
+    input.processEvent(event);
     switch (event.type) {
         case SDL_QUIT:
             spdlog::info("Quit requested");
@@ -75,16 +78,6 @@ void LocalGame::processSdlEvent(const SDL_Event& event)
             }
             break;
         case SDL_WINDOWEVENT_RESIZED: renderContext->resize(event.window.data1, event.window.data2); break;
-        case SDL_MOUSEMOTION: break;
-        case SDL_MOUSEWHEEL: break;
-        case SDL_MOUSEBUTTONUP:
-        case SDL_MOUSEBUTTONDOWN: break;
-
-        case SDL_WINDOWEVENT_HIDDEN:
-        case SDL_WINDOWEVENT_MINIMIZED: break;
-
-        case SDL_WINDOWEVENT_SHOWN:
-        case SDL_WINDOWEVENT_RESTORED: break;
     }
 }
 

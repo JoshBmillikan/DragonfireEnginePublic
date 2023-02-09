@@ -3,42 +3,20 @@
 //
 
 #pragma once
-#include "entt/entity/registry.hpp"
 #include <SDL.h>
+#include <nlohmann/json_fwd.hpp>
 
 namespace df {
+class InputManager {
+public:
+    InputManager() = default;
+    InputManager(const char* filename);
+    void processEvent(const SDL_Event& event);
+    void saveInputBindingFile(const char* filename);
 
-struct ButtonState {
-    bool pressed = false;
-    bool released = false;
-    bool changedThisFrame = false;
+private:
+    HashMap<SDL_KeyCode, std::string> keyBindings;
 
-    UShort modifiers = 0;
+    void loadBindingsFromJson(const nlohmann::json& json);
 };
-
-struct AxisState {
-    float value = 0;
-    float multiplier = 1;
-};
-
-struct Axis2DState {
-    float x = 0, y = 0;
-    operator glm::vec2() const noexcept { return glm::vec2(x, y); }
-    float multiplier = 1;
-};
-
-struct InputBinding {
-    UInt id;
-    InputBinding(const char* str) { id = entt::hashed_string::value(str); }
-};
-
-struct InputComponent {
-    entt::entity entity;
-    ButtonState& getButton(entt::registry& registry) const noexcept { return registry.get<ButtonState>(entity); }
-    AxisState& getAxis(entt::registry& registry) const noexcept { return registry.get<AxisState>(entity); }
-    Axis2DState& getAxis2D(entt::registry& registry) const noexcept { return registry.get<Axis2DState>(entity); }
-};
-
-void createInputBindings(entt::registry& registry, const char* filepath = "input_mapping.json");
-InputComponent getBindingByName(entt::registry& registry, std::string_view name);
 }   // namespace df

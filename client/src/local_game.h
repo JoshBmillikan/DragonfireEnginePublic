@@ -20,6 +20,7 @@ protected:
 
 private:
     std::unique_ptr<RenderContext> renderContext;
+    InputManager input;
     void loadAssets();
     void processSdlEvent(const SDL_Event& event);
     void resetInputs();
