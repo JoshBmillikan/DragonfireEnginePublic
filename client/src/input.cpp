@@ -5,12 +5,33 @@
 #include "input.h"
 #include "file.h"
 #include <nlohmann/json.hpp>
+#include <imgui.h>
 
 namespace df {
 
 void InputManager::processEvent(const SDL_Event& event)
 {
+    auto& io = ImGui::GetIO();
     switch (event.type) {
+        case SDL_KEYUP:
+        case SDL_KEYDOWN: {
+            if (io.WantCaptureKeyboard)
+                break;
+            SDL_KeyCode code = static_cast<SDL_KeyCode>(event.key.keysym.sym);
+            if (keyBindings.contains(code) && !event.key.repeat) {
+                auto& id = keyBindings[code];
+                // TODO
+            }
+        } break;
+        case SDL_MOUSEBUTTONUP:
+        case SDL_MOUSEBUTTONDOWN: {
+            if (io.WantCaptureMouse)
+                break;
+        }break;
+        case SDL_MOUSEMOTION: {
+            if (io.WantCaptureMouse)
+                break;
+        }break;
     }
 }
 
@@ -23,7 +44,7 @@ static void setKeyBinding(HashMap<SDL_KeyCode, std::string>& map, const std::str
         code = static_cast<SDL_KeyCode>(SDL_GetKeyFromName(json.get<std::string>().c_str()));
 
     if (code != SDLK_UNKNOWN) {
-        map.emplace(code, name);
+        map.emplace(code, name.c_str());
         spdlog::info(R"(Loaded key binding "{}" for key "{}")", name, SDL_GetKeyName(code));
     }
     else
@@ -66,7 +87,7 @@ static nlohmann::json DEFAULT_BINDINGS = R"({
         "key": 100
     },
     "look": {
-        "axis2d": "mouse_delta"
+        "axis2d": "mouse_motion"
     }
 })"_json;
 

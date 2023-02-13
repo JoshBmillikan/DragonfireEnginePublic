@@ -19,9 +19,7 @@ LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
     SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1");
     spdlog::info("SDL version {}.{}.{} loaded", version.major, version.minor, version.patch);
     input = InputManager("input.json");
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGui::StyleColorsDark();
+    ui::init();
     renderContext = std::make_unique<RenderContext>();
     loadAssets();
     world = std::make_unique<LocalWorld>("Test world", random());
@@ -54,8 +52,7 @@ void LocalGame::update(double deltaSeconds)
             renderContext->enqueueModel(model, transform);
     }
     renderContext->beginImGuiFrame();
-    renderUI(deltaSeconds);
-    ImGui::Render();
+    ui::renderUI(deltaSeconds);
     renderContext->drawFrame();
     resetInputs();
 }

@@ -5,11 +5,21 @@
 #include "ui.h"
 #include <imgui.h>
 
-namespace df {
+namespace df::ui {
+void init()
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+}
+
 void renderUI(double delta)
 {
-    ImGui::Begin("Test");
-    ImGui::Text("Frame time: %.3f (%.1f FPS)", delta, ImGui::GetIO().Framerate);
+    ImGui::Begin("Info");
+    static ULong counter = 0;
+    ImGui::Text("Frame %lu", counter++);
+    ImGui::Text("Frame time: %.1fms (%.1f FPS)", delta * 1000, ImGui::GetIO().Framerate);
     ImGui::End();
+    ImGui::Render();
 }
 }   // namespace df

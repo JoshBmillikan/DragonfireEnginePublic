@@ -4,6 +4,7 @@
 
 #pragma once
 
-namespace df {
+namespace df::ui {
+void init();
 void renderUI(double delta);
 }   // namespace df

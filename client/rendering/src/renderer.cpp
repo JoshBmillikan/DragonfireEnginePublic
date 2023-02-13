@@ -79,10 +79,9 @@ void Renderer::render(Model* model, const std::vector<glm::mat4>& matrices)
 
 void Renderer::renderUI()
 {
-    auto& frame = getCurrentFrame();
-    vk::CommandBuffer cmd = frame.uiBuffer;
+    vk::CommandBuffer cmd = getCurrentFrame().uiBuffer;
     beginSecondaryBuffer(cmd);
-    auto data = ImGui::GetDrawData();
+    ImDrawData* data = ImGui::GetDrawData();
     ImGui_ImplVulkan_RenderDrawData(data, cmd);
     cmd.end();
 }
