@@ -13,6 +13,7 @@ Work in progress c++ vulkan game/rendering engine
     * [The Vulkan sdk](https://vulkan.lunarg.com/)
     * [FreeType](https://freetype.org/index.html)
     * [LuaJIT](https://luajit.org/index.html)
+    * [Bullet](https://github.com/bulletphysics/bullet3)
 
 3. #### Configure and build with cmake
 
