@@ -1097,8 +1097,77 @@ void Renderer::createDefaultSampler()
     defaultSampler = device.createSampler(createInfo);
 }
 
+// Load the functions used by ImGui from the default dispatcher
+static PFN_vkVoidFunction getFunction(const char* function_name, void*) {
+#define FN(name) if (strcmp(function_name, #name) == 0) \
+    return reinterpret_cast<PFN_vkVoidFunction>(VULKAN_HPP_DEFAULT_DISPATCHER.name);
+    FN(vkAllocateCommandBuffers)
+    FN(vkAllocateDescriptorSets)
+    FN(vkAllocateMemory)
+    FN(vkBindBufferMemory)
+    FN(vkBindImageMemory)
+    FN(vkCmdBindDescriptorSets)
+    FN(vkCmdBindIndexBuffer)
+    FN(vkCmdBindPipeline)
+    FN(vkCmdBindVertexBuffers)
+    FN(vkCmdCopyBufferToImage)
+    FN(vkCmdDrawIndexed)
+    FN(vkCmdPipelineBarrier)
+    FN(vkCmdPushConstants)
+    FN(vkCmdSetScissor)
+    FN(vkCmdSetViewport)
+    FN(vkCreateBuffer)
+    FN(vkCreateCommandPool)
+    FN(vkCreateDescriptorSetLayout)
+    FN(vkCreateFence)
+    FN(vkCreateFramebuffer)
+    FN(vkCreateGraphicsPipelines)
+    FN(vkCreateImage)
+    FN(vkCreateImageView)
+    FN(vkCreatePipelineLayout)
+    FN(vkCreateRenderPass)
+    FN(vkCreateSampler)
+    FN(vkCreateSemaphore)
+    FN(vkCreateShaderModule)
+    FN(vkCreateSwapchainKHR)
+    FN(vkDestroyBuffer)
+    FN(vkDestroyCommandPool)
+    FN(vkDestroyDescriptorSetLayout)
+    FN(vkDestroyFence)
+    FN(vkDestroyFramebuffer)
+    FN(vkDestroyImage)
+    FN(vkDestroyImageView)
+    FN(vkDestroyPipeline)
+    FN(vkDestroyPipelineLayout)
+    FN(vkDestroyRenderPass)
+    FN(vkDestroySampler)
+    FN(vkDestroySemaphore)
+    FN(vkDestroyShaderModule)
+    FN(vkDestroySurfaceKHR)
+    FN(vkDestroySwapchainKHR)
+    FN(vkDeviceWaitIdle)
+    FN(vkFlushMappedMemoryRanges)
+    FN(vkFreeCommandBuffers)
+    FN(vkFreeDescriptorSets)
+    FN(vkFreeMemory)
+    FN(vkGetBufferMemoryRequirements)
+    FN(vkGetImageMemoryRequirements)
+    FN(vkGetPhysicalDeviceMemoryProperties)
+    FN(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
+    FN(vkGetPhysicalDeviceSurfaceFormatsKHR)
+    FN(vkGetPhysicalDeviceSurfacePresentModesKHR)
+    FN(vkGetSwapchainImagesKHR)
+    FN(vkMapMemory)
+    FN(vkUnmapMemory)
+    FN(vkUpdateDescriptorSets)
+#undef FN
+    return nullptr;
+}
+
 void Renderer::initImGui()
 {
+    auto d = VULKAN_HPP_DEFAULT_DISPATCHER;
+    ImGui_ImplVulkan_LoadFunctions(&getFunction, nullptr);
     ImGui_ImplSDL2_InitForVulkan(window);
     ImGui_ImplVulkan_InitInfo info{};
     info.Instance = instance;

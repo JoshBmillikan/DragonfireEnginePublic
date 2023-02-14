@@ -9,4 +9,5 @@ extern "C" int main(int argc, char** argv)
 {
     df::LocalGame game(argc, argv);
     game.run();
+    return 0;
 }
