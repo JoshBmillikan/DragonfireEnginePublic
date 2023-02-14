@@ -35,7 +35,7 @@ jobs:
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
 
-    - run: conan profile init
+    - run: conan config init
     - run: conan profile update settings.compiler.libcxx=libstdc++11 default
 
     - run: mkdir ${{github.workspace}}/build
