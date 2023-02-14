@@ -3,7 +3,7 @@ project(DragonfireEngine)
 
 set(CMAKE_CXX_STANDARD 20)
 include(cmake/download_dependencies.CMake)
-FetchContent_MakeAvailable(sdl2 spdlog glm physfs json unordered_dense tinyobjloader concurrentQueue entt sol2)
+FetchContent_MakeAvailable(sdl2 glm unordered_dense tinyobjloader concurrentQueue sol2)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
 find_program(CCACHE_FOUND ccache)
@@ -16,7 +16,14 @@ if (NOT WIN32)
     # This is the default behavior for Windows, but must be set explicitly for other platforms
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath='$ORIGIN'")
 endif ()
+if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    conan_basic_setup(TARGETS)
+else()
+    message(WARNING "The file conanbuildinfo.cmake doesn't exist, you have to run conan install first")
+endif()
 
 add_subdirectory(third_party)
 add_subdirectory(core)
+add_subdirectory(server)
 add_subdirectory(client)

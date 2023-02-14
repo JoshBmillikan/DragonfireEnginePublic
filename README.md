@@ -8,13 +8,12 @@ Work in progress c++ vulkan game/rendering engine
 
    Note: use ``git clone --recursive`` to ensure git submodules are also cloned
 
-2. #### Install dependencies #### 
-   These libraries must be installed and visible to cmake's find_package command, all others will be automatically downloaded by cmake
-    * [The Vulkan sdk](https://vulkan.lunarg.com/)
-    * [FreeType](https://freetype.org/index.html)
-    * [LuaJIT](https://luajit.org/index.html)
-    * [Bullet](https://github.com/bulletphysics/bullet3)
-
+2. #### [Install the Vulkan sdk](https://vulkan.lunarg.com/) ####
+3. #### Download conan dependencies #### 
+```
+cd cmake-build-debug
+conan install .. 
+```
 3. #### Configure and build with cmake
 
 (The windows build has currently not been tested and may or may not work correctly)

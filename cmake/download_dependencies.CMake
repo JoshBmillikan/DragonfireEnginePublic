@@ -7,26 +7,15 @@ FetchContent_Declare(
         FIND_PACKAGE_ARGS NAMES SDL2
 )
 FetchContent_Declare(
-        spdlog
-        GIT_REPOSITORY https://github.com/gabime/spdlog.git
-        GIT_TAG ad0e89cbfb4d0c1ce4d097e134eb7be67baebb36
-)
-FetchContent_Declare(
         glm
         GIT_REPOSITORY https://github.com/g-truc/glm.git
         GIT_TAG bf71a834948186f4097caa076cd2663c69a10e1e
-)
-FetchContent_Declare(
-        physfs
-        GIT_REPOSITORY https://github.com/icculus/physfs.git
-        GIT_TAG eb3383b532c5f74bfeb42ec306ba2cf80eed988c
 )
 FetchContent_Declare(
         unordered_dense
         GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
         GIT_TAG a7ece061e831e0b9f954ded1b25e06a5f9e3287c
 )
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 set(SOL2_LUA_VERSION "LuaJIT" CACHE STRING "The version of Lua needed. Can be 5.1, 5.2, 5.3, 5.4, LuaJIT, or a more specific 3-part version number for a specifc Lua (e.g., 5.4.4 or luajit-2.0.5)" )
 FetchContent_Declare(
         sol2
@@ -42,9 +31,4 @@ FetchContent_Declare(
         concurrentQueue
         GIT_REPOSITORY https://github.com/cameron314/concurrentqueue.git
         GIT_TAG 3747268264d0fa113e981658a99ceeae4dad05b7
-)
-FetchContent_Declare(
-        entt
-        GIT_REPOSITORY https://github.com/skypjack/entt.git
-        GIT_TAG 76298bc26ae7d47e5e75baeb9da1bd5bf17bdadc
 )

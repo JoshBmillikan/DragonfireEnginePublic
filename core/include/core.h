@@ -1,8 +1,8 @@
 // This file contains some common definitions
 // Created by josh on 11/9/22.
 //
-#include "glm/vec3.hpp"
-#include "spdlog/fmt/bundled/core.h"
+#include <glm/vec3.hpp>
+#include <fmt/core.h>
 #include <ankerl/unordered_dense.h>
 #include <cstdint>
 
