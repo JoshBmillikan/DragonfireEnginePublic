@@ -36,8 +36,6 @@ jobs:
 
     - run: mkdir ${{github.workspace}}/build
 
-    - run: conan profile update settings.compiler.libcxx=libstdc++11 default
-
     - name: Download Depencencies
       working-directory: ${{github.workspace}}/build
       run: conan install ${{github.workspace}} -s build_type=${{env.BUILD_TYPE}} --build=missing
