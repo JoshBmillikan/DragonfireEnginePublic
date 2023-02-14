@@ -38,7 +38,7 @@ jobs:
 
     - name: Download Depencencies
       working-directory: ${{github.workspace}}/build
-      run: conan install ${{github.workspace}} -s ${{env.BUILD_TYPE}} --build=missing
+      run: conan install ${{github.workspace}} -s build_type=${{env.BUILD_TYPE}} --build=missing
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
