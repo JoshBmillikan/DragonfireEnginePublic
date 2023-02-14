@@ -16,7 +16,7 @@ if (NOT WIN32)
     # This is the default behavior for Windows, but must be set explicitly for other platforms
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath='$ORIGIN'")
 else()
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} /std:c++20)
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} /std:c++20 /permissive-)
 endif ()
 if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
