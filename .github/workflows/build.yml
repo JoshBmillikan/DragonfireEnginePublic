@@ -38,7 +38,7 @@ jobs:
     - run: conan config init
 
     - name: Fix conan config
-      if: ${{matrix.os == 'windows-latest'}}
+      if: ${{matrix.os != 'windows-latest'}}
       run: conan profile update settings.compiler.libcxx=libstdc++11 default
 
     - run: mkdir ${{github.workspace}}/build
