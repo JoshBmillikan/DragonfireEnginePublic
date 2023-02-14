@@ -6,6 +6,7 @@ file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag
 
 find_package(Vulkan COMPONENTS glslc REQUIRED)
 set(SHADERS_OUT ${CMAKE_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 target_compile_definitions(Renderer PUBLIC SHADER_DIR="${SHADERS_OUT}")
 foreach (SHADER IN LISTS SHADERS)
     get_filename_component(FILENAME ${SHADER} NAME)
