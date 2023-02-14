@@ -34,6 +34,8 @@ jobs:
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
 
+    - run: mkdir ${{github.workspace}}/build
+
     - name: Download Depencencies
       working-directory: ${{github.workspace}}/build
       run: conan install ${{github.workspace}} -s ${{env.BUILD_TYPE}} --build=missing
