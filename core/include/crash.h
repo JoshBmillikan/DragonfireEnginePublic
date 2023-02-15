@@ -61,7 +61,7 @@ template<typename T1, typename T2>
 {
     spdlog::critical(
             R"(Unrecoverable error "{}" in function "{}" at {}:{}:{})",
-            fmt::format(msg, std::forward<T1, T2>(arg1, arg2)),
+            fmt::format(msg, std::forward<T1>(arg1), std::forward<T2>(arg2)),
             location.function_name(),
             location.file_name(),
             location.line(),
@@ -82,7 +82,7 @@ template<typename T1, typename T2, typename T3>
 {
     spdlog::critical(
             R"(Unrecoverable error "{}" in function "{}" at {}:{}:{})",
-            fmt::format(msg, std::forward<T1, T2, T3>(arg1, arg2, arg3)),
+            fmt::format(msg, std::forward<T1>(arg1), std::forward<T2>(arg2), std::forward<T3>(arg3)),
             location.function_name(),
             location.file_name(),
             location.line(),
@@ -104,7 +104,7 @@ template<typename T1, typename T2, typename T3, typename T4>
 {
     spdlog::critical(
             R"(Unrecoverable error "{}" in function "{}" at {}:{}:{})",
-            fmt::format(msg, std::forward<T1, T2, T3, T4>(arg1, arg2, arg3, arg4)),
+            fmt::format(msg, std::forward<T1>(arg1), std::forward<T2>(arg2), std::forward<T3>(arg3), std::forward<T4>(arg4)),
             location.function_name(),
             location.file_name(),
             location.line(),
@@ -127,7 +127,14 @@ template<typename T1, typename T2, typename T3, typename T4, typename T5>
 {
     spdlog::critical(
             R"(Unrecoverable error "{}" in function "{}" at {}:{}:{})",
-            fmt::format(msg, std::forward<T1, T2, T3, T4, T5>(arg1, arg2, arg3, arg4, arg5)),
+            fmt::format(
+                    msg,
+                    std::forward<T1>(arg1),
+                    std::forward<T2>(arg2),
+                    std::forward<T3>(arg3),
+                    std::forward<T4>(arg4),
+                    std::forward<T5>(arg5)
+            ),
             location.function_name(),
             location.file_name(),
             location.line(),
