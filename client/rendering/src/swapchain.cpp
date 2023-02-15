@@ -4,7 +4,11 @@
 
 #include "swapchain.h"
 #include "renderer.h"
-#include <alloca.h>
+#if defined(_MSC_VER) || defined(__MINGW32__)
+    #include <malloc.h>
+#else
+    #include <alloca.h>
+#endif
 #include <config.h>
 
 namespace df {

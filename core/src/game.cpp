@@ -10,6 +10,7 @@
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <platform.h>
 #ifndef ASSET_PATH
     #define ASSET_PATH "../assets"
 #endif
@@ -22,6 +23,7 @@ static void initLogging(const char* filename);
 BaseGame::BaseGame(int argc, char** argv)
 {
     game = this;
+    initPlatform();
     std::array<char, constStrlen(APP_NAME) + 1> appFilename{};
     strcpy(appFilename.data(), APP_NAME);
     for (char& c : appFilename) {
@@ -52,6 +54,7 @@ BaseGame::~BaseGame()
     PHYSFS_deinit();
     spdlog::info("Goodbye!");
     spdlog::shutdown();
+    shutdownPlatform();
 }
 
 static auto START_TIME = std::chrono::steady_clock::now();

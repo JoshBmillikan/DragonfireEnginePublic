@@ -15,7 +15,7 @@ if (NOT WIN32)
     # Tell the linker to search for shared libs in the same directory as the executable
     # This is the default behavior for Windows, but must be set explicitly for other platforms
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath='$ORIGIN'")
-else()
+elseif(MSVC)
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} /std:c++20 /permissive-)
 endif ()
 if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)

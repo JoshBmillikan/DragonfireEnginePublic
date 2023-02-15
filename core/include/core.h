@@ -21,6 +21,7 @@ using Short = std::int16_t;
 using Int = std::int32_t;
 using Long = std::int64_t;
 using IntPtr = std::intptr_t;
+using UIntPtr = std::uintptr_t;
 using Size = std::size_t;
 
 /// A unit vector in the up direction

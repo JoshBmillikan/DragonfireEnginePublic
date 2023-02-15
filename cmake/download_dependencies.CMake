@@ -1,11 +1,18 @@
 include(FetchContent)
-
+if (NOT MINGW)
 FetchContent_Declare(
         sdl2
         GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
         GIT_TAG 55b03c7493a7abed33cf803d1380a40fa8af903f
         FIND_PACKAGE_ARGS NAMES SDL2
 )
+else()
+    FetchContent_Declare(
+            sdl2
+            GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+            GIT_TAG 55b03c7493a7abed33cf803d1380a40fa8af903f
+    )
+endif()
 FetchContent_Declare(
         glm
         GIT_REPOSITORY https://github.com/g-truc/glm.git

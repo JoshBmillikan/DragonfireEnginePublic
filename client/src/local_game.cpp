@@ -22,7 +22,7 @@ LocalGame::LocalGame(int argc, char** argv) : BaseGame(argc, argv)
     ui::init();
     renderContext = std::make_unique<RenderContext>();
     loadAssets();
-    world = std::make_unique<LocalWorld>("Test world", random());
+    world = std::make_unique<LocalWorld>("Test world");
 }
 
 LocalGame::~LocalGame()

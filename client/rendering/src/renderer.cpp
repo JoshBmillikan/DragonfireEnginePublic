@@ -6,7 +6,11 @@
 #include "config.h"
 #include "material.h"
 #include <SDL_vulkan.h>
-#include <alloca.h>
+#if defined(_MSC_VER) || defined(__MINGW32__)
+    #include <malloc.h>
+#else
+    #include <alloca.h>
+#endif
 #include <backends/imgui_impl_vulkan.h>
 #include <backends/imgui_impl_sdl.h>
 
@@ -1166,7 +1170,6 @@ static PFN_vkVoidFunction getFunction(const char* function_name, void*) {
 
 void Renderer::initImGui()
 {
-    auto d = VULKAN_HPP_DEFAULT_DISPATCHER;
     ImGui_ImplVulkan_LoadFunctions(&getFunction, nullptr);
     ImGui_ImplSDL2_InitForVulkan(window);
     ImGui_ImplVulkan_InitInfo info{};
