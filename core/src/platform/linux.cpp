@@ -1,6 +1,7 @@
 //
 // Created by josh on 2/14/23.
 //
+#include "net.h"
 #include "platform.h"
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -26,7 +27,7 @@ public:
             exitCode = stopProcess();
         }
         catch (const std::runtime_error& err) {
-            spdlog::error("{}{}", 1,2);
+            spdlog::error("{}{}", 1, 2);
             crash("Error stopping process {}, error: {}", pid, err.what());
         }
         if (exitCode != 0)
@@ -80,7 +81,7 @@ namespace net {
         address.sin_addr.s_addr = INADDR_ANY;
         address.sin_port = htons(port);
 
-        if (bind(handle, reinterpret_cast<const sockaddr*>(&address), sizeof(sockaddr_in)) < 0) {
+        if (bind(handle, (const sockaddr*) &address, sizeof(sockaddr_in)) < 0) {
             close();
             throw std::runtime_error(strerror(errno));
         }
@@ -92,6 +93,37 @@ namespace net {
             close();
             throw;
         }
+    }
+
+    static sockaddr_in socketAddrFromAddress(const Address& address)
+    {
+        sockaddr_in addr{};
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = htonl(address.getAddress());
+        addr.sin_port = htons(address.getPort());
+        return addr;
+    }
+
+    void Socket::send(const Address& address, void* data, Size size) const
+    {
+        sockaddr_in addr = socketAddrFromAddress(address);
+        ssize_t sent = sendto(handle, data, size, 0, (sockaddr*) &addr, sizeof(sockaddr_in));
+        if (sent < 0)
+            throw std::runtime_error(strerror(errno));
+        else if (sent != size)
+            throw std::runtime_error(fmt::format("Sent packet size of {} does not equal actual data size of {}", sent, size));
+    }
+
+    Size Socket::receive(Address& sender, void* data, Size size) const
+    {
+        sockaddr_in addr{};
+        socklen_t len;
+        ssize_t received = recvfrom(handle, data, size, 0, (sockaddr*)&addr, &len);
+        if (received < 0)
+            throw std::runtime_error(strerror(errno));
+        sender.setAddress(ntohl(addr.sin_addr.s_addr));
+        sender.setPort(ntohs(addr.sin_port));
+        return received;
     }
 
     void Socket::setBlocking(bool blocking) const

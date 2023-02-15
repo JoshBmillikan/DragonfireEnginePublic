@@ -24,6 +24,7 @@ void initPlatform();
 void shutdownPlatform();
 
 namespace net {
+    struct Address;
     class Socket {
     public:
         enum class Type {
@@ -31,13 +32,39 @@ namespace net {
             TCP,
         };
         Socket();
+        /**
+         * @brief Creates and opens a new socket connection
+         * @param port port number of the socket
+         * @param type type of the socket, either tcp or udp
+         * @param blocking should the socket be opened in blocking or non-blocking mode (defaults to non-blocking)
+         */
         Socket(UShort port, Type type = Type::TCP, bool blocking = false);
         ~Socket() noexcept { close(); };
+        /**
+         * @brief Send data from this socket
+         * @param address The address to send to
+         * @param data data buffer to read from
+         * @param size size of the data to send
+         */
+        void send(const Address& address, void* data, Size size) const;
+        /**
+         * @brief Receives data from this socket
+         * @param [out] sender address of the sender
+         * @param [out] data pointer to where received data will be written
+         * @param [in] bufferSize maximum size of the buffer, if the packet is larger than this it will be discarded
+         * @return Size of data received
+         */
+        Size receive(Address& sender, void* data, Size bufferSize) const;
+        /**
+         * @brief Set the socket as blocking or non-blocking
+         * @param blocking true for blocking, false for non-blocking
+         */
         void setBlocking(bool blocking) const;
+        /// Close the socket
         void close() noexcept;
+        /// returns true if the socket is still open
         [[nodiscard]] bool isOpen() const;
         operator bool() const { return isOpen(); }
-
         Socket(const Socket& other) = delete;
         Socket(Socket&& other) noexcept
         {
