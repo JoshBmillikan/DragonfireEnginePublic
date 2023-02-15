@@ -5,8 +5,20 @@
 #pragma once
 
 namespace df {
+using ProcessHandle = std::unique_ptr<class Process>;
+class Process {
+public:
+    static Process* spawn(const char* path, char** argv = nullptr);
+    static ProcessHandle spawnHandle(const char* path, char** argv = nullptr)
+    {
+        return std::unique_ptr<Process>(spawn(path, argv));
+    }
+    virtual int stopProcess() = 0;
+    virtual ~Process() noexcept = default;
 
-class Process {};
+protected:
+    Process() = default;
+};
 
 void initPlatform();
 void shutdownPlatform();

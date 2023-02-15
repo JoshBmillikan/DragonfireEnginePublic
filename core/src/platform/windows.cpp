@@ -7,7 +7,14 @@
 #include "platform.h"
 
 namespace df {
-class WindowsProcess : public Process {};
+class WindowsProcess : public Process {
+    PROCESS_INFORMATION info;
+};
+
+Process* Process::spawn(const char* path, char** argv)
+{
+    return nullptr;
+}
 
 static void throwWSAError(DWORD err = WSAGetLastError())
 {

@@ -45,7 +45,7 @@ protected:
      */
     virtual void update(double deltaSeconds) = 0;
 
-    bool running = true;
+    std::atomic_bool running = true;
     std::unique_ptr<World> world;
     sol::state lua;
 

@@ -5,8 +5,60 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 namespace df {
+class LinuxProcess : public Process {
+    pid_t pid;
+
+public:
+    LinuxProcess() = delete;
+    LinuxProcess(pid_t pid) : Process(), pid(pid) {}
+    DF_NO_MOVE_COPY(LinuxProcess);
+
+    ~LinuxProcess() noexcept override
+    {
+        if (pid < 0)
+            return;
+        int exitCode;
+        try {
+            exitCode = stopProcess();
+        }
+        catch (const std::runtime_error& err) {
+            spdlog::error("{}{}", 1,2);
+            crash("Error stopping process {}, error: {}", pid, err.what());
+        }
+        if (exitCode != 0)
+            spdlog::error("Child process returned non-zero exit code {}", exitCode);
+    }
+
+    int stopProcess() final
+    {
+        kill(pid, SIGTERM);
+        int status;
+        if (waitpid(pid, &status, 0) != pid)
+            throw std::runtime_error(strerror(errno));
+        pid = -1;
+        return status;
+    }
+};
+
+Process* Process::spawn(const char* path, char** argv)
+{
+    pid_t pid = vfork();
+    if (pid == 0) {
+        if (execv(path, argv) < 0)
+            _exit(-1);
+    }
+    else if (pid < 0)
+        throw std::runtime_error(strerror(errno));
+
+    Process* ptr = new (std::nothrow) LinuxProcess(pid);
+    if (ptr)
+        return ptr;
+    crash("Out of memory");
+}
 
 namespace net {
     Socket::Socket(UShort port, Type type, bool blocking) : handle(-1), port(port)
