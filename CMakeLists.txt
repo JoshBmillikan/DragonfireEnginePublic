@@ -3,7 +3,7 @@ project(DragonfireEngine)
 
 set(CMAKE_CXX_STANDARD 20)
 include(cmake/download_dependencies.CMake)
-FetchContent_MakeAvailable(sdl2 glm unordered_dense tinyobjloader concurrentQueue sol2)
+FetchContent_MakeAvailable(sdl2 glm unordered_dense tinyobjloader concurrentQueue sol2 Catch2)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
 find_program(CCACHE_FOUND ccache)
@@ -24,6 +24,10 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 else()
     message(WARNING "The file conanbuildinfo.cmake doesn't exist, you have to run conan install first")
 endif()
+
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+include(CTest)
+include(Catch)
 
 add_subdirectory(third_party)
 add_subdirectory(core)

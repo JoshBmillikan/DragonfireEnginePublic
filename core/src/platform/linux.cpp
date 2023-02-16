@@ -66,12 +66,12 @@ namespace net {
     {
         int protocol, socketType;
         if (type == Type::TCP) {
-            socketType = IPPROTO_TCP;
-            protocol = SOCK_STREAM;
+            protocol = IPPROTO_TCP;
+            socketType = SOCK_STREAM;
         }
         else if (type == Type::UDP) {
-            socketType = IPPROTO_UDP;
-            protocol = SOCK_DGRAM;
+            protocol = IPPROTO_UDP;
+            socketType = SOCK_DGRAM;
         }
         handle = socket(AF_INET, socketType, protocol);
         if (handle < 0)
@@ -87,7 +87,8 @@ namespace net {
         }
 
         try {
-            setBlocking(blocking);
+            if (!blocking)
+                setBlocking(blocking);
         }
         catch (...) {
             close();
@@ -107,7 +108,7 @@ namespace net {
     void Socket::send(const Address& address, void* data, Size size) const
     {
         sockaddr_in addr = socketAddrFromAddress(address);
-        ssize_t sent = sendto(handle, data, size, 0, (sockaddr*) &addr, sizeof(sockaddr_in));
+        ssize_t sent = sendto(handle, data, size, MSG_NOSIGNAL, (sockaddr*) &addr, sizeof(sockaddr_in));
         if (sent < 0)
             throw std::runtime_error(strerror(errno));
         else if (sent != size)
@@ -124,6 +125,12 @@ namespace net {
         sender.setAddress(ntohl(addr.sin_addr.s_addr));
         sender.setPort(ntohs(addr.sin_port));
         return received;
+    }
+
+    void Socket::listen(int queued) const
+    {
+        if (::listen(handle, queued) != 0)
+            throw std::runtime_error(strerror(errno));
     }
 
     void Socket::setBlocking(bool blocking) const

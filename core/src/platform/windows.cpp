@@ -40,12 +40,12 @@ namespace net {
 
         int protocol, socketType;
         if (type == Type::TCP) {
-            socketType = IPPROTO_TCP;
-            protocol = SOCK_STREAM;
+            protocol = IPPROTO_TCP;
+            socketType = SOCK_STREAM;
         }
         else if (type == Type::UDP) {
-            socketType = IPPROTO_UDP;
-            protocol = SOCK_DGRAM;
+            protocol = IPPROTO_UDP;
+            socketType = SOCK_DGRAM;
         }
         handle = socket(AF_INET, socketType, protocol);
         if (handle == INVALID_SOCKET)

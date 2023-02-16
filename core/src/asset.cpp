@@ -51,8 +51,10 @@ void AssetRegistry::destroy() noexcept
 AssetRegistry::AssetRegistry() noexcept
 {
     instance = this;
-    logger = spdlog::default_logger()->clone("Assets");
-    spdlog::register_logger(logger);
+    if (spdlog::get("Assets") == nullptr) {
+        logger = spdlog::default_logger()->clone("Assets");
+        spdlog::register_logger(logger);
+    }
 }
 
 nlohmann::json AssetRegistry::Loader::readMetadata(const char* filename)

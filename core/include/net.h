@@ -28,13 +28,15 @@ public:
      * @param port port number
      */
     Address(UShort port) : Address(port, 127, 0, 0, 1) {}
+    Address() = default;
     [[nodiscard]] UInt getAddress() const { return address; }
     [[nodiscard]] UShort getPort() const { return port; }
     void setPort(UShort newPort) { Address::port = newPort; }
     void setAddress(UInt addr) { address = addr; }
+
 private:
-    UInt address;
-    UShort port;
+    UInt address = 0;
+    UShort port = UINT16_MAX;
 };
 
 }   // namespace df::net

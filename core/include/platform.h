@@ -44,15 +44,15 @@ namespace net {
          * @brief Send data from this socket
          * @param address The address to send to
          * @param data data buffer to read from
-         * @param size size of the data to send
+         * @param size size of the data, in bytes, to send
          */
         void send(const Address& address, void* data, Size size) const;
         /**
          * @brief Receives data from this socket
          * @param [out] sender address of the sender
          * @param [out] data pointer to where received data will be written
-         * @param [in] bufferSize maximum size of the buffer, if the packet is larger than this it will be discarded
-         * @return Size of data received
+         * @param [in] bufferSize maximum size of the buffer, in bytes. if the packet is larger than this it will be discarded
+         * @return number of bytes of data received
          */
         Size receive(Address& sender, void* data, Size bufferSize) const;
         /**
@@ -64,6 +64,7 @@ namespace net {
         void close() noexcept;
         /// returns true if the socket is still open
         [[nodiscard]] bool isOpen() const;
+        void listen(int queued = 1) const;
         operator bool() const { return isOpen(); }
         Socket(const Socket& other) = delete;
         Socket(Socket&& other) noexcept

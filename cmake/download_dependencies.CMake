@@ -39,3 +39,8 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/cameron314/concurrentqueue.git
         GIT_TAG 3747268264d0fa113e981658a99ceeae4dad05b7
 )
+FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG        v3.0.1 # or a later release
+)
