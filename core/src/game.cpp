@@ -111,7 +111,7 @@ void initLogging(const char* filename)
     register_logger(logger);
     set_default_logger(logger);
     set_level(level);
-    set_pattern("[%T] [thread:%5t] [%^%=8!l%$] [%=12!n] %v %@");
+    set_pattern("[%T] [%^%=8!l%$] [%=12!n] %v %@");
     info("Logging started to {}", logPath);
 }
 }   // namespace df

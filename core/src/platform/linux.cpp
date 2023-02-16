@@ -158,6 +158,29 @@ namespace net {
     {
     }
 
+    Socket::Socket(const Socket& other)
+    {
+        if (this != &other) {
+            close();
+            handle = dup(other.handle);
+            if (handle < 0)
+                throw std::runtime_error(strerror(errno));
+            port = other.port;
+        }
+    }
+
+    Socket& Socket::operator=(const Socket& other)
+    {
+        if (this != &other) {
+            close();
+            handle = dup(other.handle);
+            if (handle < 0)
+                throw std::runtime_error(strerror(errno));
+            port = other.port;
+        }
+        return *this;
+    }
+
 }   // namespace net
 
 void initPlatform()

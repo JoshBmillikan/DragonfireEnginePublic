@@ -66,7 +66,8 @@ namespace net {
         [[nodiscard]] bool isOpen() const;
         void listen(int queued = 1) const;
         operator bool() const { return isOpen(); }
-        Socket(const Socket& other) = delete;
+        Socket(const Socket& other);
+        Socket& operator=(const Socket& other);
         Socket(Socket&& other) noexcept
         {
             if (this != &other) {
@@ -75,7 +76,6 @@ namespace net {
                 port = other.port;
             }
         }
-        Socket& operator=(const Socket& other) = delete;
         Socket& operator=(Socket&& other) noexcept
         {
             if (this != &other) {
