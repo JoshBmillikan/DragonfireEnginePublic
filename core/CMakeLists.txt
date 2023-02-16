@@ -17,7 +17,7 @@ target_include_directories(Core PUBLIC include)
 target_precompile_headers(Core PUBLIC <spdlog/spdlog.h> <memory> <vector> <string> <glm/glm.hpp> <glm/gtx/quaternion.hpp> include/core.h include/crash.h include/math.h)
 
 if (CMAKE_TESTING_ENABLED)
-    add_executable(CoreTest test/net.cpp test/asset.cpp)
+    add_executable(CoreTest test/net.cpp test/asset.cpp test/thread_pool.cpp)
     target_link_libraries(CoreTest PRIVATE Core Catch2::Catch2WithMain)
     catch_discover_tests(CoreTest)
 endif()
