@@ -7,10 +7,10 @@
 #include "util.h"
 #include <chrono>
 #include <physfs.h>
+#include <platform.h>
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <platform.h>
 #ifndef ASSET_PATH
     #define ASSET_PATH "../assets"
 #endif

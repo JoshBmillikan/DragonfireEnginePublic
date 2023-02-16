@@ -119,7 +119,7 @@ namespace net {
     {
         sockaddr_in addr{};
         socklen_t len;
-        ssize_t received = recvfrom(handle, data, size, 0, (sockaddr*)&addr, &len);
+        ssize_t received = recvfrom(handle, data, size, 0, (sockaddr*) &addr, &len);
         if (received < 0)
             throw std::runtime_error(strerror(errno));
         sender.setAddress(ntohl(addr.sin_addr.s_addr));
