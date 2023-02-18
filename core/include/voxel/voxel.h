@@ -10,7 +10,7 @@ class Voxel {
     static constexpr int BITS = 15;
 
 public:
-    static constexpr UShort MAX_ID = (1 << 15) - 1;
+    static constexpr UShort MAX_ID = (1 << BITS) - 1;
     UShort id : BITS;
     bool smooth : 1;
     [[nodiscard]] class VoxelType& type() const;

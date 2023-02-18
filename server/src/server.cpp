@@ -10,6 +10,7 @@ namespace df {
 Server::Server(int argc, char** argv) : BaseGame(argc, argv)
 {
     loadServerConfig();
+    connections.reserve(config.maxPlayerCount);
 }
 
 void Server::update(double deltaSeconds)

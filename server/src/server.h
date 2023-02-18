@@ -1,9 +1,10 @@
 //
 // Created by josh on 2/13/23.
 //
-#include <game.h>
-
 #pragma once
+
+#include "net.h"
+#include <game.h>
 
 namespace df {
 
@@ -15,11 +16,14 @@ public:
     struct Config {
         UShort port = 3333;
         UInt maxPlayerCount = 16;
-    }config;
+    } config;
 
     void loadServerConfig();
+
 protected:
     void update(double deltaSeconds) override;
+private:
+    std::vector<net::Connection> connections;
 };
 
 }   // namespace df

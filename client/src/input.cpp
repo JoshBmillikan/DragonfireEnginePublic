@@ -4,8 +4,8 @@
 
 #include "input.h"
 #include "file.h"
-#include <nlohmann/json.hpp>
 #include <imgui.h>
+#include <nlohmann/json.hpp>
 
 namespace df {
 
@@ -27,11 +27,17 @@ void InputManager::processEvent(const SDL_Event& event)
         case SDL_MOUSEBUTTONDOWN: {
             if (io.WantCaptureMouse)
                 break;
-        }break;
-        case SDL_MOUSEMOTION: {
+        } break;
+        case SDL_MOUSEMOTION:
             if (io.WantCaptureMouse)
                 break;
-        }break;
+            mousePosition.x = event.motion.x;
+            mousePosition.y = event.motion.y;
+            mouseDelta.x += event.motion.xrel;
+            mouseDelta.y += event.motion.yrel;
+            break;
+        case SDL_CONTROLLERBUTTONUP:
+        case SDL_CONTROLLERBUTTONDOWN: event.cbutton.button; break;
     }
 }
 
@@ -57,6 +63,11 @@ void InputManager::loadBindingsFromJson(const nlohmann::json& json)
         if (binding.value().contains("key"))
             setKeyBinding(keyBindings, binding.key(), binding.value()["key"]);
     }
+}
+
+void InputManager::resetInputs()
+{
+    mouseDelta = {0, 0};
 }
 
 void InputManager::saveInputBindingFile(const char* filename)
@@ -86,8 +97,14 @@ static nlohmann::json DEFAULT_BINDINGS = R"({
     "right": {
         "key": 100
     },
+    "sprint": {
+        "key": 1073742049
+    },
     "look": {
         "axis2d": "mouse_motion"
+    },
+    "open_inventory": {
+        "key": 101
     }
 })"_json;
 

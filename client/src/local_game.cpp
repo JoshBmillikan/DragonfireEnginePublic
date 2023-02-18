@@ -54,7 +54,7 @@ void LocalGame::update(double deltaSeconds)
     renderContext->beginImGuiFrame();
     ui::renderUI(deltaSeconds);
     renderContext->drawFrame();
-    resetInputs();
+    input.resetInputs();
 }
 
 void LocalGame::processSdlEvent(const SDL_Event& event)
@@ -76,10 +76,6 @@ void LocalGame::processSdlEvent(const SDL_Event& event)
             break;
         case SDL_WINDOWEVENT_RESIZED: renderContext->resize(event.window.data1, event.window.data2); break;
     }
-}
-
-void LocalGame::resetInputs()
-{
 }
 
 void LocalGame::loadAssets()

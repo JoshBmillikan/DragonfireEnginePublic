@@ -25,7 +25,6 @@ private:
     std::unique_ptr<RenderContext> renderContext;
     void loadAssets();
     void processSdlEvent(const SDL_Event& event);
-    void resetInputs();
 };
 
 }   // namespace df
