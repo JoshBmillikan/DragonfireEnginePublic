@@ -13,11 +13,13 @@ void VkRenderer::shutdown()
         return;
     device.waitIdle();
 
+    swapchain.destroy();
     device.destroy();
     instance.destroy(surface);
     if (debugMessenger)
         instance.destroy(debugMessenger);
     instance.destroy();
+    logger->info("Vulkan renderer shutdown successful");
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkRenderer::debugCallback(

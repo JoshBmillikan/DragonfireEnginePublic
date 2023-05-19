@@ -50,6 +50,7 @@ void App::shutdown()
 {
     renderer->shutdown();
     Config::INSTANCE.saveConfig("settings.json");
+    spdlog::info("Goodbye!");
     spdlog::shutdown();
 }
 

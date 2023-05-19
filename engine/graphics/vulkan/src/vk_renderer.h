@@ -4,6 +4,7 @@
 
 #pragma once
 #include <renderer.h>
+#include "swapchain.h"
 
 namespace dragonfire {
 
@@ -19,6 +20,7 @@ private:
     vk::PhysicalDevice physicalDevice;
     vk::PhysicalDeviceLimits limits;
     vk::Device device;
+    Swapchain swapchain;
 
     struct Queues {
         uint32_t graphicsFamily = 0, presentFamily = 0, transferFamily = 0;

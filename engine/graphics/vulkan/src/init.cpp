@@ -2,8 +2,8 @@
 // Created by josh on 5/17/23.
 //
 #include "vk_renderer.h"
-#include <allocators.h>
 #include <SDL2/SDL_vulkan.h>
+#include <allocators.h>
 #if defined(_MSC_VER) || defined(__MINGW32__)
     #include <malloc.h>
 #else
@@ -45,10 +45,9 @@ static vk::DebugUtilsMessengerCreateInfoEXT getDebugCreateInfo(
 )
 {
     vk::DebugUtilsMessengerCreateInfoEXT createInfo;
-    createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
-                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
-                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
-                                 | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+    createInfo.messageSeverity =
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
+            | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
     createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
                              | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
                              | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation;
@@ -73,6 +72,7 @@ void VkRenderer::init()
         surface = createSurface(window, instance);
         getPhysicalDevice();
         createDevice();
+        swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily);
     }
     catch (const std::exception& e) {
         crash("Vulkan initialization failed: {}", e.what());
@@ -158,12 +158,10 @@ static bool checkFeatures(vk::PhysicalDevice device) noexcept
     auto& features = chain.get<vk::PhysicalDeviceFeatures2>();
     auto& indexFeatures = chain.get<vk::PhysicalDeviceDescriptorIndexingFeatures>();
     auto& bufferFeatures = chain.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
-    return features.features.sparseBinding && features.features.samplerAnisotropy
-           && features.features.sampleRateShading && features.features.multiDrawIndirect
-           && indexFeatures.descriptorBindingPartiallyBound && indexFeatures.runtimeDescriptorArray
-           && indexFeatures.descriptorBindingSampledImageUpdateAfterBind
-           && indexFeatures.descriptorBindingVariableDescriptorCount
-           && bufferFeatures.bufferDeviceAddress;
+    return features.features.sparseBinding && features.features.samplerAnisotropy && features.features.sampleRateShading
+           && features.features.multiDrawIndirect && indexFeatures.descriptorBindingPartiallyBound
+           && indexFeatures.runtimeDescriptorArray && indexFeatures.descriptorBindingSampledImageUpdateAfterBind
+           && indexFeatures.descriptorBindingVariableDescriptorCount && bufferFeatures.bufferDeviceAddress;
 }
 
 static bool isValidDevice(vk::PhysicalDevice device) noexcept
@@ -173,13 +171,11 @@ static bool isValidDevice(vk::PhysicalDevice device) noexcept
 
     vk::ExtensionProperties* properties = nullptr;
     UInt32 count = 0;
-    if (device.enumerateDeviceExtensionProperties(nullptr, &count, properties)
-        != vk::Result::eSuccess)
+    if (device.enumerateDeviceExtensionProperties(nullptr, &count, properties) != vk::Result::eSuccess)
         return false;
 
     properties = (vk::ExtensionProperties*) alloca(sizeof(vk::ExtensionProperties) * count);
-    if (device.enumerateDeviceExtensionProperties(nullptr, &count, properties)
-        != vk::Result::eSuccess)
+    if (device.enumerateDeviceExtensionProperties(nullptr, &count, properties) != vk::Result::eSuccess)
         return false;
 
     for (const char* extension : DEVICE_EXTENSIONS) {
@@ -299,8 +295,7 @@ bool VkRenderer::getQueueFamilies(vk::PhysicalDevice pDevice) noexcept
     }
 
     try {
-        if (!foundPresent && foundGraphics
-            && pDevice.getSurfaceSupportKHR(queues.graphicsFamily, surface)) {
+        if (!foundPresent && foundGraphics && pDevice.getSurfaceSupportKHR(queues.graphicsFamily, surface)) {
             foundPresent = true;
             queues.presentFamily = queues.graphicsFamily;
         }
@@ -331,8 +326,7 @@ void VkRenderer::createDevice()
         queueCreateInfos[queueCount].pQueuePriorities = &priority;
         queueCount++;
     }
-    if (queues.graphicsFamily != queues.transferFamily
-        && queues.presentFamily != queues.transferFamily) {
+    if (queues.graphicsFamily != queues.transferFamily && queues.presentFamily != queues.transferFamily) {
         queueCreateInfos[queueCount].queueFamilyIndex = queues.transferFamily;
         queueCreateInfos[queueCount].queueCount = 1;
         queueCreateInfos[queueCount].pQueuePriorities = &priority;
