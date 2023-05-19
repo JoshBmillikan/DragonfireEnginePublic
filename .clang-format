@@ -28,7 +28,7 @@ PackConstructorInitializers: NextLine
 BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: AfterColon
 ColumnLimit: 100
-PenaltyExcessCharacter: 20
+PenaltyExcessCharacter: 100
 CompactNamespaces: false
 ContinuationIndentWidth: 8
 IndentCaseLabels: true
