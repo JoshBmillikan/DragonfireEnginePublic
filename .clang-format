@@ -4,7 +4,7 @@ AccessModifierOffset: -4
 AlignAfterOpenBracket: BlockIndent
 AlignConsecutiveAssignments: None
 AlignOperands: Align
-AllowAllArgumentsOnNextLine: true
+AllowAllArgumentsOnNextLine: false
 BinPackArguments: false
 BinPackParameters: false
 AllowAllParametersOfDeclarationOnNextLine: false
@@ -27,7 +27,7 @@ ReferenceAlignment: Left
 PackConstructorInitializers: NextLine
 BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: AfterColon
-ColumnLimit: 100
+ColumnLimit: 120
 PenaltyExcessCharacter: 100
 CompactNamespaces: false
 ContinuationIndentWidth: 8
