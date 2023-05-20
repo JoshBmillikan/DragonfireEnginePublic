@@ -21,7 +21,7 @@ CPMAddPackage(
         "SPIRV_REFLECT_STATIC_LIB ON"
 )
 
-add_library(VulkanRenderer STATIC src/vk_renderer.cpp src/vk_renderer.h src/vk_include.h src/init.cpp src/swapchain.cpp src/swapchain.h)
+add_library(VulkanRenderer STATIC src/vk_renderer.cpp src/vk_renderer.h src/vk_include.h src/init.cpp src/swapchain.cpp src/swapchain.h src/allocation.cpp src/allocation.h)
 target_link_libraries(VulkanRenderer PUBLIC Core Graphics)
 target_link_libraries(VulkanRenderer PRIVATE Vulkan::Headers VulkanMemoryAllocator spirv-reflect-static)
 target_include_directories(VulkanRenderer PRIVATE src)

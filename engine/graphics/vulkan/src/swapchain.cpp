@@ -175,7 +175,8 @@ void Swapchain::destroy()
 vk::Result Swapchain::next(vk::Semaphore semaphore, vk::Fence fence) noexcept
 {
     auto [result, index] = device.acquireNextImageKHR(swapchain, UINT64_MAX, semaphore, fence);
-    currentImage = index;
+    if (result == vk::Result::eSuccess)
+        currentImage = index;
     return result;
 }
 

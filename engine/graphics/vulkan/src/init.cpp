@@ -73,6 +73,7 @@ void VkRenderer::init()
         getPhysicalDevice();
         createDevice();
         swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily);
+        createGpuAllocator();
     }
     catch (const std::exception& e) {
         crash("Vulkan initialization failed: {}", e.what());
@@ -366,6 +367,51 @@ void VkRenderer::createDevice()
     queues.graphics = device.getQueue(queues.graphicsFamily, 0);
     queues.present = device.getQueue(queues.presentFamily, 0);
     queues.transfer = device.getQueue(queues.transferFamily, 0);
+}
+
+void VkRenderer::createGpuAllocator()
+{
+    auto& ld = VULKAN_HPP_DEFAULT_DISPATCHER;
+    VmaVulkanFunctions functions;
+    functions.vkGetInstanceProcAddr = ld.vkGetInstanceProcAddr;
+    functions.vkGetDeviceProcAddr = ld.vkGetDeviceProcAddr;
+    functions.vkGetPhysicalDeviceProperties = ld.vkGetPhysicalDeviceProperties;
+    functions.vkGetPhysicalDeviceMemoryProperties = ld.vkGetPhysicalDeviceMemoryProperties;
+    functions.vkAllocateMemory = ld.vkAllocateMemory;
+    functions.vkFreeMemory = ld.vkFreeMemory;
+    functions.vkMapMemory = ld.vkMapMemory;
+    functions.vkUnmapMemory = ld.vkUnmapMemory;
+    functions.vkFlushMappedMemoryRanges = ld.vkFlushMappedMemoryRanges;
+    functions.vkInvalidateMappedMemoryRanges = ld.vkInvalidateMappedMemoryRanges;
+    functions.vkBindBufferMemory = ld.vkBindBufferMemory;
+    functions.vkBindImageMemory = ld.vkBindImageMemory;
+    functions.vkGetBufferMemoryRequirements = ld.vkGetBufferMemoryRequirements;
+    functions.vkGetImageMemoryRequirements = ld.vkGetImageMemoryRequirements;
+    functions.vkCreateBuffer = ld.vkCreateBuffer;
+    functions.vkDestroyBuffer = ld.vkDestroyBuffer;
+    functions.vkCreateImage = ld.vkCreateImage;
+    functions.vkDestroyImage = ld.vkDestroyImage;
+    functions.vkCmdCopyBuffer = ld.vkCmdCopyBuffer;
+    functions.vkGetBufferMemoryRequirements2KHR = ld.vkGetBufferMemoryRequirements2;
+    functions.vkGetImageMemoryRequirements2KHR = ld.vkGetImageMemoryRequirements2;
+    functions.vkBindBufferMemory2KHR = ld.vkBindBufferMemory2;
+    functions.vkBindImageMemory2KHR = ld.vkBindImageMemory2;
+    functions.vkGetPhysicalDeviceMemoryProperties2KHR = ld.vkGetPhysicalDeviceMemoryProperties2;
+    functions.vkGetDeviceBufferMemoryRequirements = ld.vkGetDeviceBufferMemoryRequirements;
+    functions.vkGetDeviceImageMemoryRequirements = ld.vkGetDeviceImageMemoryRequirements;
+
+    VmaAllocatorCreateInfo createInfo{};
+    createInfo.physicalDevice = physicalDevice;
+    createInfo.device = device;
+    createInfo.instance = instance;
+    createInfo.pVulkanFunctions = &functions;
+    createInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    createInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+
+    vk::resultCheck(
+            static_cast<vk::Result>(vmaCreateAllocator(&createInfo, &allocator)),
+            "Failed to create GPU allocator"
+    );
 }
 
 }   // namespace dragonfire

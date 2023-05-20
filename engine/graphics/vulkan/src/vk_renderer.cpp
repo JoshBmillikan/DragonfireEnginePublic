@@ -13,6 +13,7 @@ void VkRenderer::shutdown()
         return;
     device.waitIdle();
 
+    vmaDestroyAllocator(allocator);
     swapchain.destroy();
     device.destroy();
     instance.destroy(surface);

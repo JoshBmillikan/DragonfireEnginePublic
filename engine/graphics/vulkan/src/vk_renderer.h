@@ -3,8 +3,9 @@
 //
 
 #pragma once
-#include <renderer.h>
+#include "allocation.h"
 #include "swapchain.h"
+#include <renderer.h>
 
 namespace dragonfire {
 
@@ -21,6 +22,7 @@ private:
     vk::PhysicalDeviceLimits limits;
     vk::Device device;
     Swapchain swapchain;
+    VmaAllocator allocator;
 
     struct Queues {
         uint32_t graphicsFamily = 0, presentFamily = 0, transferFamily = 0;
@@ -32,6 +34,7 @@ private:
     void getPhysicalDevice();
     bool getQueueFamilies(vk::PhysicalDevice pDevice) noexcept;
     void createDevice();
+    void createGpuAllocator();
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
