@@ -1,6 +1,7 @@
 //
 // Created by josh on 5/17/23.
 //
+#include "config.h"
 #include "vk_renderer.h"
 #include <SDL2/SDL_vulkan.h>
 #include <allocators.h>
@@ -74,6 +75,8 @@ void VkRenderer::init()
         createDevice();
         swapchain = Swapchain(physicalDevice, device, window, surface, queues.graphicsFamily, queues.presentFamily);
         createGpuAllocator();
+        createMsaaImage();
+        createDepthImage();
     }
     catch (const std::exception& e) {
         crash("Vulkan initialization failed: {}", e.what());
@@ -412,6 +415,123 @@ void VkRenderer::createGpuAllocator()
             static_cast<vk::Result>(vmaCreateAllocator(&createInfo, &allocator)),
             "Failed to create GPU allocator"
     );
+}
+
+vk::SampleCountFlagBits getMsaaSamples(const vk::PhysicalDeviceLimits& limits, spdlog::logger* logger)
+{
+    Int64 mode = Config::INSTANCE.get<Int64>("graphics.msaa_samples");
+    vk::SampleCountFlagBits samples;
+    vk::SampleCountFlags validFlags = limits.framebufferColorSampleCounts & limits.framebufferDepthSampleCounts;
+    switch (mode) {
+        case 64:
+            if (validFlags & vk::SampleCountFlagBits::e64) {
+                samples = vk::SampleCountFlagBits::e64;
+                logger->info("Using Anti-Aliasing mode: MSAA 64x");
+                break;
+            }
+            logger->warn("MSAA 64 not available, trying to fall back to MSAA 32");
+        case 32:
+            if (validFlags & vk::SampleCountFlagBits::e32) {
+                samples = vk::SampleCountFlagBits::e32;
+                logger->info("Using Anti-Aliasing mode: MSAA 32x");
+                break;
+            }
+            logger->warn("MSAA 32 not available, trying to fall back to MSAA 16");
+        case 16:
+            if (validFlags & vk::SampleCountFlagBits::e32) {
+                samples = vk::SampleCountFlagBits::e16;
+                logger->info("Using Anti-Aliasing mode: MSAA 16x");
+                break;
+            }
+            logger->warn("MSAA 16 not available, trying to fall back to MSAA 8");
+        case 8:
+            if (validFlags & vk::SampleCountFlagBits::e8) {
+                samples = vk::SampleCountFlagBits::e8;
+                logger->info("Using Anti-Aliasing mode: MSAA 8x");
+                break;
+            }
+            logger->warn("MSAA 8 not available, trying to fall back to MSAA 4");
+        case 4:
+            if (validFlags & vk::SampleCountFlagBits::e4) {
+                samples = vk::SampleCountFlagBits::e4;
+                logger->info("Using Anti-Aliasing mode: MSAA 4x");
+                break;
+            }
+            logger->warn("MSAA 4 not available, trying to fall back to MSAA 2");
+        case 2:
+            if (validFlags & vk::SampleCountFlagBits::e2) {
+                samples = vk::SampleCountFlagBits::e2;
+                logger->info("Using Anti-Aliasing mode: MSAA 2x");
+                break;
+            }
+            logger->warn("MSAA 2 not available, anti-aliasing will be disabled");
+        case 1: samples = vk::SampleCountFlagBits::e1; break;
+        default:
+            logger->error("Invalid MSAA mode \"{}\", multisampling disabled", mode);
+            samples = vk::SampleCountFlagBits::e1;
+    }
+    return samples;
+}
+
+void VkRenderer::createMsaaImage()
+{
+    msaaSamples = getMsaaSamples(limits, logger.get());
+    msaaImage = Image::Builder()
+                        .withAllocator(allocator)
+                        .withFormat(swapchain.getFormat())
+                        .withExtent(swapchain.getExtent())
+                        .withSamples(msaaSamples)
+                        .withImageUsage(
+                                vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment
+                        )
+                        .withUsage(VMA_MEMORY_USAGE_GPU_ONLY)
+                        .withRequiredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                        .withPreferredFlags(vk::MemoryPropertyFlagBits::eLazilyAllocated)
+                        .build();
+
+    vk::ImageSubresourceRange subRange{};
+    subRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    subRange.layerCount = 1;
+    subRange.levelCount = 1;
+    subRange.baseArrayLayer = 0;
+    subRange.baseMipLevel = 0;
+    msaaView = msaaImage.createView(device, subRange);
+}
+
+static vk::Format getDepthFormat(vk::PhysicalDevice physicalDevice)
+{
+    const std::array<vk::Format, 3> possibleFormats = {
+            vk::Format::eD32Sfloat,
+            vk::Format::eD32SfloatS8Uint,
+            vk::Format::eD24UnormS8Uint,
+    };
+    for (vk::Format fmt : possibleFormats) {
+        auto props = physicalDevice.getFormatProperties(fmt);
+        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+            return fmt;
+    }
+    crash("No valid depth image format found");
+}
+
+void VkRenderer::createDepthImage()
+{
+    depthImage = Image::Builder()
+                         .withAllocator(allocator)
+                         .withFormat(getDepthFormat(physicalDevice))
+                         .withExtent(swapchain.getExtent())
+                         .withSamples(msaaSamples)
+                         .withImageUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
+                         .withUsage(VMA_MEMORY_USAGE_GPU_ONLY)
+                         .withRequiredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                         .build();
+
+    vk::ImageSubresourceRange subRange{};
+    subRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+    subRange.layerCount = 1;
+    subRange.levelCount = 1;
+    subRange.baseArrayLayer = 0;
+    subRange.baseMipLevel = 0;
+    depthView = depthImage.createView(device, subRange);
 }
 
 }   // namespace dragonfire

@@ -13,6 +13,10 @@ void VkRenderer::shutdown()
         return;
     device.waitIdle();
 
+    device.destroy(msaaView);
+    msaaImage.destroy();
+    device.destroy(depthView);
+    depthImage.destroy();
     vmaDestroyAllocator(allocator);
     swapchain.destroy();
     device.destroy();

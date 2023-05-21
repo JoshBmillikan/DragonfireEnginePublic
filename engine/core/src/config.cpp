@@ -39,7 +39,7 @@ void Config::loadConfigJson(const nlohmann::json& json, const TempString& root)
         spdlog::trace("Loaded config var \"{}\" of type boolean", root);
     }
     else if (json.is_number_integer()) {
-        int64_t val = json.get<int64_t>();
+        Int64 val = json.get<int64_t>();
         setVar(root, val);
         spdlog::trace("Loaded config var \"{}\" of type integer", root);
     }

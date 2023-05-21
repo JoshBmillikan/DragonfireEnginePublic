@@ -64,7 +64,7 @@ public:
         Builder& withBufferUsage(vk::BufferUsageFlags usage);
         Builder& withSharingMode(vk::SharingMode mode);
         Builder& withBufferFlags(vk::BufferCreateFlags flags);
-        Builder& withQueueFamilies(const vk::ArrayProxy<uint32_t>& array);
+        Builder& withQueueFamilies(const vk::ArrayProxy<UInt32>& array);
 
         Buffer build();
     };
@@ -106,13 +106,13 @@ public:
         Builder& withExtent(vk::Extent2D ext);
         Builder& withImageUsage(vk::ImageUsageFlags usage);
         Builder& withImageType(vk::ImageType type);
-        Builder& withMipLevels(uint32_t levels);
-        Builder& withArrayLayers(uint32_t layers);
+        Builder& withMipLevels(UInt32 levels);
+        Builder& withArrayLayers(UInt32 layers);
         Builder& withSamples(vk::SampleCountFlagBits samples);
         Builder& withTiling(vk::ImageTiling tiling);
         Builder& withSharingMode(vk::SharingMode mode);
         Builder& withInitialLayout(vk::ImageLayout layout);
-        Builder& withQueueFamilies(const vk::ArrayProxy<uint32_t>& array);
+        Builder& withQueueFamilies(const vk::ArrayProxy<UInt32>& array);
 
         Image build();
     };

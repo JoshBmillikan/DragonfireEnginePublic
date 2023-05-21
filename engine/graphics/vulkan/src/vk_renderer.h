@@ -21,13 +21,17 @@ private:
     vk::PhysicalDevice physicalDevice;
     vk::PhysicalDeviceLimits limits;
     vk::Device device;
-    Swapchain swapchain;
-    VmaAllocator allocator;
+    vk::SampleCountFlagBits msaaSamples;
 
     struct Queues {
         uint32_t graphicsFamily = 0, presentFamily = 0, transferFamily = 0;
         vk::Queue graphics, present, transfer;
     } queues;
+
+    Swapchain swapchain;
+    VmaAllocator allocator;
+    Image depthImage, msaaImage;
+    vk::ImageView depthView, msaaView;
 
 private:
     void createInstance(bool validation);
@@ -35,6 +39,8 @@ private:
     bool getQueueFamilies(vk::PhysicalDevice pDevice) noexcept;
     void createDevice();
     void createGpuAllocator();
+    void createDepthImage();
+    void createMsaaImage();
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

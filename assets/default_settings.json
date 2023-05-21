@@ -3,6 +3,7 @@
     "window": {
       "resolution": [1920, 1080]
     },
-    "vsync": true
+    "vsync": true,
+    "msaa_samples": 8
   }
 }

@@ -172,7 +172,7 @@ Buffer::Builder& Buffer::Builder::withBufferFlags(vk::BufferCreateFlags flags)
     return *this;
 }
 
-Buffer::Builder& Buffer::Builder::withQueueFamilies(const vk::ArrayProxy<uint32_t>& array)
+Buffer::Builder& Buffer::Builder::withQueueFamilies(const vk::ArrayProxy<UInt32>& array)
 {
     createInfo.pQueueFamilyIndices = array.data();
     createInfo.queueFamilyIndexCount = array.size();
@@ -219,13 +219,13 @@ Image::Builder& Image::Builder::withImageType(vk::ImageType type)
     return *this;
 }
 
-Image::Builder& Image::Builder::withMipLevels(uint32_t levels)
+Image::Builder& Image::Builder::withMipLevels(UInt32 levels)
 {
     createInfo.mipLevels = levels;
     return *this;
 }
 
-Image::Builder& Image::Builder::withArrayLayers(uint32_t layers)
+Image::Builder& Image::Builder::withArrayLayers(UInt32 layers)
 {
     createInfo.arrayLayers = layers;
     return *this;
@@ -255,7 +255,7 @@ Image::Builder& Image::Builder::withInitialLayout(vk::ImageLayout layout)
     return *this;
 }
 
-Image::Builder& Image::Builder::withQueueFamilies(const vk::ArrayProxy<uint32_t>& array)
+Image::Builder& Image::Builder::withQueueFamilies(const vk::ArrayProxy<UInt32>& array)
 {
     createInfo.pQueueFamilyIndices = array.data();
     createInfo.queueFamilyIndexCount = array.size();
