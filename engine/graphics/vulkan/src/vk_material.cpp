@@ -50,9 +50,13 @@ void VkMaterial::VkLibrary::loadMaterialFiles(const char* dir, Renderer* rendere
                 ThreadData data;
                 for (UInt i = start; i < end; i++) {
                     try {
-                        nlohmann::json json = loadJson(files.get()[i]);
+                        TempString path = dir;
+                        if (!path.ends_with('/'))
+                            path += '/';
+                        path += files.get()[i];
+                        nlohmann::json json = loadJson(path.c_str());
                         std::string name = json["name"].get<std::string>();
-                        ShaderEffect effect(json["effect"]);
+                        ShaderEffect effect = json.contains("effect") ? ShaderEffect(json["effect"]) : ShaderEffect();
                         auto [pl, layout] = pipelineFactory.createPipeline(effect);
                         data.pipelines.insert(pl);
                         data.layouts.insert(layout);

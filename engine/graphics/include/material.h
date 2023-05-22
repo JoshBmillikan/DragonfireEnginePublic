@@ -16,7 +16,7 @@ public:
         bool enableMultisampling = true;
         bool enableColorBlend = false;
 
-        struct {
+        struct ShaderNames {
             std::string vertex;
             std::string fragment;
             std::string geometry;

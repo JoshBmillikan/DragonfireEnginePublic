@@ -1,0 +1,9 @@
+{
+  "name": "basic",
+  "effect": {
+    "shaderNames": {
+      "vertex": "base.vert",
+      "fragment": "base.frag"
+    }
+  }
+}

@@ -34,6 +34,22 @@ USize Material::ShaderEffect::Hash::operator()(const Material::ShaderEffect& eff
             effect.topology
     );
 }
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+        Material::ShaderEffect::ShaderNames,
+        vertex,
+        fragment,
+        geometry,
+        tessEval,
+        tessCtrl
+);
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+        Material::ShaderEffect::Topology,
+        {{Material::ShaderEffect::Topology::triangleList, "triangleList"},
+         {Material::ShaderEffect::Topology::triangleFan, "triangleFan"},
+         {Material::ShaderEffect::Topology::point, "point"},
+         {Material::ShaderEffect::Topology::list, "list"}}
+);
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
         Material::ShaderEffect,
@@ -42,11 +58,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
         enableDepth,
         enableMultisampling,
         enableColorBlend,
-        shaderNames.vertex,
-        shaderNames.fragment,
-        shaderNames.geometry,
-        shaderNames.tessEval,
-        shaderNames.tessCtrl,
+        shaderNames,
         topology
 );
 
