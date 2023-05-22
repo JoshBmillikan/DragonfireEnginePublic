@@ -38,9 +38,7 @@ File::File(File&& other) noexcept
     if (this != &other) {
         if (fp) {
             if (PHYSFS_close(fp) == 0)
-                spdlog::error(
-                        "Error closing file: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())
-                );
+                spdlog::error("Error closing file: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
         }
         fp = other.fp;
         other.fp = nullptr;
@@ -52,9 +50,7 @@ File& File::operator=(File&& other) noexcept
     if (this != &other) {
         if (fp) {
             if (PHYSFS_close(fp) == 0)
-                spdlog::error(
-                        "Error closing file: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())
-                );
+                spdlog::error("Error closing file: {}", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
         }
         fp = other.fp;
         other.fp = nullptr;
@@ -81,6 +77,17 @@ USize File::readData(void* buf, USize size)
         if (read < 0)
             throw PhysFSError();
         return read;
+    }
+    throw PhysFSError(PHYSFS_ERR_NOT_INITIALIZED);
+}
+
+USize File::writeData(const void* data, USize len)
+{
+    if (fp) {
+        auto written = PHYSFS_writeBytes(fp, data, len);
+        if (written < 0)
+            throw PhysFSError();
+        return written;
     }
     throw PhysFSError(PHYSFS_ERR_NOT_INITIALIZED);
 }

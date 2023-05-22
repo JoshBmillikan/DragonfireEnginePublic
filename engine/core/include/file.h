@@ -42,7 +42,7 @@ public:
         return str;
     }
 
-    template<class Alloc = std::allocator<UInt&>>
+    template<class Alloc = std::allocator<UInt8>>
     std::vector<UInt8, Alloc> readData()
     {
         USize len = length();
@@ -50,6 +50,14 @@ public:
         USize read = readData(data.data(), len);
         data.resize(read);
         return data;
+    }
+
+    USize writeData(const void* data, USize len);
+
+    template<typename T, class Alloc = std::allocator<T>>
+    void writeData(const std::vector<T, Alloc>& data)
+    {
+        writeData(data.data(), data.size() * sizeof(T));
     }
 };
 

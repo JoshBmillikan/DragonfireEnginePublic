@@ -35,7 +35,17 @@ if (sqlite_ADDED)
     target_sources(sqlite PRIVATE ${sqlite_SOURCE_DIR}/sqlite3.c ${sqlite_SOURCE_DIR}/sqlite3.h)
     target_include_directories(sqlite PUBLIC ${sqlite_SOURCE_DIR})
 endif ()
+CPMAddPackage(
+        NAME BSThreadPool
+        GITHUB_REPOSITORY bshoshany/thread-pool
+        VERSION 3.3.0
+        DOWNLOAD_ONLY True
+)
 
+if (BSThreadPool_ADDED)
+    add_library(BSThreadPool INTERFACE)
+    target_include_directories(BSThreadPool INTERFACE ${BSThreadPool_SOURCE_DIR})
+endif ()
 add_subdirectory(core)
 add_subdirectory(graphics)
 add_subdirectory(application)

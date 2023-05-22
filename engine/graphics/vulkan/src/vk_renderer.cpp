@@ -13,6 +13,7 @@ void VkRenderer::shutdown()
         return;
     device.waitIdle();
 
+    device.destroy(mainRenderPass);
     device.destroy(msaaView);
     msaaImage.destroy();
     device.destroy(depthView);

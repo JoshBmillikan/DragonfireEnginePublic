@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 
 namespace dragonfire {
+BS::thread_pool GLOBAL_THREAD_POOL;
 
 nlohmann::json loadJson(const char* path)
 {

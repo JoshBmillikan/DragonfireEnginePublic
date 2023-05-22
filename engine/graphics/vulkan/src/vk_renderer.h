@@ -32,6 +32,7 @@ private:
     VmaAllocator allocator;
     Image depthImage, msaaImage;
     vk::ImageView depthView, msaaView;
+    vk::RenderPass mainRenderPass;
 
 private:
     void createInstance(bool validation);
@@ -41,6 +42,7 @@ private:
     void createGpuAllocator();
     void createDepthImage();
     void createMsaaImage();
+    void createRenderPass();
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -48,6 +50,15 @@ private:
             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
             void* pUserData
     );
+
+public:
+    [[nodiscard]] vk::Device getDevice() const { return device; }
+
+    [[nodiscard]] std::array<vk::DescriptorSetLayout, 4> getDescriptorSetLayouts() const { return {/*TODO*/}; }
+
+    [[nodiscard]] vk::SampleCountFlagBits getSampleCount() const { return msaaSamples; }
+
+    [[nodiscard]] std::vector<vk::RenderPass> getRenderPasses() const { return {mainRenderPass}; }
 };
 
 }   // namespace dragonfire

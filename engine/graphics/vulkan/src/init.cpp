@@ -77,6 +77,8 @@ void VkRenderer::init()
         createGpuAllocator();
         createMsaaImage();
         createDepthImage();
+        createRenderPass();
+        swapchain.initFramebuffers(mainRenderPass, msaaView, depthView);
     }
     catch (const std::exception& e) {
         crash("Vulkan initialization failed: {}", e.what());
@@ -532,6 +534,72 @@ void VkRenderer::createDepthImage()
     subRange.baseArrayLayer = 0;
     subRange.baseMipLevel = 0;
     depthView = depthImage.createView(device, subRange);
+}
+
+void VkRenderer::createRenderPass()
+{
+    vk::AttachmentDescription attachments[3];
+    attachments[0].format = swapchain.getFormat();
+    attachments[0].samples = msaaSamples;
+    attachments[0].loadOp = vk::AttachmentLoadOp::eClear;
+    attachments[0].storeOp = vk::AttachmentStoreOp::eStore;
+    attachments[0].stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+    attachments[0].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    attachments[0].initialLayout = vk::ImageLayout::eUndefined;
+    attachments[0].finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
+
+    attachments[1].format = getDepthFormat(physicalDevice);
+    attachments[1].samples = msaaSamples;
+    attachments[1].loadOp = vk::AttachmentLoadOp::eClear;
+    attachments[1].storeOp = vk::AttachmentStoreOp::eDontCare;
+    attachments[1].stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+    attachments[1].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    attachments[1].initialLayout = vk::ImageLayout::eUndefined;
+    attachments[1].finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+    attachments[2].format = swapchain.getFormat();
+    attachments[2].samples = vk::SampleCountFlagBits::e1;
+    attachments[2].loadOp = vk::AttachmentLoadOp::eDontCare;
+    attachments[2].storeOp = vk::AttachmentStoreOp::eDontCare;   // eStore; ?
+    attachments[2].stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+    attachments[2].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    attachments[2].initialLayout = vk::ImageLayout::eUndefined;
+    attachments[2].finalLayout = vk::ImageLayout::ePresentSrcKHR;
+
+    vk::AttachmentReference colorRef, depthRef, resolveRef;
+    colorRef.attachment = 0;
+    colorRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
+    depthRef.attachment = 1;
+    depthRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+    resolveRef.attachment = 2;
+    resolveRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
+
+    vk::SubpassDescription subpass;
+    subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorRef;
+    subpass.pDepthStencilAttachment = &depthRef;
+    subpass.pResolveAttachments = &resolveRef;
+
+    vk::SubpassDependency dependency;
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput
+                              | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput
+                              | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite
+                               | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+
+    vk::RenderPassCreateInfo createInfo;
+    createInfo.attachmentCount = 3;
+    createInfo.pAttachments = attachments;
+    createInfo.subpassCount = 1;
+    createInfo.pSubpasses = &subpass;
+    createInfo.dependencyCount = 1;
+    createInfo.pDependencies = &dependency;
+
+    mainRenderPass = device.createRenderPass(createInfo);
 }
 
 }   // namespace dragonfire

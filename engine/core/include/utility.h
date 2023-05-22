@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <BS_thread_pool.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 namespace dragonfire {
@@ -44,4 +45,7 @@ inline USize hashAll(Values... values)
     hashCombine(seed, values...);
     return seed;
 }
+
+extern BS::thread_pool GLOBAL_THREAD_POOL;
+
 }   // namespace dragonfire
