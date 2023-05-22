@@ -79,6 +79,9 @@ void VkRenderer::init()
         createDepthImage();
         createRenderPass();
         swapchain.initFramebuffers(mainRenderPass, msaaView, depthView);
+
+        materialLibrary.loadMaterialFiles("assets/materials", this);
+        logger->info("Vulkan initialization finished");
     }
     catch (const std::exception& e) {
         crash("Vulkan initialization failed: {}", e.what());

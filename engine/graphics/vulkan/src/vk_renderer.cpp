@@ -7,11 +7,17 @@
 
 namespace dragonfire {
 
+Material::Library* VkRenderer::getMaterialLibrary()
+{
+    return &materialLibrary;
+}
+
 void VkRenderer::shutdown()
 {
     if (!instance)
         return;
     device.waitIdle();
+    materialLibrary.destroy();
 
     device.destroy(mainRenderPass);
     device.destroy(msaaView);

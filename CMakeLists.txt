@@ -6,4 +6,5 @@ set(CMAKE_CXX_STANDARD 20)
 include(cmake/init.cmake)
 include(cmake/CPM.cmake)
 
+add_subdirectory(shaders)
 add_subdirectory(engine)

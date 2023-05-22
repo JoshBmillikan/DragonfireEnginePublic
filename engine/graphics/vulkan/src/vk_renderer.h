@@ -5,6 +5,7 @@
 #pragma once
 #include "allocation.h"
 #include "swapchain.h"
+#include "vk_material.h"
 #include <renderer.h>
 
 namespace dragonfire {
@@ -13,6 +14,7 @@ class VkRenderer : public Renderer {
 public:
     void init() override;
     void shutdown() override;
+    Material::Library* getMaterialLibrary() override;
 
 private:
     vk::Instance instance;
@@ -24,7 +26,7 @@ private:
     vk::SampleCountFlagBits msaaSamples;
 
     struct Queues {
-        uint32_t graphicsFamily = 0, presentFamily = 0, transferFamily = 0;
+        UInt32 graphicsFamily = 0, presentFamily = 0, transferFamily = 0;
         vk::Queue graphics, present, transfer;
     } queues;
 
@@ -33,6 +35,8 @@ private:
     Image depthImage, msaaImage;
     vk::ImageView depthView, msaaView;
     vk::RenderPass mainRenderPass;
+
+    VkMaterial::VkLibrary materialLibrary;
 
 private:
     void createInstance(bool validation);

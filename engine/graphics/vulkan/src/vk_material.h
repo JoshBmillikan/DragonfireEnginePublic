@@ -5,6 +5,7 @@
 #pragma once
 #include <ankerl/unordered_dense.h>
 #include <material.h>
+#include <vulkan/vulkan_hash.hpp>
 
 namespace dragonfire {
 
@@ -17,8 +18,9 @@ public:
 
     VkMaterial() = default;
 
-    class Library : public Material::Library {
+    class VkLibrary : public Material::Library {
     public:
+        VkLibrary() = default;
         Material* getMaterial(const std::string& name) override;
         void loadMaterialFiles(const char* dir, Renderer* renderer) override;
 

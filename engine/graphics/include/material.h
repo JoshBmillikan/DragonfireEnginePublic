@@ -4,7 +4,6 @@
 
 #pragma once
 #include <nlohmann/json_fwd.hpp>
-#include "renderer.h"
 
 namespace dragonfire {
 
@@ -44,7 +43,7 @@ public:
     struct Library {
         virtual ~Library() = default;
         virtual Material* getMaterial(const std::string& name) = 0;
-        virtual void loadMaterialFiles(const char* dir, Renderer* renderer) = 0;
+        virtual void loadMaterialFiles(const char* dir, class Renderer* renderer) = 0;
     };
 };
 

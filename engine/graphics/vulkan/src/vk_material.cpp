@@ -8,27 +8,30 @@
 #include <file.h>
 #include <nlohmann/json.hpp>
 #include <utility.h>
-#include <vulkan/vulkan_hash.hpp>
 
 namespace dragonfire {
-Material* VkMaterial::Library::getMaterial(const std::string& name)
+Material* VkMaterial::VkLibrary::getMaterial(const std::string& name)
 {
     if (materials.contains(name))
         return &materials[name];
     return nullptr;
 }
 
-void VkMaterial::Library::loadMaterialFiles(const char* dir, Renderer* renderer)
+void VkMaterial::VkLibrary::loadMaterialFiles(const char* dir, Renderer* renderer)
 {
     VkRenderer* render = static_cast<VkRenderer*>(renderer);
     device = render->getDevice();
     auto logger = spdlog::get("Rendering");
     std::unique_ptr<char*, decltype([](char** ptr) { PHYSFS_freeList(ptr); })> files(PHYSFS_enumerateFiles(dir));
+    if (!files)
+        throw PhysFSError();
     UInt fileCount = 0;
-    for (char** i = files.get(); i != nullptr; i++)
+    for (char** i = files.get(); *i != nullptr; i++)
         fileCount++;
-    if (fileCount == 0)
-        throw FormattedError("No material files found in dir \"{}\"", dir);
+    if (fileCount == 0) {
+        spdlog::warn("No material files found in dir \"{}\"", dir);
+        return;
+    }
     PipelineFactory pipelineFactory(
             device,
             render->getDescriptorSetLayouts(),
@@ -72,7 +75,7 @@ void VkMaterial::Library::loadMaterialFiles(const char* dir, Renderer* renderer)
     }
 }
 
-void VkMaterial::Library::destroy()
+void VkMaterial::VkLibrary::destroy()
 {
     if (device) {
         for (vk::Pipeline pl : createdPipelines)

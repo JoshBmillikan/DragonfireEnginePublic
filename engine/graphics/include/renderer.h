@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "material.h"
 #include <SDL2/SDL_video.h>
 
 namespace dragonfire {
@@ -12,6 +13,7 @@ public:
     virtual ~Renderer() = default;
     virtual void init() = 0;
     virtual void shutdown() = 0;
+    virtual Material::Library* getMaterialLibrary() = 0;
 
 protected:
     UInt64 frameCount = 0;
