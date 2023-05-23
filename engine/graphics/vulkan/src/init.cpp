@@ -80,6 +80,7 @@ void VkRenderer::init()
         createRenderPass();
         swapchain.initFramebuffers(mainRenderPass, msaaView, depthView);
 
+        layoutManager = DescriptorLayoutManager(device);
         materialLibrary.loadMaterialFiles("assets/materials", this);
         logger->info("Vulkan initialization finished");
     }
@@ -603,6 +604,21 @@ void VkRenderer::createRenderPass()
     createInfo.pDependencies = &dependency;
 
     mainRenderPass = device.createRenderPass(createInfo);
+}
+
+void VkRenderer::createDescriptorLayouts()
+{
+    vk::DescriptorSetLayoutCreateInfo createInfo{};
+    vk::DescriptorSetLayoutBinding binding{};
+    binding.stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
+    binding.descriptorCount = 16;
+    binding.descriptorType = vk::DescriptorType::eUniformBuffer;
+}
+
+void VkRenderer::createDescriptorPool()
+{
+    vk::DescriptorPoolCreateInfo createInfo{};
+    createInfo.maxSets = 4;
 }
 
 }   // namespace dragonfire

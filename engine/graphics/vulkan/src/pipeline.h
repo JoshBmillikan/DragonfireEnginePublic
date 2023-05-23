@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "descriptor_set.h"
 #include <allocators.h>
 #include <ankerl/unordered_dense.h>
 #include <material.h>
@@ -15,8 +16,8 @@ class PipelineFactory {
 public:
     PipelineFactory(
             vk::Device device,
-            const std::array<vk::DescriptorSetLayout, 4>& setLayouts,
             vk::SampleCountFlagBits multisamplingSamples,
+            DescriptorLayoutManager* layoutManager,
             std::vector<vk::RenderPass>&& renderPasses
     );
 
@@ -49,7 +50,7 @@ private:
     ankerl::unordered_dense::map<std::string, std::pair<vk::ShaderModule, SpvReflectShaderModule>> shaders;
     ankerl::unordered_dense::map<USize, vk::Pipeline> builtPipelines;
     ankerl::unordered_dense::map<USize, vk::PipelineLayout> builtLayouts;
-    std::array<vk::DescriptorSetLayout, 4> setLayouts;
+    DescriptorLayoutManager* layoutManager = nullptr;
     vk::SampleCountFlagBits multisamplingSamples = vk::SampleCountFlagBits::e1;
     std::vector<vk::RenderPass> renderPasses;
 
@@ -58,6 +59,10 @@ private:
     void loadShaders();
     UInt getShaderStages(std::array<vk::PipelineShaderStageCreateInfo, 5>& infos, const Material::ShaderEffect& effect);
     vk::PipelineLayout getCreateLayout(const Material::ShaderEffect& effect);
-    void loadLayoutReflectionData(const std::string& shaderName, PipelineFactory::PipelineLayoutInfo& info);
+    void loadLayoutReflectionData(
+            const std::string& shaderName,
+            PipelineFactory::PipelineLayoutInfo& info,
+            std::array<DescriptorLayoutManager::LayoutInfo, 4>& layoutInfos
+    );
 };
 }   // namespace dragonfire

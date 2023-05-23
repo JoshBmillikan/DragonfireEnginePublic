@@ -3,10 +3,9 @@
 //
 
 #include "pipeline.h"
-#include "allocators.h"
 #include <file.h>
-#include <vulkan/vulkan_hash.hpp>
 #include <model.h>
+#include <vulkan/vulkan_hash.hpp>
 
 namespace dragonfire {
 
@@ -15,24 +14,9 @@ static std::array<vk::VertexInputBindingDescription, 1> MESH_VERTEX_INPUT_BINDIN
 };
 
 static std::array<vk::VertexInputAttributeDescription, 3> MESH_VERTEX_ATTRIBUTES = {
-        vk::VertexInputAttributeDescription(
-                0,
-                0,
-                vk::Format::eR32G32B32Sfloat,
-                offsetof(Model::Vertex, position)
-        ),
-        vk::VertexInputAttributeDescription(
-                1,
-                0,
-                vk::Format::eR32G32B32Sfloat,
-                offsetof(Model::Vertex, normal)
-        ),
-        vk::VertexInputAttributeDescription(
-                2,
-                0,
-                vk::Format::eR32G32Sfloat,
-                offsetof(Model::Vertex, uv)
-        ),
+        vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Model::Vertex, position)),
+        vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Model::Vertex, normal)),
+        vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Model::Vertex, uv)),
 };
 
 std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::createPipeline(const Material::ShaderEffect& effect)
@@ -56,8 +40,12 @@ std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::createPipeline(cons
     vk::PipelineInputAssemblyStateCreateInfo inputAsm{};
     inputAsm.primitiveRestartEnable = false;
     switch (effect.topology) {
-        case Material::ShaderEffect::Topology::triangleList: inputAsm.topology = vk::PrimitiveTopology::eTriangleList; break;
-        case Material::ShaderEffect::Topology::triangleFan: inputAsm.topology = vk::PrimitiveTopology::eTriangleFan; break;
+        case Material::ShaderEffect::Topology::triangleList:
+            inputAsm.topology = vk::PrimitiveTopology::eTriangleList;
+            break;
+        case Material::ShaderEffect::Topology::triangleFan:
+            inputAsm.topology = vk::PrimitiveTopology::eTriangleFan;
+            break;
         case Material::ShaderEffect::Topology::point: inputAsm.topology = vk::PrimitiveTopology::ePointList; break;
         case Material::ShaderEffect::Topology::list: inputAsm.topology = vk::PrimitiveTopology::eLineList; break;
     }
@@ -185,11 +173,12 @@ vk::PipelineLayout PipelineFactory::getCreateLayout(const Material::ShaderEffect
 
 {
     PipelineLayoutInfo layoutInfo;
-    loadLayoutReflectionData(effect.shaderNames.vertex, layoutInfo);
-    loadLayoutReflectionData(effect.shaderNames.fragment, layoutInfo);
-    loadLayoutReflectionData(effect.shaderNames.geometry, layoutInfo);
-    loadLayoutReflectionData(effect.shaderNames.tessEval, layoutInfo);
-    loadLayoutReflectionData(effect.shaderNames.tessCtrl, layoutInfo);
+    std::array<DescriptorLayoutManager::LayoutInfo, 4> setLayoutInfos;
+    loadLayoutReflectionData(effect.shaderNames.vertex, layoutInfo, setLayoutInfos);
+    loadLayoutReflectionData(effect.shaderNames.fragment, layoutInfo, setLayoutInfos);
+    loadLayoutReflectionData(effect.shaderNames.geometry, layoutInfo, setLayoutInfos);
+    loadLayoutReflectionData(effect.shaderNames.tessEval, layoutInfo, setLayoutInfos);
+    loadLayoutReflectionData(effect.shaderNames.tessCtrl, layoutInfo, setLayoutInfos);
 
     USize hash = PipelineLayoutInfo::Hash()(layoutInfo);
     {
@@ -198,18 +187,18 @@ vk::PipelineLayout PipelineFactory::getCreateLayout(const Material::ShaderEffect
             return builtLayouts[hash];
     }
 
-    std::array<vk::DescriptorSetLayout, 4> usedSetLayouts;
     UInt setLayoutCount = 0;
-    for (UInt i = 0; i < setLayouts.size(); i++) {
-        if (layoutInfo.sets[i]) {
-            usedSetLayouts[setLayoutCount] = setLayouts[i];
-            setLayoutCount++;
-        }
+    std::array<vk::DescriptorSetLayout, 4> setLayouts;
+    for (auto& setLayoutInfo : setLayoutInfos) {
+        if (setLayoutInfo.bindings.empty())
+            break;
+        setLayouts[setLayoutCount] = layoutManager->getOrCreateLayout(setLayoutInfo);
+        setLayoutCount++;
     }
     vk::PipelineLayoutCreateInfo createInfo{};
     createInfo.pPushConstantRanges = layoutInfo.pushConstants.data();
     createInfo.pushConstantRangeCount = layoutInfo.pushConstants.size();
-    createInfo.pSetLayouts = usedSetLayouts.data();
+    createInfo.pSetLayouts = setLayouts.data();
     createInfo.setLayoutCount = setLayoutCount;
 
     std::unique_lock lock(mutex);
@@ -220,7 +209,11 @@ vk::PipelineLayout PipelineFactory::getCreateLayout(const Material::ShaderEffect
     return layout;
 }
 
-void PipelineFactory::loadLayoutReflectionData(const std::string& shaderName, PipelineFactory::PipelineLayoutInfo& info)
+void PipelineFactory::loadLayoutReflectionData(
+        const std::string& shaderName,
+        PipelineFactory::PipelineLayoutInfo& info,
+        std::array<DescriptorLayoutManager::LayoutInfo, 4>& layoutInfos
+)
 {
     if (shaderName.empty())
         return;
@@ -237,24 +230,32 @@ void PipelineFactory::loadLayoutReflectionData(const std::string& shaderName, Pi
         );
     }
 
-    for (UInt i = 0; i < shader.descriptor_set_count; i++) {
-        const auto& set = shader.descriptor_sets[i];
-        UInt setIndex = set.set;
-        if (setIndex > 4)
-            spdlog::error("Descriptor set count greater than 4 in shader \"{}\" not supported", shaderName);
-        setIndex = std::min(setIndex, 4u);
-        info.sets[setIndex] = true;
+    for (UInt i = 0; i < shader.descriptor_binding_count; i++) {
+        const auto& bindingInfo = shader.descriptor_bindings[i];
+        if (bindingInfo.set > 3) {
+            spdlog::error(
+                    "descriptor set {} is outside the supported set range 0-3 and will be ignored",
+                    bindingInfo.set
+            );
+            continue;
+        }
+        auto& layoutInfo = layoutInfos[bindingInfo.set];
+        auto& binding = layoutInfo.bindings.emplace_back();
+        binding.binding = bindingInfo.binding;
+        binding.descriptorType = static_cast<vk::DescriptorType>(bindingInfo.descriptor_type);
+        binding.descriptorCount = bindingInfo.count;
+        binding.stageFlags = static_cast<vk::ShaderStageFlagBits>(shader.shader_stage);
     }
 }
 
 PipelineFactory::PipelineFactory(
         vk::Device device,
-        const std::array<vk::DescriptorSetLayout, 4>& setLayouts,
         vk::SampleCountFlagBits multisamplingSamples,
+        DescriptorLayoutManager* layoutManager,
         std::vector<vk::RenderPass>&& renderPasses
 )
     : device(device),
-      setLayouts(setLayouts),
+      layoutManager(layoutManager),
       multisamplingSamples(multisamplingSamples),
       renderPasses(std::move(renderPasses))
 {

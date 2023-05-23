@@ -4,6 +4,7 @@
 
 #pragma once
 #include "allocation.h"
+#include "descriptor_set.h"
 #include "swapchain.h"
 #include "vk_material.h"
 #include <renderer.h>
@@ -15,6 +16,8 @@ public:
     void init() override;
     void shutdown() override;
     Material::Library* getMaterialLibrary() override;
+
+    static constexpr USize FRAMES_IN_FLIGHT = 2;
 
 private:
     vk::Instance instance;
@@ -35,8 +38,15 @@ private:
     Image depthImage, msaaImage;
     vk::ImageView depthView, msaaView;
     vk::RenderPass mainRenderPass;
+    vk::DescriptorPool descriptorPool;
+    std::array<vk::DescriptorSetLayout, 4> setLayouts;
 
+    DescriptorLayoutManager layoutManager;
     VkMaterial::VkLibrary materialLibrary;
+
+    struct Frame {
+        std::array<vk::DescriptorSet, 4> descriptorSets;
+    } frames[FRAMES_IN_FLIGHT], *currentFrame = nullptr;
 
 private:
     void createInstance(bool validation);
@@ -47,6 +57,8 @@ private:
     void createDepthImage();
     void createMsaaImage();
     void createRenderPass();
+    void createDescriptorLayouts();
+    void createDescriptorPool();
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -63,6 +75,8 @@ public:
     [[nodiscard]] vk::SampleCountFlagBits getSampleCount() const { return msaaSamples; }
 
     [[nodiscard]] std::vector<vk::RenderPass> getRenderPasses() const { return {mainRenderPass}; }
+
+    [[nodiscard]] DescriptorLayoutManager* getLayoutManager() { return &layoutManager; }
 };
 
 }   // namespace dragonfire

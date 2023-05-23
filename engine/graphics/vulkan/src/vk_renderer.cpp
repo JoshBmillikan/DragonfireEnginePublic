@@ -18,6 +18,7 @@ void VkRenderer::shutdown()
         return;
     device.waitIdle();
     materialLibrary.destroy();
+    layoutManager.destroy();
 
     device.destroy(mainRenderPass);
     device.destroy(msaaView);

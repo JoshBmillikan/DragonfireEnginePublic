@@ -32,12 +32,8 @@ void VkMaterial::VkLibrary::loadMaterialFiles(const char* dir, Renderer* rendere
         spdlog::warn("No material files found in dir \"{}\"", dir);
         return;
     }
-    PipelineFactory pipelineFactory(
-            device,
-            render->getDescriptorSetLayouts(),
-            render->getSampleCount(),
-            render->getRenderPasses()
-    );
+    PipelineFactory
+            pipelineFactory(device, render->getSampleCount(), render->getLayoutManager(), render->getRenderPasses());
 
     struct ThreadData {
         ankerl::unordered_dense::set<vk::Pipeline> pipelines;
