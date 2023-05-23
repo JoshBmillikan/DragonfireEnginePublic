@@ -26,6 +26,7 @@ public:
     void destroy() noexcept;
     void saveCache();
     std::pair<vk::Pipeline, vk::PipelineLayout> createPipeline(const Material::ShaderEffect& effect);
+    std::pair<vk::Pipeline, vk::PipelineLayout> createComputePipeline(const std::string& shaderName, vk::PipelineCreateFlagBits flags = {});
 
     PipelineFactory(PipelineFactory&) = delete;
     PipelineFactory(PipelineFactory&&) = delete;
@@ -48,7 +49,6 @@ private:
     vk::Device device;
     vk::PipelineCache cache;
     ankerl::unordered_dense::map<std::string, std::pair<vk::ShaderModule, SpvReflectShaderModule>> shaders;
-    ankerl::unordered_dense::map<USize, vk::Pipeline> builtPipelines;
     ankerl::unordered_dense::map<USize, vk::PipelineLayout> builtLayouts;
     DescriptorLayoutManager* layoutManager = nullptr;
     vk::SampleCountFlagBits multisamplingSamples = vk::SampleCountFlagBits::e1;
@@ -59,6 +59,10 @@ private:
     void loadShaders();
     UInt getShaderStages(std::array<vk::PipelineShaderStageCreateInfo, 5>& infos, const Material::ShaderEffect& effect);
     vk::PipelineLayout getCreateLayout(const Material::ShaderEffect& effect);
+    vk::PipelineLayout getCreateLayout(
+            const PipelineLayoutInfo& layoutInfo,
+            std::array<DescriptorLayoutManager::LayoutInfo, 4>& setLayoutInfos
+    );
     void loadLayoutReflectionData(
             const std::string& shaderName,
             PipelineFactory::PipelineLayoutInfo& info,

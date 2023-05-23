@@ -38,14 +38,12 @@ private:
     Image depthImage, msaaImage;
     vk::ImageView depthView, msaaView;
     vk::RenderPass mainRenderPass;
-    vk::DescriptorPool descriptorPool;
-    std::array<vk::DescriptorSetLayout, 4> setLayouts;
-
     DescriptorLayoutManager layoutManager;
     VkMaterial::VkLibrary materialLibrary;
 
     struct Frame {
-        std::array<vk::DescriptorSet, 4> descriptorSets;
+        vk::CommandPool pool;
+        vk::CommandBuffer cmd;
     } frames[FRAMES_IN_FLIGHT], *currentFrame = nullptr;
 
 private:
@@ -57,8 +55,6 @@ private:
     void createDepthImage();
     void createMsaaImage();
     void createRenderPass();
-    void createDescriptorLayouts();
-    void createDescriptorPool();
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -69,8 +65,6 @@ private:
 
 public:
     [[nodiscard]] vk::Device getDevice() const { return device; }
-
-    [[nodiscard]] std::array<vk::DescriptorSetLayout, 4> getDescriptorSetLayouts() const { return {/*TODO*/}; }
 
     [[nodiscard]] vk::SampleCountFlagBits getSampleCount() const { return msaaSamples; }
 

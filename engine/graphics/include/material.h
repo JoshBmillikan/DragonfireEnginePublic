@@ -43,7 +43,6 @@ public:
     struct Library {
         virtual ~Library() = default;
         virtual Material* getMaterial(const std::string& name) = 0;
-        virtual void loadMaterialFiles(const char* dir, class Renderer* renderer) = 0;
     };
 };
 

@@ -1,0 +1,25 @@
+#version 460
+layout (std430, set=0, binding=1) readonly buffer ModelMatrices {
+    mat4 matrices[];
+}modelMatrices;
+
+layout(std430, set=1, binding=0) writeonly buffer CulledMatrices {
+    mat4 matrices[];
+}culledMatrices;
+
+struct DrawCommand {
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    uint vertexOffset;
+    uint firstInstance;
+};
+
+layout(std430, set=1, binding=1) buffer DrawCommands {
+    uint drawCount;
+    DrawCommand commands[];
+}drawCommands;
+
+void main() {
+
+}

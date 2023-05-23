@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include "pipeline.h"
+#include "renderer.h"
 #include <ankerl/unordered_dense.h>
 #include <material.h>
 #include <vulkan/vulkan_hash.hpp>
@@ -22,7 +24,7 @@ public:
     public:
         VkLibrary() = default;
         Material* getMaterial(const std::string& name) override;
-        void loadMaterialFiles(const char* dir, Renderer* renderer) override;
+        void loadMaterialFiles(const char* dir, Renderer* renderer, PipelineFactory& pipelineFactory);
 
         void destroy();
 

@@ -1,4 +1,4 @@
-set(SHADERS glsl/base.frag glsl/base.vert)
+set(SHADERS glsl/base.frag glsl/base.vert glsl/cull.comp)
 
 find_package(Vulkan COMPONENTS glslc REQUIRED)
 set(SHADERS_OUT ${CMAKE_BINARY_DIR}/shaders CACHE INTERNAL "")

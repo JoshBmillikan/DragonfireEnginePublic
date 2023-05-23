@@ -1,9 +1,8 @@
-#version 450
+#version 460
 
 layout (location=0) in vec3 position;
 layout (location=1) in vec3 normal;
 layout (location=2) in vec2 uv;
-layout (location=3) in mat4 model;
 
 layout (set=0, binding=0) uniform ubo {
     mat4 perspective;
@@ -12,12 +11,15 @@ layout (set=0, binding=0) uniform ubo {
     vec2 resolution;
 } ubo_data;
 
+layout (std430, set=1, binding=0) readonly buffer Transforms {
+    mat4 modelMatrices[];
+}transforms;
+
 layout(location = 0) out vec4 frag_color;
 layout(location = 1) out vec2 uv_out;
 
-
 void main() {
-    mat4 transform = ubo_data.perspective * model;
+    mat4 transform = ubo_data.perspective * transforms.modelMatrices[gl_InstanceIndex];
     gl_Position = transform * vec4(position, 1.0);
 
     vec4 ambient = vec4(0.75, 0.75, 0.75, 1.0);

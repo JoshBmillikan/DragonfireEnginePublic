@@ -3,7 +3,6 @@
 //
 
 #include "vk_material.h"
-#include "pipeline.h"
 #include "vk_renderer.h"
 #include <file.h>
 #include <nlohmann/json.hpp>
@@ -17,7 +16,7 @@ Material* VkMaterial::VkLibrary::getMaterial(const std::string& name)
     return nullptr;
 }
 
-void VkMaterial::VkLibrary::loadMaterialFiles(const char* dir, Renderer* renderer)
+void VkMaterial::VkLibrary::loadMaterialFiles(const char* dir, Renderer* renderer, PipelineFactory& pipelineFactory)
 {
     VkRenderer* render = static_cast<VkRenderer*>(renderer);
     device = render->getDevice();
@@ -32,8 +31,6 @@ void VkMaterial::VkLibrary::loadMaterialFiles(const char* dir, Renderer* rendere
         spdlog::warn("No material files found in dir \"{}\"", dir);
         return;
     }
-    PipelineFactory
-            pipelineFactory(device, render->getSampleCount(), render->getLayoutManager(), render->getRenderPasses());
 
     struct ThreadData {
         ankerl::unordered_dense::set<vk::Pipeline> pipelines;

@@ -111,7 +111,6 @@ std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::createPipeline(cons
     auto [result, pipeline] = device.createGraphicsPipeline(cache, createInfo);
     if (result != vk::Result::eSuccess)
         crash("Failed to create graphics pipeline");
-    builtPipelines[Material::ShaderEffect::Hash()(effect)] = pipeline;
     return {pipeline, layout};
 }
 
@@ -180,6 +179,14 @@ vk::PipelineLayout PipelineFactory::getCreateLayout(const Material::ShaderEffect
     loadLayoutReflectionData(effect.shaderNames.tessEval, layoutInfo, setLayoutInfos);
     loadLayoutReflectionData(effect.shaderNames.tessCtrl, layoutInfo, setLayoutInfos);
 
+    return getCreateLayout(layoutInfo, setLayoutInfos);
+}
+
+vk::PipelineLayout PipelineFactory::getCreateLayout(
+        const PipelineFactory::PipelineLayoutInfo& layoutInfo,
+        std::array<DescriptorLayoutManager::LayoutInfo, 4>& setLayoutInfos
+)
+{
     USize hash = PipelineLayoutInfo::Hash()(layoutInfo);
     {
         std::shared_lock lock(mutex);
@@ -246,6 +253,32 @@ void PipelineFactory::loadLayoutReflectionData(
         binding.descriptorCount = bindingInfo.count;
         binding.stageFlags = static_cast<vk::ShaderStageFlagBits>(shader.shader_stage);
     }
+}
+
+std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::createComputePipeline(
+        const std::string& shaderName,
+        vk::PipelineCreateFlagBits flags
+)
+{
+    auto& [shader, reflection] = shaders[shaderName];
+    if (reflection.shader_stage != SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT)
+        throw FormattedError("Shader {} is not a compute shader", shaderName);
+    PipelineLayoutInfo layoutInfo;
+    std::array<DescriptorLayoutManager::LayoutInfo, 4> setLayoutInfos;
+    loadLayoutReflectionData(shaderName, layoutInfo, setLayoutInfos);
+    vk::PipelineLayout layout = getCreateLayout(layoutInfo, setLayoutInfos);
+
+    vk::ComputePipelineCreateInfo createInfo{};
+    createInfo.stage.stage = vk::ShaderStageFlagBits::eCompute;
+    createInfo.stage.module = shader;
+    createInfo.stage.pName = "main";
+    createInfo.flags = flags;
+    createInfo.layout = layout;
+
+    auto [result, pipeline] = device.createComputePipeline(cache, createInfo);
+    if (result != vk::Result::eSuccess)
+        crash("Failed to create compute pipeline");
+    return {pipeline, layout};
 }
 
 PipelineFactory::PipelineFactory(
