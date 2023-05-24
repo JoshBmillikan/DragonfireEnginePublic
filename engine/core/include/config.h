@@ -28,7 +28,7 @@ public:
     T get(const std::string& id)
     {
         std::shared_lock lock(mutex);
-        return std::get<T>(variables[id]);
+        return std::get<T>(variables.at(id));
     }
 
     std::pair<const std::string&, std::shared_lock<std::shared_mutex>> getStrRef(

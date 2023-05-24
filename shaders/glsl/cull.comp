@@ -1,4 +1,5 @@
 #version 460
+
 layout (std430, set=0, binding=1) readonly buffer ModelMatrices {
     mat4 matrices[];
 }modelMatrices;
@@ -20,6 +21,20 @@ layout(std430, set=1, binding=1) buffer DrawCommands {
     DrawCommand commands[];
 }drawCommands;
 
-void main() {
+struct Vertex {
+    vec3 position;
+    vec3 normal;
+    vec2 uv;
+};
 
+layout(std140, set=1, binding=2) readonly buffer VertexBuffer {
+    Vertex vertices[];
+}vertexBuffer;
+
+layout(std430, set=1, binding=3) readonly buffer IndexBuffer {
+    uint indices[];
+}indexBuffer;
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
 }

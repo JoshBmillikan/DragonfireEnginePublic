@@ -146,6 +146,7 @@ Image& Image::operator=(dragonfire::Image&& other) noexcept
 Buffer::Builder::Builder()
 {
     createInfo.sharingMode = vk::SharingMode::eExclusive;
+    allocInfo.priority = 1.0f;
 }
 
 Buffer::Builder& Buffer::Builder::withSize(vk::DeviceSize size)

@@ -17,9 +17,17 @@ void VkRenderer::shutdown()
     if (!instance)
         return;
     device.waitIdle();
+    for (Frame& frame : frames) {
+        frame.modelMatrices.destroy();
+        frame.culledMatrices.destroy();
+        device.destroy(frame.pool);
+    }
+
     materialLibrary.destroy();
     layoutManager.destroy();
 
+    globalUBO.destroy();
+    device.destroy(cullComputePipeline);
     device.destroy(mainRenderPass);
     device.destroy(msaaView);
     msaaImage.destroy();

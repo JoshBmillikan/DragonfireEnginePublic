@@ -5,6 +5,7 @@
 #include "vk_renderer.h"
 #include <SDL2/SDL_vulkan.h>
 #include <allocators.h>
+#include <utility.h>
 #if defined(_MSC_VER) || defined(__MINGW32__)
     #include <malloc.h>
 #else
@@ -65,6 +66,12 @@ void VkRenderer::init()
     initVulkan(logger.get());
     const bool validation = std::getenv("VALIDATION_LAYERS") != nullptr;
     try {
+        maxDrawCount = Config::INSTANCE.get<Int64>("graphics.maxDrawCount");
+    }
+    catch (...) {
+        maxDrawCount = 1 << 14;
+    }
+    try {
         createInstance(validation);
         if (validation) {
             auto createInfo = getDebugCreateInfo(&VkRenderer::debugCallback, logger.get());
@@ -79,10 +86,17 @@ void VkRenderer::init()
         createDepthImage();
         createRenderPass();
         swapchain.initFramebuffers(mainRenderPass, msaaView, depthView);
-
         layoutManager = DescriptorLayoutManager(device);
-        PipelineFactory pipelineFactory(device, msaaSamples, &layoutManager, getRenderPasses());
-        materialLibrary.loadMaterialFiles("assets/materials", this, pipelineFactory);
+        {
+            PipelineFactory pipelineFactory(device, msaaSamples, &layoutManager, getRenderPasses());
+            materialLibrary.loadMaterialFiles("assets/materials", this, pipelineFactory);
+            auto [pipeline, layout] = pipelineFactory.createComputePipeline("cull.comp");
+            cullComputePipeline = pipeline;
+            cullComputeLayout = layout;
+        }
+        createGlobalUBO();
+        for (auto& frame : frames)
+            initFrame(frame);
         logger->info("Vulkan initialization finished");
     }
     catch (const std::exception& e) {
@@ -605,6 +619,53 @@ void VkRenderer::createRenderPass()
     createInfo.pDependencies = &dependency;
 
     mainRenderPass = device.createRenderPass(createInfo);
+}
+
+void VkRenderer::createGlobalUBO()
+{
+    uboOffset = padToAlignment(sizeof(UBOData), limits.minUniformBufferOffsetAlignment);
+    const USize size = uboOffset * FRAMES_IN_FLIGHT;
+    globalUBO = Buffer::Builder()
+                        .withAllocator(allocator)
+                        .withBufferUsage(vk::BufferUsageFlagBits::eUniformBuffer)
+                        .withSharingMode(vk::SharingMode::eExclusive)
+                        .withSize(size)
+                        .withUsage(VMA_MEMORY_USAGE_CPU_TO_GPU)
+                        .withRequiredFlags(
+                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+                        )
+                        .withPreferredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                        .withAllocationFlags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
+                        .build();
+}
+
+void VkRenderer::initFrame(VkRenderer::Frame& frame)
+{
+    vk::CommandPoolCreateInfo poolCreateInfo{};
+    poolCreateInfo.queueFamilyIndex = queues.graphicsFamily;
+    frame.pool = device.createCommandPool(poolCreateInfo);
+    frame.modelMatrices =
+            Buffer::Builder()
+                    .withAllocator(allocator)
+                    .withBufferUsage(vk::BufferUsageFlagBits::eStorageBuffer)
+                    .withSize(maxDrawCount * sizeof(glm::mat4))
+                    .withSharingMode(vk::SharingMode::eExclusive)
+                    .withUsage(VMA_MEMORY_USAGE_CPU_TO_GPU)
+                    .withRequiredFlags(
+                            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+                    )
+                    .withPreferredFlags(vk::MemoryPropertyFlagBits::eLazilyAllocated)
+                    .withAllocationFlags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
+                    .build();
+    frame.culledMatrices = Buffer::Builder()
+                                   .withAllocator(allocator)
+                                   .withBufferUsage(vk::BufferUsageFlagBits::eStorageBuffer)
+                                   .withSize(maxDrawCount * sizeof(glm::mat4))
+                                   .withSharingMode(vk::SharingMode::eExclusive)
+                                   .withUsage(VMA_MEMORY_USAGE_GPU_ONLY)
+                                   .withRequiredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                                   .withPreferredFlags(vk::MemoryPropertyFlagBits::eLazilyAllocated)
+                                   .build();
 }
 
 }   // namespace dragonfire

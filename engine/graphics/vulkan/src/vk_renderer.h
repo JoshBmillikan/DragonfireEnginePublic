@@ -7,6 +7,7 @@
 #include "descriptor_set.h"
 #include "swapchain.h"
 #include "vk_material.h"
+#include <glm/glm.hpp>
 #include <renderer.h>
 
 namespace dragonfire {
@@ -27,6 +28,7 @@ private:
     vk::PhysicalDeviceLimits limits;
     vk::Device device;
     vk::SampleCountFlagBits msaaSamples;
+    UInt32 maxDrawCount = 0;
 
     struct Queues {
         UInt32 graphicsFamily = 0, presentFamily = 0, transferFamily = 0;
@@ -40,10 +42,16 @@ private:
     vk::RenderPass mainRenderPass;
     DescriptorLayoutManager layoutManager;
     VkMaterial::VkLibrary materialLibrary;
+    vk::Pipeline cullComputePipeline;
+    vk::PipelineLayout cullComputeLayout;
+    Buffer globalUBO;
+    USize uboOffset = 0;
 
     struct Frame {
         vk::CommandPool pool;
         vk::CommandBuffer cmd;
+        vk::DescriptorSet globalDescriptorSet;
+        Buffer modelMatrices, culledMatrices;
     } frames[FRAMES_IN_FLIGHT], *currentFrame = nullptr;
 
 private:
@@ -55,6 +63,8 @@ private:
     void createDepthImage();
     void createMsaaImage();
     void createRenderPass();
+    void createGlobalUBO();
+    void initFrame(Frame& frame);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -71,6 +81,13 @@ public:
     [[nodiscard]] std::vector<vk::RenderPass> getRenderPasses() const { return {mainRenderPass}; }
 
     [[nodiscard]] DescriptorLayoutManager* getLayoutManager() { return &layoutManager; }
+};
+
+struct alignas(16) UBOData {
+    glm::mat4 perspective;
+    glm::mat4 orthographic;
+    glm::vec3 sunDirection;
+    glm::vec2 resolution;
 };
 
 }   // namespace dragonfire
