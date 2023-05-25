@@ -5,6 +5,7 @@
 #pragma once
 #include "allocation.h"
 #include "descriptor_set.h"
+#include "mesh.h"
 #include "swapchain.h"
 #include "vk_material.h"
 #include <glm/glm.hpp>
@@ -42,6 +43,7 @@ private:
     vk::RenderPass mainRenderPass;
     DescriptorLayoutManager layoutManager;
     VkMaterial::VkLibrary materialLibrary;
+    Mesh::MeshRegistry meshRegistry;
     vk::Pipeline cullComputePipeline;
     vk::PipelineLayout cullComputeLayout;
     Buffer globalUBO;

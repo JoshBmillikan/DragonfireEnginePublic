@@ -25,6 +25,7 @@ void VkRenderer::shutdown()
 
     materialLibrary.destroy();
     layoutManager.destroy();
+    meshRegistry.destroy();
 
     globalUBO.destroy();
     device.destroy(cullComputePipeline);

@@ -7,6 +7,8 @@
 
 namespace dragonfire {
 
+using MeshHandle = std::uintptr_t;
+
 class Model {
 public:
     struct Vertex {

@@ -94,6 +94,7 @@ void VkRenderer::init()
             cullComputePipeline = pipeline;
             cullComputeLayout = layout;
         }
+        meshRegistry = Mesh::MeshRegistry(device, allocator, queues.graphics, queues.graphicsFamily);
         createGlobalUBO();
         for (auto& frame : frames)
             initFrame(frame);
