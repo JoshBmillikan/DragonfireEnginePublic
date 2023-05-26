@@ -98,6 +98,7 @@ void VkRenderer::init()
         createGlobalUBO();
         for (auto& frame : frames)
             initFrame(frame);
+        presentData.thread = std::jthread(std::bind_front(&VkRenderer::present, this));
         logger->info("Vulkan initialization finished");
     }
     catch (const std::exception& e) {
@@ -303,7 +304,7 @@ bool VkRenderer::getQueueFamilies(vk::PhysicalDevice pDevice) noexcept
         catch (...) {
             surfaceSupport = false;
         }
-        if (!foundGraphics && prop.queueFlags & vk::QueueFlagBits::eGraphics) {
+        if (!foundGraphics && prop.queueFlags & (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute)) {
             foundGraphics = true;
             queues.graphicsFamily = i;
         }
@@ -645,11 +646,11 @@ void VkRenderer::initFrame(VkRenderer::Frame& frame)
     vk::CommandPoolCreateInfo poolCreateInfo{};
     poolCreateInfo.queueFamilyIndex = queues.graphicsFamily;
     frame.pool = device.createCommandPool(poolCreateInfo);
-    frame.modelMatrices =
+    frame.drawData =
             Buffer::Builder()
                     .withAllocator(allocator)
                     .withBufferUsage(vk::BufferUsageFlagBits::eStorageBuffer)
-                    .withSize(maxDrawCount * sizeof(glm::mat4))
+                    .withSize(maxDrawCount * sizeof(DrawData))
                     .withSharingMode(vk::SharingMode::eExclusive)
                     .withUsage(VMA_MEMORY_USAGE_CPU_TO_GPU)
                     .withRequiredFlags(

@@ -10,6 +10,7 @@
 #include "vk_material.h"
 #include <glm/glm.hpp>
 #include <renderer.h>
+#include <thread>
 
 namespace dragonfire {
 
@@ -18,6 +19,9 @@ public:
     void init() override;
     void shutdown() override;
     Material::Library* getMaterialLibrary() override;
+    MeshHandle createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices) override;
+    void freeMesh(MeshHandle mesh) override;
+    void render(class World& world, const Camera& camera) override;
 
     static constexpr USize FRAMES_IN_FLIGHT = 2;
 
@@ -52,11 +56,41 @@ private:
     struct Frame {
         vk::CommandPool pool;
         vk::CommandBuffer cmd;
-        vk::DescriptorSet globalDescriptorSet;
-        Buffer modelMatrices, culledMatrices;
-    } frames[FRAMES_IN_FLIGHT], *currentFrame = nullptr;
+        vk::DescriptorSet globalDescriptorSet, computeSet;
+        Buffer drawData, culledMatrices, commandBuffer, countBuffer;
+        vk::Semaphore renderSemaphore, presentSemaphore;
+        vk::Fence fence;
+    } frames[FRAMES_IN_FLIGHT], *presentingFrame = nullptr;
+
+    struct {
+        std::jthread thread;
+        std::mutex mutex;
+        std::condition_variable_any condVar;
+        vk::Result result = vk::Result::eSuccess;
+    } presentData;
+
+    struct DrawData {
+        glm::mat4 transform;
+        UInt32 vertexOffset, vertexCount, indexOffset, indexCount, pipelineIndex;
+    };
+
+    struct PipelineDrawInfo {
+        UInt32 index, drawCount;
+        vk::PipelineLayout layout;
+    };
+
+    ankerl::unordered_dense::map<vk::Pipeline, PipelineDrawInfo> pipelineMap;
 
 private:
+    void present(const std::stop_token& stopToken);
+    void startFrame();
+    void beginRenderingCommands(const Camera& camera);
+    void computePrePass(UInt32 drawCount);
+    void renderMainPass();
+    void startRenderPass(vk::RenderPass pass, std::span<vk::ClearValue> clearValues);
+
+    Frame& getCurrentFrame() { return frames[frameCount % FRAMES_IN_FLIGHT]; }
+
     void createInstance(bool validation);
     void getPhysicalDevice();
     bool getQueueFamilies(vk::PhysicalDevice pDevice) noexcept;

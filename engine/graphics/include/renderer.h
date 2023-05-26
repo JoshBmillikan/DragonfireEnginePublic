@@ -4,7 +4,9 @@
 
 #pragma once
 #include "material.h"
+#include "model.h"
 #include <SDL2/SDL_video.h>
+#include "camera.h"
 
 namespace dragonfire {
 
@@ -14,6 +16,9 @@ public:
     virtual void init() = 0;
     virtual void shutdown() = 0;
     virtual Material::Library* getMaterialLibrary() = 0;
+    virtual MeshHandle createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices) = 0;
+    virtual void freeMesh(MeshHandle mesh) = 0;
+    virtual void render(class World& world, const Camera& camera) = 0;
 
 protected:
     UInt64 frameCount = 0;

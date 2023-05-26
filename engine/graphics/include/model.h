@@ -4,6 +4,7 @@
 
 #pragma once
 #include <glm/glm.hpp>
+#include "material.h"
 
 namespace dragonfire {
 
@@ -15,6 +16,18 @@ public:
         glm::vec3 position, normal;
         glm::vec2 uv;
     };
+
+    struct Primitive {
+        MeshHandle mesh;
+        Material* material;
+        glm::mat4 transform;
+    };
+
+private:
+    std::vector<Primitive> primitives;
+
+public:
+    [[nodiscard]] const std::vector<Primitive>& getPrimitives() const { return primitives; }
 };
 
 }   // namespace dragonfire

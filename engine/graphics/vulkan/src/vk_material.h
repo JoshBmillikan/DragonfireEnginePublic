@@ -35,6 +35,10 @@ public:
         ankerl::unordered_dense::set<vk::PipelineLayout> createdLayouts;
     };
 
+    [[nodiscard]] vk::Pipeline getPipeline() const { return pipeline; }
+
+    [[nodiscard]] vk::PipelineLayout getPipelineLayout() const { return pipelineLayout; }
+
 private:
     vk::Pipeline pipeline;
     vk::PipelineLayout pipelineLayout;

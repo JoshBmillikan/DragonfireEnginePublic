@@ -11,7 +11,6 @@ Mesh Mesh::MeshRegistry::uploadMesh(const std::span<Model::Vertex> vertices, con
 {
     const vk::DeviceSize vertexSize = vertices.size() * sizeof(Model::Vertex);
     const vk::DeviceSize indexSize = indices.size() * sizeof(UInt32);
-    std::unique_lock lock(mutex);
     char* ptr = static_cast<char*>(getStagingPtr(vertexSize + indexSize));
     memcpy(ptr, vertices.data(), vertexSize);
     ptr += vertexSize;
@@ -60,6 +59,8 @@ Mesh Mesh::MeshRegistry::uploadMesh(const std::span<Model::Vertex> vertices, con
 
     vk::resultCheck(device.waitForFences(fence, true, UINT64_MAX), "Fence wait failed");
     device.resetFences(fence);
+    mesh.vertexCount = vertices.size();
+    mesh.indexCount = indices.size();
 
     return mesh;
 }
@@ -78,6 +79,34 @@ void* Mesh::MeshRegistry::getStagingPtr(USize size)
                                 .build();
     }
     return stagingBuffer.getInfo().pMappedData;
+}
+
+MeshHandle Mesh::MeshRegistry::createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices)
+{
+    std::unique_lock lock(mutex);
+    Mesh* mesh = new Mesh(uploadMesh(vertices, indices));
+    meshes.push_back(mesh);
+    MeshHandle handle = reinterpret_cast<MeshHandle>(mesh);
+    return handle;
+}
+
+void Mesh::MeshRegistry::freeMesh(MeshHandle mesh)
+{
+    std::unique_lock lock(mutex);
+    Mesh* ptr = reinterpret_cast<Mesh*>(mesh);
+    freeMeshRegion(*ptr);
+    meshes.erase(std::find(meshes.begin(), meshes.end(), ptr));
+    delete ptr;
+}
+
+UInt32 Mesh::getVertexOffset()
+{
+    return vertexInfo.offset / sizeof(Model::Vertex);
+}
+
+UInt32 Mesh::getIndexOffset()
+{
+    return indexInfo.offset / sizeof(UInt32);
 }
 
 Mesh::MeshRegistry::MeshRegistry(
@@ -162,7 +191,7 @@ Mesh::MeshRegistry::MeshRegistry(
             ->info("Initialized mesh registry, max vertex count {}, max index count {}", maxVertexCount, maxIndexCount);
 }
 
-void Mesh::MeshRegistry::freeMesh(const Mesh& mesh)
+void Mesh::MeshRegistry::freeMeshRegion(const Mesh& mesh)
 {
     vmaVirtualFree(vertexBlock, mesh.vertexAllocation);
     vmaVirtualFree(indexBlock, mesh.indexAllocation);

@@ -1,8 +1,25 @@
 #version 460
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-layout (std430, set=0, binding=1) readonly buffer ModelMatrices {
-    mat4 matrices[];
-}modelMatrices;
+layout (set=0, binding=0) uniform UniformData {
+    mat4 perspective;
+    mat4 orthographic;
+    vec3 sunDirection;
+    vec2 resolution;
+} ubo;
+
+struct DrawData {
+    mat4 transform;
+    uint vertexOffset;
+    uint vertexCount;
+    uint indexOffset;
+    uint indexCount;
+    uint pipelineIndex;
+};
+
+layout (std430, set=0, binding=1) readonly buffer DrawDataBuffer {
+    DrawData data[];
+}drawData;
 
 layout(std430, set=1, binding=0) writeonly buffer CulledMatrices {
     mat4 matrices[];
@@ -17,9 +34,12 @@ struct DrawCommand {
 };
 
 layout(std430, set=1, binding=1) buffer DrawCommands {
-    uint drawCount;
     DrawCommand commands[];
 }drawCommands;
+
+layout(std430, set=1, binding=2) buffer CountBuffer{
+    uint counts[];
+}countBuffer;
 
 struct Vertex {
     vec3 position;
@@ -27,13 +47,17 @@ struct Vertex {
     vec2 uv;
 };
 
-layout(std140, set=1, binding=2) readonly buffer VertexBuffer {
+layout(std140, set=1, binding=3) readonly buffer VertexBuffer {
     Vertex vertices[];
 }vertexBuffer;
 
-layout(std430, set=1, binding=3) readonly buffer IndexBuffer {
+layout(std430, set=1, binding=4) readonly buffer IndexBuffer {
     uint indices[];
 }indexBuffer;
+
+layout(push_constant) uniform PushConstants {
+    uint drawCount;
+}pushConstants;
 
 void main() {
     uint index = gl_GlobalInvocationID.x;
