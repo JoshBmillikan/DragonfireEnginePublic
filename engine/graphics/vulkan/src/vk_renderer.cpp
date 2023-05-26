@@ -44,13 +44,12 @@ void VkRenderer::render(World& world, const Camera& camera)
                 info.layout = material->getPipelineLayout();
                 info.drawCount = 1;
             }
-            drawData->transform = transform.toMatrix() * primitive.transform;
-            drawData->pipelineIndex = pipelineIndex;
+            drawData[drawCount].transform = transform.toMatrix() * primitive.transform;
             Mesh* mesh = reinterpret_cast<Mesh*>(primitive.mesh);
-            drawData->vertexOffset = mesh->getVertexOffset();
-            drawData->vertexCount = mesh->vertexCount;
-            drawData->indexOffset = mesh->getIndexOffset();
-            drawData->indexCount = mesh->indexCount;
+            drawData[drawCount].vertexOffset = mesh->getVertexOffset();
+            drawData[drawCount].vertexCount = mesh->vertexCount;
+            drawData[drawCount].indexOffset = mesh->getIndexOffset();
+            drawData[drawCount].indexCount = mesh->indexCount;
             drawData++;
             drawCount++;
         }
@@ -58,7 +57,8 @@ void VkRenderer::render(World& world, const Camera& camera)
 
     computePrePass(drawCount);
     renderMainPass();
-    frameCount++;
+
+    endFrame();
 }
 
 void VkRenderer::beginRenderingCommands(const Camera& camera)
@@ -88,9 +88,32 @@ void VkRenderer::computePrePass(UInt32 drawCount)
             {frame.globalDescriptorSet, frame.computeSet},
             {}
     );
-    cmd.pushConstants(cullComputeLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UInt32), &drawCount);
+    UInt32 baseIndex = 0;
+    for (auto& [pipeline, info] : pipelineMap) {
+        if (info.drawCount == 0)
+            continue;
+        UInt32 pushConstants[] = {baseIndex, info.index, drawCount};
+        cmd.pushConstants(cullComputeLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UInt32) * 2, pushConstants);
+        cmd.dispatch(std::max(drawCount / 256u, 1u), 1, 1);
+        baseIndex += info.drawCount;
+    }
 
-    cmd.dispatch(std::max(drawCount / 256u, 1u), 1, 1);
+    vk::BufferMemoryBarrier commands{}, count{};
+    commands.buffer = frame.commandBuffer;
+    commands.size = frame.commandBuffer.getInfo().size;
+    count.buffer = frame.countBuffer;
+    count.size = frame.countBuffer.getInfo().size;
+    commands.offset = count.offset = 0;
+    commands.srcAccessMask = count.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
+    commands.dstAccessMask = count.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
+    cmd.pipelineBarrier(
+            vk::PipelineStageFlagBits::eComputeShader,
+            vk::PipelineStageFlagBits::eDrawIndirect,
+            {},
+            {},
+            {commands, count},
+            {}
+    );
 }
 
 void VkRenderer::renderMainPass()
@@ -115,19 +138,19 @@ void VkRenderer::renderMainPass()
     cmd.setScissor(0, scissor);
 
     meshRegistry.bindBuffers(cmd);
-    UInt32 drawCount = 0;
-    for (auto [pipeline, info] : pipelineMap) {
+    vk::DeviceSize drawOffset = 0;
+    for (auto& [pipeline, info] : pipelineMap) {
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
         cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, info.layout, 0, {frame.globalDescriptorSet}, {});
         cmd.drawIndexedIndirectCount(
                 frame.commandBuffer,
-                drawCount * sizeof(vk::DrawIndexedIndirectCommand),   // TODO figure out offsets in shader
+                drawOffset,
                 frame.countBuffer,
                 info.index * sizeof(UInt32),
                 maxDrawCount,
                 0
         );
-        drawCount += info.drawCount;
+        drawOffset += info.drawCount * sizeof(vk::DrawIndexedIndirectCommand);
     }
     cmd.endRenderPass();
 }
@@ -180,6 +203,16 @@ void VkRenderer::startFrame()
 
     device.resetFences(frame.fence);
     device.resetCommandPool(frame.pool);
+}
+
+void VkRenderer::endFrame()
+{
+    getCurrentFrame().cmd.end();
+    std::unique_lock lock(presentData.mutex);
+    presentingFrame = &getCurrentFrame();
+    lock.unlock();
+    presentData.condVar.notify_one();
+    frameCount++;
 }
 
 void VkRenderer::present(const std::stop_token& stopToken)

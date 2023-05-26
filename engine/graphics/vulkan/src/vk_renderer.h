@@ -71,11 +71,11 @@ private:
 
     struct DrawData {
         glm::mat4 transform;
-        UInt32 vertexOffset, vertexCount, indexOffset, indexCount, pipelineIndex;
+        UInt32 vertexOffset, vertexCount, indexOffset, indexCount;
     };
 
     struct PipelineDrawInfo {
-        UInt32 index, drawCount;
+        UInt32 index = 0, drawCount = 0;
         vk::PipelineLayout layout;
     };
 
@@ -88,6 +88,7 @@ private:
     void computePrePass(UInt32 drawCount);
     void renderMainPass();
     void startRenderPass(vk::RenderPass pass, std::span<vk::ClearValue> clearValues);
+    void endFrame();
 
     Frame& getCurrentFrame() { return frames[frameCount % FRAMES_IN_FLIGHT]; }
 

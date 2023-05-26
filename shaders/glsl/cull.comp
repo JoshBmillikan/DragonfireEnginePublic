@@ -14,7 +14,6 @@ struct DrawData {
     uint vertexCount;
     uint indexOffset;
     uint indexCount;
-    uint pipelineIndex;
 };
 
 layout (std430, set=0, binding=1) readonly buffer DrawDataBuffer {
@@ -56,9 +55,33 @@ layout(std430, set=1, binding=4) readonly buffer IndexBuffer {
 }indexBuffer;
 
 layout(push_constant) uniform PushConstants {
+    uint baseIndex;
+    uint pipelineIndex;
     uint drawCount;
 }pushConstants;
 
-void main() {
+bool isVisible(uint index)
+{
+    return true;
+}
+
+void main()
+{
     uint index = gl_GlobalInvocationID.x;
+    if (index == 0) { atomicXor(countBuffer.counts[pushConstants.pipelineIndex], countBuffer.counts[pushConstants.pipelineIndex]); }
+    if (index < pushConstants.drawCount) {
+        if (isVisible(index)) {
+            uint currentIndex = atomicAdd(countBuffer.counts[pushConstants.pipelineIndex], 1);
+            uint outIndex = currentIndex + pushConstants.baseIndex;
+            DrawData data = drawData.data[outIndex];
+            culledMatrices.matrices[outIndex] = data.transform;
+            drawCommands.commands[outIndex].indexCount = data.indexCount;
+            drawCommands.commands[outIndex].instanceCount = 1;
+            drawCommands.commands[outIndex].firstIndex = data.indexOffset;
+            drawCommands.commands[outIndex].vertexOffset = data.vertexOffset;
+            drawCommands.commands[outIndex].firstInstance = currentIndex;
+        } else {
+
+        }
+    }
 }
