@@ -1,7 +1,7 @@
 #version 460
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-layout (set=0, binding=0) uniform UniformData {
+layout (set=0, binding=3) uniform UniformData {
     mat4 perspective;
     mat4 orthographic;
     vec3 sunDirection;
@@ -16,11 +16,11 @@ struct DrawData {
     uint indexCount;
 };
 
-layout (std430, set=0, binding=1) readonly buffer DrawDataBuffer {
+layout (std430, set=0, binding=4) readonly buffer DrawDataBuffer {
     DrawData data[];
 }drawData;
 
-layout(std430, set=1, binding=0) writeonly buffer CulledMatrices {
+layout(std430, set=0, binding=0) writeonly buffer CulledMatrices {
     mat4 matrices[];
 }culledMatrices;
 
@@ -32,11 +32,11 @@ struct DrawCommand {
     uint firstInstance;
 };
 
-layout(std430, set=1, binding=1) buffer DrawCommands {
+layout(std430, set=0, binding=1) buffer DrawCommands {
     DrawCommand commands[];
 }drawCommands;
 
-layout(std430, set=1, binding=2) buffer CountBuffer{
+layout(std430, set=0, binding=2) buffer CountBuffer{
     uint counts[];
 }countBuffer;
 
@@ -45,14 +45,6 @@ struct Vertex {
     vec3 normal;
     vec2 uv;
 };
-
-layout(std140, set=1, binding=3) readonly buffer VertexBuffer {
-    Vertex vertices[];
-}vertexBuffer;
-
-layout(std430, set=1, binding=4) readonly buffer IndexBuffer {
-    uint indices[];
-}indexBuffer;
 
 layout(push_constant) uniform PushConstants {
     uint baseIndex;
@@ -79,7 +71,7 @@ void main()
             drawCommands.commands[outIndex].instanceCount = 1;
             drawCommands.commands[outIndex].firstIndex = data.indexOffset;
             drawCommands.commands[outIndex].vertexOffset = data.vertexOffset;
-            drawCommands.commands[outIndex].firstInstance = currentIndex;
+            drawCommands.commands[outIndex].firstInstance = outIndex;
         } else {
 
         }

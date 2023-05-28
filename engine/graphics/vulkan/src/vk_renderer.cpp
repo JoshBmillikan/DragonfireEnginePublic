@@ -23,9 +23,9 @@ void VkRenderer::render(World& world, const Camera& camera)
     using namespace entt::literals;
 
     UInt32 pipelineCount = 0, drawCount = 0;
-    auto group = registry.group<Model*, Transform>({}, entt::exclude<entt::tag<"invisible"_hs>>);
+    auto group = registry.group<Model, Transform>({}, entt::exclude<entt::tag<"invisible"_hs>>);
     for (auto&& [entity, model, transform] : group.each()) {
-        for (auto& primitive : model->getPrimitives()) {
+        for (auto& primitive : model.getPrimitives()) {
             if (drawCount >= maxDrawCount) {
                 logger->error("Max draw count exceeded, some models may not be drawn");
                 break;
@@ -71,9 +71,9 @@ void VkRenderer::beginRenderingCommands(const Camera& camera)
     data->perspective = camera.perspective * view;
 
     Frame& frame = getCurrentFrame();
+    device.resetCommandPool(frame.pool);
     vk::CommandBufferBeginInfo beginInfo{};
-    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
-                      | vk::CommandBufferUsageFlagBits::eRenderPassContinue;
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
     frame.cmd.begin(beginInfo);
 }
 
@@ -81,19 +81,14 @@ void VkRenderer::computePrePass(UInt32 drawCount)
 {
     Frame& frame = getCurrentFrame();
     vk::CommandBuffer cmd = frame.cmd;
-    cmd.bindDescriptorSets(
-            vk::PipelineBindPoint::eCompute,
-            cullComputeLayout,
-            0,
-            {frame.globalDescriptorSet, frame.computeSet},
-            {}
-    );
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, cullComputeLayout, 0, frame.computeSet, {});
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, cullComputePipeline);
     UInt32 baseIndex = 0;
     for (auto& [pipeline, info] : pipelineMap) {
         if (info.drawCount == 0)
             continue;
         UInt32 pushConstants[] = {baseIndex, info.index, drawCount};
-        cmd.pushConstants(cullComputeLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UInt32) * 2, pushConstants);
+        cmd.pushConstants(cullComputeLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UInt32) * 3, pushConstants);
         cmd.dispatch(std::max(drawCount / 256u, 1u), 1, 1);
         baseIndex += info.drawCount;
     }
@@ -141,14 +136,20 @@ void VkRenderer::renderMainPass()
     vk::DeviceSize drawOffset = 0;
     for (auto& [pipeline, info] : pipelineMap) {
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
-        cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, info.layout, 0, {frame.globalDescriptorSet}, {});
+        cmd.bindDescriptorSets(
+                vk::PipelineBindPoint::eGraphics,
+                info.layout,
+                0,
+                {frame.globalDescriptorSet, frame.frameSet},
+                {}
+        );
         cmd.drawIndexedIndirectCount(
                 frame.commandBuffer,
                 drawOffset,
                 frame.countBuffer,
                 info.index * sizeof(UInt32),
                 maxDrawCount,
-                0
+                sizeof(vk::DrawIndexedIndirectCommand)
         );
         drawOffset += info.drawCount * sizeof(vk::DrawIndexedIndirectCommand);
     }
@@ -197,12 +198,11 @@ void VkRenderer::startFrame()
                 break;
             default: crash("Failed to acquire next swapchain image");
         }
-        presentResult = swapchain.next(frame.presentSemaphore);
+        presentResult = swapchain.next(frame.renderSemaphore);
         retries++;
     } while (presentResult != vk::Result::eSuccess);
 
     device.resetFences(frame.fence);
-    device.resetCommandPool(frame.pool);
 }
 
 void VkRenderer::endFrame()
@@ -278,9 +278,15 @@ void VkRenderer::shutdown()
     for (Frame& frame : frames) {
         frame.drawData.destroy();
         frame.culledMatrices.destroy();
+        frame.commandBuffer.destroy();
+        frame.countBuffer.destroy();
         device.destroy(frame.pool);
+        device.destroy(frame.fence);
+        device.destroy(frame.renderSemaphore);
+        device.destroy(frame.presentSemaphore);
     }
 
+    device.destroy(descriptorPool);
     materialLibrary.destroy();
     layoutManager.destroy();
     meshRegistry.destroy();

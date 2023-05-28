@@ -15,6 +15,15 @@ CPMAddPackage("gh:g-truc/glm@0.9.9.8#0.9.9.8")
 CPMAddPackage("gh:icculus/physfs@3.2.0#release-3.2.0")
 CPMAddPackage("gh:martinus/unordered_dense@3.1.0")
 CPMAddPackage(
+        NAME tinygltf
+        GITHUB_REPOSITORY syoyo/tinygltf
+        VERSION 2.8.9
+        OPTIONS
+        "TINYGLTF_HEADER_ONLY ON"
+        "TINYGLTF_BUILD_LOADER_EXAMPLE OFF"
+)
+CPMAddPackage("gh:zeux/meshoptimizer@0.19")
+CPMAddPackage(
         NAME nlohmann_json
         VERSION 3.11.2
         # the git repo is incredibly large, so we download the archived include directory

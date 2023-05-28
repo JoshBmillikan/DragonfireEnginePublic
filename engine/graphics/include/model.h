@@ -23,6 +23,8 @@ public:
         glm::mat4 transform;
     };
 
+    static Model loadGltfModel(const char* path, class Renderer* renderer, bool optimizeModel = true);
+
 private:
     std::vector<Primitive> primitives;
 

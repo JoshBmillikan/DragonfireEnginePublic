@@ -96,8 +96,12 @@ void VkRenderer::init()
         }
         meshRegistry = Mesh::MeshRegistry(device, allocator, queues.graphics, queues.graphicsFamily);
         createGlobalUBO();
-        for (auto& frame : frames)
-            initFrame(frame);
+        createDescriptorPool();
+        UInt32 i = 0;
+        for (auto& frame : frames) {
+            initFrame(frame, i);
+            i++;
+        }
         presentData.thread = std::jthread(std::bind_front(&VkRenderer::present, this));
         logger->info("Vulkan initialization finished");
     }
@@ -181,14 +185,17 @@ static bool checkFeatures(vk::PhysicalDevice device) noexcept
     auto chain = device.getFeatures2<
             vk::PhysicalDeviceFeatures2,
             vk::PhysicalDeviceDescriptorIndexingFeatures,
-            vk::PhysicalDeviceBufferDeviceAddressFeatures>();
+            vk::PhysicalDeviceBufferDeviceAddressFeatures,
+            vk::PhysicalDeviceVulkan12Features>();
     auto& features = chain.get<vk::PhysicalDeviceFeatures2>();
     auto& indexFeatures = chain.get<vk::PhysicalDeviceDescriptorIndexingFeatures>();
     auto& bufferFeatures = chain.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
+    auto& vk12Features = chain.get<vk::PhysicalDeviceVulkan12Features>();
     return features.features.sparseBinding && features.features.samplerAnisotropy && features.features.sampleRateShading
            && features.features.multiDrawIndirect && indexFeatures.descriptorBindingPartiallyBound
            && indexFeatures.runtimeDescriptorArray && indexFeatures.descriptorBindingSampledImageUpdateAfterBind
-           && indexFeatures.descriptorBindingVariableDescriptorCount && bufferFeatures.bufferDeviceAddress;
+           && indexFeatures.descriptorBindingVariableDescriptorCount && bufferFeatures.bufferDeviceAddress
+           && vk12Features.drawIndirectCount;
 }
 
 static bool isValidDevice(vk::PhysicalDevice device) noexcept
@@ -363,8 +370,12 @@ void VkRenderer::createDevice()
     vk::PhysicalDeviceFeatures2 features{};
     vk::PhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
     vk::PhysicalDeviceBufferDeviceAddressFeatures bufferFeatures{};
+    vk::PhysicalDeviceVulkan12Features vk12Features{};
+    bufferFeatures.pNext = &vk12Features;
     indexingFeatures.pNext = &bufferFeatures;
     features.pNext = &indexingFeatures;
+
+    vk12Features.drawIndirectCount = true;
 
     features.features.sparseBinding = true;
     features.features.samplerAnisotropy = true;
@@ -387,6 +398,7 @@ void VkRenderer::createDevice()
     createInfo.enabledExtensionCount = DEVICE_EXTENSIONS.size();
     createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
     createInfo.pNext = &features;
+    createInfo.pEnabledFeatures = nullptr;
 
     device = physicalDevice.createDevice(createInfo);
     VULKAN_HPP_DEFAULT_DISPATCHER.init(device);
@@ -641,11 +653,29 @@ void VkRenderer::createGlobalUBO()
                         .build();
 }
 
-void VkRenderer::initFrame(VkRenderer::Frame& frame)
+void VkRenderer::createDescriptorPool()
+{
+    vk::DescriptorPoolSize sizes[] = {
+            {vk::DescriptorType::eUniformBuffer, 16},
+            {vk::DescriptorType::eCombinedImageSampler, 1},
+            {vk::DescriptorType::eStorageBuffer, 64}};
+    vk::DescriptorPoolCreateInfo createInfo{};
+    createInfo.poolSizeCount = 3;
+    createInfo.pPoolSizes = sizes;
+    createInfo.maxSets = FRAMES_IN_FLIGHT * 4;
+    descriptorPool = device.createDescriptorPool(createInfo);
+}
+
+void VkRenderer::initFrame(VkRenderer::Frame& frame, UInt32 frameIndex)
 {
     vk::CommandPoolCreateInfo poolCreateInfo{};
     poolCreateInfo.queueFamilyIndex = queues.graphicsFamily;
     frame.pool = device.createCommandPool(poolCreateInfo);
+    vk::CommandBufferAllocateInfo cmdAlloc{};
+    cmdAlloc.commandBufferCount = 1;
+    cmdAlloc.commandPool = frame.pool;
+    cmdAlloc.level = vk::CommandBufferLevel::ePrimary;
+    vk::resultCheck(device.allocateCommandBuffers(&cmdAlloc, &frame.cmd), "Failed to allocate command buffer");
     frame.drawData =
             Buffer::Builder()
                     .withAllocator(allocator)
@@ -668,6 +698,128 @@ void VkRenderer::initFrame(VkRenderer::Frame& frame)
                                    .withRequiredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
                                    .withPreferredFlags(vk::MemoryPropertyFlagBits::eLazilyAllocated)
                                    .build();
+    frame.commandBuffer =
+            Buffer::Builder()
+                    .withAllocator(allocator)
+                    .withBufferUsage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer)
+                    .withSize(maxDrawCount * sizeof(vk::DrawIndexedIndirectCommand))
+                    .withSharingMode(vk::SharingMode::eExclusive)
+                    .withUsage(VMA_MEMORY_USAGE_GPU_ONLY)
+                    .withRequiredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                    .withPreferredFlags(vk::MemoryPropertyFlagBits::eLazilyAllocated)
+                    .build();
+    frame.countBuffer =
+            Buffer::Builder()
+                    .withAllocator(allocator)
+                    .withBufferUsage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer)
+                    .withSize(maxDrawCount * sizeof(UInt32))
+                    .withSharingMode(vk::SharingMode::eExclusive)
+                    .withUsage(VMA_MEMORY_USAGE_GPU_ONLY)
+                    .withRequiredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                    .build();
+
+    DescriptorLayoutManager::LayoutInfo layoutInfo, computeLayout, frameLayout;
+    layoutInfo.bindings.emplace_back(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex);
+
+    computeLayout.bindings.emplace_back(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
+    computeLayout.bindings.emplace_back(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
+    computeLayout.bindings.emplace_back(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
+    computeLayout.bindings.emplace_back(3, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eCompute);
+    computeLayout.bindings.emplace_back(4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
+
+    frameLayout.bindings.emplace_back(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eVertex);
+    vk::DescriptorSetLayout setLayouts[] = {
+            layoutManager.getOrCreateLayout(layoutInfo),
+            layoutManager.getOrCreateLayout(computeLayout),
+            layoutManager.getOrCreateLayout(frameLayout)};
+
+    vk::DescriptorSetAllocateInfo setAllocateInfo{};
+    setAllocateInfo.descriptorPool = descriptorPool;
+    setAllocateInfo.descriptorSetCount = 3;
+    setAllocateInfo.pSetLayouts = setLayouts;
+
+    auto sets = device.allocateDescriptorSets<FrameAllocator<vk::DescriptorSet>>(setAllocateInfo);
+    frame.globalDescriptorSet = sets[0];
+    frame.computeSet = sets[1];
+    frame.frameSet = sets[2];
+    frame.fence = device.createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
+    frame.renderSemaphore = device.createSemaphore(vk::SemaphoreCreateInfo());
+    frame.presentSemaphore = device.createSemaphore(vk::SemaphoreCreateInfo());
+    writeDescriptors(frame, frameIndex);
+}
+
+void VkRenderer::writeDescriptors(VkRenderer::Frame& frame, UInt32 frameIndex)
+{
+    vk::DescriptorBufferInfo globalUboInfo{};
+    globalUboInfo.buffer = globalUBO;
+    globalUboInfo.offset = frameIndex * uboOffset;
+    globalUboInfo.range = sizeof(UBOData);
+    std::array<vk::WriteDescriptorSet, 7> writes{};
+    writes[0].dstSet = frame.globalDescriptorSet;
+    writes[0].dstArrayElement = 0;
+    writes[0].dstBinding = 0;
+    writes[0].pBufferInfo = &globalUboInfo;
+    writes[0].descriptorCount = 1;
+    writes[0].descriptorType = vk::DescriptorType::eUniformBuffer;
+
+    vk::DescriptorBufferInfo culledMatrixInfo{};
+    culledMatrixInfo.buffer = frame.culledMatrices;
+    culledMatrixInfo.offset = 0;
+    culledMatrixInfo.range = maxDrawCount * sizeof(glm::mat4);
+    writes[2].dstSet = frame.computeSet;
+    writes[2].dstArrayElement = 0;
+    writes[2].dstBinding = 0;
+    writes[2].pBufferInfo = &culledMatrixInfo;
+    writes[2].descriptorCount = 1;
+    writes[2].descriptorType = vk::DescriptorType::eStorageBuffer;
+    vk::DescriptorBufferInfo commandInfo{};
+    commandInfo.buffer = frame.commandBuffer;
+    commandInfo.offset = 0;
+    commandInfo.range = maxDrawCount * sizeof(vk::DrawIndexedIndirectCommand);
+    writes[3].dstSet = frame.computeSet;
+    writes[3].dstArrayElement = 0;
+    writes[3].dstBinding = 1;
+    writes[3].pBufferInfo = &commandInfo;
+    writes[3].descriptorCount = 1;
+    writes[3].descriptorType = vk::DescriptorType::eStorageBuffer;
+    vk::DescriptorBufferInfo countInfo{};
+    countInfo.buffer = frame.countBuffer;
+    countInfo.offset = 0;
+    countInfo.range = maxDrawCount * sizeof(UInt32);
+    writes[4].dstSet = frame.computeSet;
+    writes[4].dstArrayElement = 0;
+    writes[4].dstBinding = 2;
+    writes[4].pBufferInfo = &countInfo;
+    writes[4].descriptorCount = 1;
+    writes[4].descriptorType = vk::DescriptorType::eStorageBuffer;
+    writes[5].dstSet = frame.computeSet;
+    writes[5].dstArrayElement = 0;
+    writes[5].dstBinding = 3;
+    writes[5].pBufferInfo = &globalUboInfo;
+    writes[5].descriptorCount = 1;
+    writes[5].descriptorType = vk::DescriptorType::eUniformBuffer;
+    vk::DescriptorBufferInfo drawBufInfo{};
+    drawBufInfo.buffer = frame.drawData;
+    drawBufInfo.offset = 0;
+    drawBufInfo.range = maxDrawCount * sizeof(DrawData);
+    writes[1].dstSet = frame.computeSet;
+    writes[1].dstArrayElement = 0;
+    writes[1].dstBinding = 4;
+    writes[1].pBufferInfo = &drawBufInfo;
+    writes[1].descriptorCount = 1;
+    writes[1].descriptorType = vk::DescriptorType::eStorageBuffer;
+
+    vk::DescriptorBufferInfo frameInfo{};
+    frameInfo.range = maxDrawCount * sizeof(glm::mat4);
+    frameInfo.offset = 0;
+    frameInfo.buffer = frame.culledMatrices;
+    writes[6].dstSet = frame.frameSet;
+    writes[6].dstArrayElement = 0;
+    writes[6].dstBinding = 0;
+    writes[6].pBufferInfo = &frameInfo;
+    writes[6].descriptorCount = 1;
+    writes[6].descriptorType = vk::DescriptorType::eStorageBuffer;
+    device.updateDescriptorSets(writes, {});
 }
 
 }   // namespace dragonfire

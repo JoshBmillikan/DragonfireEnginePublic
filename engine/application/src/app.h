@@ -4,6 +4,7 @@
 
 #pragma once
 #include <renderer.h>
+#include <world.h>
 
 namespace dragonfire {
 
@@ -17,6 +18,8 @@ public:
     void stop() { running = false; }
 
 private:
+    World world;
+    Camera camera{};
     bool running = false;
     Renderer* renderer = nullptr;
 

@@ -34,7 +34,7 @@ int main(int argc, char** argv)
         auto msg = fmt::format("An unhandled exception has occurred: {}", e.what());
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, APP_NAME, msg.c_str(), nullptr);
         SDL_Quit();
-        return -1;
+        abort();
     }
     catch (...) {
         auto ptr = std::current_exception();
@@ -45,7 +45,7 @@ int main(int argc, char** argv)
                 nullptr
         );
         SDL_Quit();
-        return -1;
+        abort();
     }
 
     PHYSFS_deinit();

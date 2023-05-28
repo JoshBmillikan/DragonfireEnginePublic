@@ -50,13 +50,14 @@ private:
     Mesh::MeshRegistry meshRegistry;
     vk::Pipeline cullComputePipeline;
     vk::PipelineLayout cullComputeLayout;
+    vk::DescriptorPool descriptorPool;
     Buffer globalUBO;
     USize uboOffset = 0;
 
     struct Frame {
         vk::CommandPool pool;
         vk::CommandBuffer cmd;
-        vk::DescriptorSet globalDescriptorSet, computeSet;
+        vk::DescriptorSet globalDescriptorSet, computeSet, frameSet;
         Buffer drawData, culledMatrices, commandBuffer, countBuffer;
         vk::Semaphore renderSemaphore, presentSemaphore;
         vk::Fence fence;
@@ -101,7 +102,9 @@ private:
     void createMsaaImage();
     void createRenderPass();
     void createGlobalUBO();
-    void initFrame(Frame& frame);
+    void createDescriptorPool();
+    void initFrame(Frame& frame, UInt32 frameIndex);
+    void writeDescriptors(Frame& frame, UInt32 frameIndex);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

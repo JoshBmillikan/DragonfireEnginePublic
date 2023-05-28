@@ -7,11 +7,13 @@
 #include <allocators.h>
 #include <config.h>
 #include <file.h>
+#include <model.h>
 #include <physfs.h>
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include <transform.h>
 
 namespace dragonfire {
 
@@ -19,6 +21,8 @@ App App::INSTANCE;
 
 void App::update(double deltaTime)
 {
+
+    renderer->render(world, camera);
 }
 
 void App::processEvents()
@@ -113,6 +117,19 @@ void App::init()
     }
     renderer = getRenderer();
     renderer->init();
+    float width = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.0"));
+    float height = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.1"));
+    camera = Camera(60.0f, width, height);
+    auto model = Model::loadGltfModel("assets/models/dragon.gltf", renderer);
+
+    auto& registry = world.getRegistry();
+    auto entity = registry.create();
+    registry.emplace<Model>(entity, std::move(model));
+    auto& t = registry.emplace<Transform>(entity);
+    t.position.y -= 20;
+    t.position.x -= 1;
+    t.scale *= 0.1f;
+    camera.lookAt(t.position);
 }
 
 }   // namespace dragonfire

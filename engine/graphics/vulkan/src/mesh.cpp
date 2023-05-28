@@ -68,15 +68,18 @@ Mesh Mesh::MeshRegistry::uploadMesh(const std::span<Model::Vertex> vertices, con
 void* Mesh::MeshRegistry::getStagingPtr(USize size)
 {
     if (stagingBuffer.getInfo().size <= size) {
-        stagingBuffer = Buffer::Builder()
-                                .withSize(std::min(size, stagingBuffer.getInfo().size * 2))
-                                .withSharingMode(vk::SharingMode::eExclusive)
-                                .withBufferUsage(vk::BufferUsageFlagBits::eTransferSrc)
-                                .withAllocator(allocator)
-                                .withUsage(VMA_MEMORY_USAGE_CPU_TO_GPU)
-                                .withAllocationFlags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
-                                .withRequiredFlags(vk::MemoryPropertyFlagBits::eHostVisible)
-                                .build();
+        stagingBuffer =
+                Buffer::Builder()
+                        .withSize(std::max(size + 1, stagingBuffer.getInfo().size * 2))
+                        .withSharingMode(vk::SharingMode::eExclusive)
+                        .withBufferUsage(vk::BufferUsageFlagBits::eTransferSrc)
+                        .withAllocator(allocator)
+                        .withUsage(VMA_MEMORY_USAGE_CPU_TO_GPU)
+                        .withAllocationFlags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
+                        .withRequiredFlags(
+                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+                        )
+                        .build();
     }
     return stagingBuffer.getInfo().pMappedData;
 }
@@ -164,7 +167,9 @@ Mesh::MeshRegistry::MeshRegistry(
                             .withAllocator(allocator)
                             .withUsage(VMA_MEMORY_USAGE_CPU_TO_GPU)
                             .withAllocationFlags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
-                            .withRequiredFlags(vk::MemoryPropertyFlagBits::eHostVisible)
+                            .withRequiredFlags(
+                                    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+                            )
                             .build();
 
     VmaVirtualBlockCreateInfo blockCreateInfo{};
