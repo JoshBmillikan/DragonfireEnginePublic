@@ -368,26 +368,20 @@ void VkRenderer::createDevice()
     }
 
     vk::PhysicalDeviceFeatures2 features{};
-    vk::PhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
-    vk::PhysicalDeviceBufferDeviceAddressFeatures bufferFeatures{};
     vk::PhysicalDeviceVulkan12Features vk12Features{};
-    bufferFeatures.pNext = &vk12Features;
-    indexingFeatures.pNext = &bufferFeatures;
-    features.pNext = &indexingFeatures;
+    features.pNext = &vk12Features;
 
     vk12Features.drawIndirectCount = true;
+    vk12Features.descriptorBindingPartiallyBound = true;
+    vk12Features.runtimeDescriptorArray = true;
+    vk12Features.descriptorBindingSampledImageUpdateAfterBind = true;
+    vk12Features.descriptorBindingVariableDescriptorCount = true;
+    vk12Features.descriptorIndexing = true;
 
     features.features.sparseBinding = true;
     features.features.samplerAnisotropy = true;
     features.features.sampleRateShading = true;
     features.features.multiDrawIndirect = true;
-
-    indexingFeatures.descriptorBindingPartiallyBound = true;
-    indexingFeatures.runtimeDescriptorArray = true;
-    indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = true;
-    indexingFeatures.descriptorBindingVariableDescriptorCount = true;
-
-    bufferFeatures.bufferDeviceAddress = true;
 
     for (const char* ext : DEVICE_EXTENSIONS)
         logger->info("Loaded device extension: {}", ext);
@@ -443,7 +437,7 @@ void VkRenderer::createGpuAllocator()
     createInfo.device = device;
     createInfo.instance = instance;
     createInfo.pVulkanFunctions = &functions;
-    createInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    createInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
     createInfo.vulkanApiVersion = VK_API_VERSION_1_3;
 
     vk::resultCheck(
