@@ -18,6 +18,7 @@ public:
             vk::Device device,
             vk::SampleCountFlagBits multisamplingSamples,
             DescriptorLayoutManager* layoutManager,
+            vk::DeviceSize maxDrawCount,
             std::vector<vk::RenderPass>&& renderPasses
     );
 
@@ -53,6 +54,7 @@ private:
     DescriptorLayoutManager* layoutManager = nullptr;
     vk::SampleCountFlagBits multisamplingSamples = vk::SampleCountFlagBits::e1;
     std::vector<vk::RenderPass> renderPasses;
+    vk::DeviceSize maxDrawCount;
 
     std::shared_mutex mutex;
 

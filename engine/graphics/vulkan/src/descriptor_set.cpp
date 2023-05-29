@@ -3,6 +3,7 @@
 //
 
 #include "descriptor_set.h"
+#include "allocators.h"
 #include <vulkan/vulkan_hash.hpp>
 
 namespace dragonfire {
@@ -13,7 +14,6 @@ vk::DescriptorSetLayout DescriptorLayoutManager::getOrCreateLayout(DescriptorLay
     if (createdLayouts.contains(info))
         return createdLayouts[info];
 
-    vk::DescriptorSetLayoutCreateInfo createInfo{};
     std::sort(info.bindings.begin(), info.bindings.end(), [](const auto& a, const auto& b) {
         return a.binding < b.binding;
     });
@@ -29,11 +29,27 @@ vk::DescriptorSetLayout DescriptorLayoutManager::getOrCreateLayout(DescriptorLay
     }
 
     info.bindings.erase(std::unique(info.bindings.begin(), info.bindings.end()), info.bindings.end());
+    vk::DescriptorSetLayoutCreateInfo createInfo{};
     createInfo.bindingCount = info.bindings.size();
     createInfo.pBindings = info.bindings.data();
     createInfo.flags = info.flags;
 
-    vk::DescriptorSetLayout layout = device.createDescriptorSetLayout(createInfo);
+    vk::DescriptorSetLayout layout;
+    if (info.bindless) {
+        std::vector<vk::DescriptorBindingFlags, FrameAllocator<vk::DescriptorBindingFlags>> flags;
+        flags.resize(info.bindings.size());
+        flags.back() |= vk::DescriptorBindingFlagBits::ePartiallyBound
+                        | vk::DescriptorBindingFlagBits::eVariableDescriptorCount
+                        | vk::DescriptorBindingFlagBits::eUpdateAfterBind;
+        vk::DescriptorSetLayoutBindingFlagsCreateInfo flagsCreateInfo{};
+        flagsCreateInfo.bindingCount = flags.size();
+        flagsCreateInfo.pBindingFlags = flags.data();
+        createInfo.pNext = &flagsCreateInfo;
+        createInfo.flags |= vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool;
+        layout = device.createDescriptorSetLayout(createInfo);
+    }
+    else
+        layout = device.createDescriptorSetLayout(createInfo);
     createdLayouts[info] = layout;
     return layout;
 }
@@ -71,6 +87,7 @@ DescriptorLayoutManager& DescriptorLayoutManager::operator=(DescriptorLayoutMana
 USize DescriptorLayoutManager::LayoutInfo::Hash::operator()(const DescriptorLayoutManager::LayoutInfo& info) const
 {
     USize hash = std::hash<vk::DescriptorSetLayoutCreateFlags>()(info.flags);
+    hash ^= std::hash<bool>()(info.bindless);
     for (auto& binding : info.bindings)
         hash ^= std::hash<vk::DescriptorSetLayoutBinding>()(binding);
     return hash;
@@ -78,6 +95,6 @@ USize DescriptorLayoutManager::LayoutInfo::Hash::operator()(const DescriptorLayo
 
 bool DescriptorLayoutManager::LayoutInfo::operator==(const DescriptorLayoutManager::LayoutInfo& other) const
 {
-    return bindings == other.bindings && flags == other.flags;
+    return bindings == other.bindings && flags == other.flags && bindless == other.bindless;
 }
 }   // namespace dragonfire

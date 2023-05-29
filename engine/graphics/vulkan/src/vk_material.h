@@ -11,6 +11,13 @@
 
 namespace dragonfire {
 
+struct TextureIndices {
+    UInt32 albedo = 0;
+    UInt32 ambient = 0;
+    UInt32 diffuse = 0;
+    UInt32 specular = 0;
+};
+
 class VkMaterial : public Material {
 public:
     VkMaterial(vk::Pipeline pipeline, vk::PipelineLayout pipelineLayout)
@@ -39,9 +46,12 @@ public:
 
     [[nodiscard]] vk::PipelineLayout getPipelineLayout() const { return pipelineLayout; }
 
+    [[nodiscard]] const TextureIndices& getTextureIndices() const { return textureIndices; }
+
 private:
     vk::Pipeline pipeline;
     vk::PipelineLayout pipelineLayout;
+    TextureIndices textureIndices;
 };
 
 }   // namespace dragonfire

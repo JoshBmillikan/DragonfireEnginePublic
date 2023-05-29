@@ -88,7 +88,7 @@ void VkRenderer::init()
         swapchain.initFramebuffers(mainRenderPass, msaaView, depthView);
         layoutManager = DescriptorLayoutManager(device);
         {
-            PipelineFactory pipelineFactory(device, msaaSamples, &layoutManager, getRenderPasses());
+            PipelineFactory pipelineFactory(device, msaaSamples, &layoutManager, maxDrawCount, getRenderPasses());
             materialLibrary.loadMaterialFiles("assets/materials", this, pipelineFactory);
             auto [pipeline, layout] = pipelineFactory.createComputePipeline("cull.comp");
             cullComputePipeline = pipeline;
@@ -651,12 +651,13 @@ void VkRenderer::createDescriptorPool()
 {
     vk::DescriptorPoolSize sizes[] = {
             {vk::DescriptorType::eUniformBuffer, 16},
-            {vk::DescriptorType::eCombinedImageSampler, 1},
+            {vk::DescriptorType::eCombinedImageSampler, maxDrawCount},
             {vk::DescriptorType::eStorageBuffer, 64}};
     vk::DescriptorPoolCreateInfo createInfo{};
+    createInfo.flags = vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind;
     createInfo.poolSizeCount = 3;
     createInfo.pPoolSizes = sizes;
-    createInfo.maxSets = FRAMES_IN_FLIGHT * 4;
+    createInfo.maxSets = FRAMES_IN_FLIGHT * 16 + maxDrawCount;
     descriptorPool = device.createDescriptorPool(createInfo);
 }
 
@@ -711,26 +712,55 @@ void VkRenderer::initFrame(VkRenderer::Frame& frame, UInt32 frameIndex)
                     .withUsage(VMA_MEMORY_USAGE_GPU_ONLY)
                     .withRequiredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
                     .build();
+    frame.textureIndexBuffer = Buffer::Builder()
+                                       .withAllocator(allocator)
+                                       .withBufferUsage(vk::BufferUsageFlagBits::eStorageBuffer)
+                                       .withSize(maxDrawCount * sizeof(TextureIndices))
+                                       .withSharingMode(vk::SharingMode::eExclusive)
+                                       .withUsage(VMA_MEMORY_USAGE_GPU_ONLY)
+                                       .withRequiredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                                       .withPreferredFlags(vk::MemoryPropertyFlagBits::eLazilyAllocated)
+                                       .build();
 
     DescriptorLayoutManager::LayoutInfo layoutInfo, computeLayout, frameLayout;
-    layoutInfo.bindings.emplace_back(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment);
+    layoutInfo.bindings.emplace_back(
+            0,
+            vk::DescriptorType::eUniformBuffer,
+            1,
+            vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
+    );
 
     computeLayout.bindings.emplace_back(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
     computeLayout.bindings.emplace_back(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
     computeLayout.bindings.emplace_back(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
     computeLayout.bindings.emplace_back(3, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eCompute);
     computeLayout.bindings.emplace_back(4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
+    computeLayout.bindings.emplace_back(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
 
     frameLayout.bindings.emplace_back(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eVertex);
+    frameLayout.bindings.emplace_back(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment);
+    frameLayout.bindings.emplace_back(
+            2,
+            vk::DescriptorType::eCombinedImageSampler,
+            maxDrawCount,
+            vk::ShaderStageFlagBits::eFragment
+    );
+    frameLayout.bindless = true;
+
     vk::DescriptorSetLayout setLayouts[] = {
             layoutManager.getOrCreateLayout(layoutInfo),
             layoutManager.getOrCreateLayout(computeLayout),
             layoutManager.getOrCreateLayout(frameLayout)};
 
+    vk::DescriptorSetVariableDescriptorCountAllocateInfo varCountInfo{};
+    varCountInfo.descriptorSetCount = 3;
+    UInt32 counts[] = {0, 0, maxDrawCount};
+    varCountInfo.pDescriptorCounts = counts;
     vk::DescriptorSetAllocateInfo setAllocateInfo{};
     setAllocateInfo.descriptorPool = descriptorPool;
     setAllocateInfo.descriptorSetCount = 3;
     setAllocateInfo.pSetLayouts = setLayouts;
+    setAllocateInfo.pNext = &varCountInfo;
 
     auto sets = device.allocateDescriptorSets<FrameAllocator<vk::DescriptorSet>>(setAllocateInfo);
     frame.globalDescriptorSet = sets[0];
@@ -748,7 +778,7 @@ void VkRenderer::writeDescriptors(VkRenderer::Frame& frame, UInt32 frameIndex)
     globalUboInfo.buffer = globalUBO;
     globalUboInfo.offset = frameIndex * uboOffset;
     globalUboInfo.range = sizeof(UBOData);
-    std::array<vk::WriteDescriptorSet, 7> writes{};
+    std::array<vk::WriteDescriptorSet, 9> writes{};
     writes[0].dstSet = frame.globalDescriptorSet;
     writes[0].dstArrayElement = 0;
     writes[0].dstBinding = 0;
@@ -756,6 +786,16 @@ void VkRenderer::writeDescriptors(VkRenderer::Frame& frame, UInt32 frameIndex)
     writes[0].descriptorCount = 1;
     writes[0].descriptorType = vk::DescriptorType::eUniformBuffer;
 
+    vk::DescriptorBufferInfo drawBufInfo{};
+    drawBufInfo.buffer = frame.drawData;
+    drawBufInfo.offset = 0;
+    drawBufInfo.range = maxDrawCount * sizeof(DrawData);
+    writes[1].dstSet = frame.computeSet;
+    writes[1].dstArrayElement = 0;
+    writes[1].dstBinding = 4;
+    writes[1].pBufferInfo = &drawBufInfo;
+    writes[1].descriptorCount = 1;
+    writes[1].descriptorType = vk::DescriptorType::eStorageBuffer;
     vk::DescriptorBufferInfo culledMatrixInfo{};
     culledMatrixInfo.buffer = frame.culledMatrices;
     culledMatrixInfo.offset = 0;
@@ -792,27 +832,34 @@ void VkRenderer::writeDescriptors(VkRenderer::Frame& frame, UInt32 frameIndex)
     writes[5].pBufferInfo = &globalUboInfo;
     writes[5].descriptorCount = 1;
     writes[5].descriptorType = vk::DescriptorType::eUniformBuffer;
-    vk::DescriptorBufferInfo drawBufInfo{};
-    drawBufInfo.buffer = frame.drawData;
-    drawBufInfo.offset = 0;
-    drawBufInfo.range = maxDrawCount * sizeof(DrawData);
-    writes[1].dstSet = frame.computeSet;
-    writes[1].dstArrayElement = 0;
-    writes[1].dstBinding = 4;
-    writes[1].pBufferInfo = &drawBufInfo;
-    writes[1].descriptorCount = 1;
-    writes[1].descriptorType = vk::DescriptorType::eStorageBuffer;
+    vk::DescriptorBufferInfo textureIndexBuffInfo{};
+    textureIndexBuffInfo.buffer = frame.textureIndexBuffer;
+    textureIndexBuffInfo.offset = 0;
+    textureIndexBuffInfo.range = maxDrawCount * sizeof(TextureIndices);
+    writes[6].dstSet = frame.computeSet;
+    writes[6].dstArrayElement = 0;
+    writes[6].dstBinding = 5;
+    writes[6].pBufferInfo = &textureIndexBuffInfo;
+    writes[6].descriptorCount = 1;
+    writes[6].descriptorType = vk::DescriptorType::eStorageBuffer;
 
     vk::DescriptorBufferInfo frameInfo{};
     frameInfo.range = maxDrawCount * sizeof(glm::mat4);
     frameInfo.offset = 0;
     frameInfo.buffer = frame.culledMatrices;
-    writes[6].dstSet = frame.frameSet;
-    writes[6].dstArrayElement = 0;
-    writes[6].dstBinding = 0;
-    writes[6].pBufferInfo = &frameInfo;
-    writes[6].descriptorCount = 1;
-    writes[6].descriptorType = vk::DescriptorType::eStorageBuffer;
+    writes[7].dstSet = frame.frameSet;
+    writes[7].dstArrayElement = 0;
+    writes[7].dstBinding = 0;
+    writes[7].pBufferInfo = &frameInfo;
+    writes[7].descriptorCount = 1;
+    writes[7].descriptorType = vk::DescriptorType::eStorageBuffer;
+    writes[8].dstSet = frame.frameSet;
+    writes[8].dstArrayElement = 0;
+    writes[8].dstBinding = 1;
+    writes[8].pBufferInfo = &textureIndexBuffInfo;
+    writes[8].descriptorCount = 1;
+    writes[8].descriptorType = vk::DescriptorType::eStorageBuffer;
+
     device.updateDescriptorSets(writes, {});
 }
 

@@ -248,9 +248,14 @@ void PipelineFactory::loadLayoutReflectionData(
         }
         auto& layoutInfo = layoutInfos[bindingInfo.set];
         auto& binding = layoutInfo.bindings.emplace_back();
+        TempString str = bindingInfo.name;
         binding.binding = bindingInfo.binding;
         binding.descriptorType = static_cast<vk::DescriptorType>(bindingInfo.descriptor_type);
         binding.descriptorCount = bindingInfo.count;
+        if (str.find("bindless_") != std::string::npos) {
+            layoutInfo.bindless = true;
+            binding.descriptorCount = maxDrawCount;
+        }
         binding.stageFlags = static_cast<vk::ShaderStageFlagBits>(shader.shader_stage);
     }
 }
@@ -285,12 +290,14 @@ PipelineFactory::PipelineFactory(
         vk::Device device,
         vk::SampleCountFlagBits multisamplingSamples,
         DescriptorLayoutManager* layoutManager,
+        vk::DeviceSize maxDrawCount,
         std::vector<vk::RenderPass>&& renderPasses
 )
     : device(device),
       layoutManager(layoutManager),
       multisamplingSamples(multisamplingSamples),
-      renderPasses(std::move(renderPasses))
+      renderPasses(std::move(renderPasses)),
+      maxDrawCount(maxDrawCount)
 {
     logger = spdlog::get("Rendering");
     try {

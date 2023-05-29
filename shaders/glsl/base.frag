@@ -1,5 +1,5 @@
-#version 450
-#extension GL_EXT_nonuniform_qualifier : enable
+#version 460
+#include "textures.glsl"
 
 layout (location=0) out vec4 outColor;
 layout (location=0) in vec3 normal;
@@ -13,6 +13,12 @@ layout (set=0, binding=0) uniform Ubo {
     vec3 cameraPosition;
     vec2 resolution;
 }uboData;
+
+layout(std430, set=1, binding=1) buffer TextureData {
+    TextureIndices indices[];
+}textureData;
+
+layout(set=1, binding=2) uniform sampler2D bindless_textures[];
 
 void main() {
     vec3 lightColor =  vec3(1.0, 1.0, 1.0);

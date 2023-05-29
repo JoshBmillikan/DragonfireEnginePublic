@@ -18,6 +18,7 @@ public:
     struct LayoutInfo {
         std::vector<vk::DescriptorSetLayoutBinding> bindings;
         vk::DescriptorSetLayoutCreateFlagBits flags{};
+        bool bindless = false;
 
         struct Hash {
             USize operator()(const LayoutInfo& info) const;

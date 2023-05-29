@@ -50,6 +50,7 @@ void VkRenderer::render(World& world, const Camera& camera)
             drawData[drawCount].vertexCount = mesh->vertexCount;
             drawData[drawCount].indexOffset = mesh->getIndexOffset();
             drawData[drawCount].indexCount = mesh->indexCount;
+            drawData[drawCount].textureIndices = material->getTextureIndices();
             drawData++;
             drawCount++;
         }
@@ -283,6 +284,7 @@ void VkRenderer::shutdown()
         frame.culledMatrices.destroy();
         frame.commandBuffer.destroy();
         frame.countBuffer.destroy();
+        frame.textureIndexBuffer.destroy();
         device.destroy(frame.pool);
         device.destroy(frame.fence);
         device.destroy(frame.renderSemaphore);

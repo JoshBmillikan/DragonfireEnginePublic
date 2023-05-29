@@ -58,7 +58,7 @@ private:
         vk::CommandPool pool;
         vk::CommandBuffer cmd;
         vk::DescriptorSet globalDescriptorSet, computeSet, frameSet;
-        Buffer drawData, culledMatrices, commandBuffer, countBuffer;
+        Buffer drawData, culledMatrices, commandBuffer, countBuffer, textureIndexBuffer;
         vk::Semaphore renderSemaphore, presentSemaphore;
         vk::Fence fence;
     } frames[FRAMES_IN_FLIGHT], *presentingFrame = nullptr;
@@ -71,8 +71,9 @@ private:
     } presentData;
 
     struct DrawData {
-        glm::mat4 transform;
-        UInt32 vertexOffset, vertexCount, indexOffset, indexCount;
+        glm::mat4 transform{};
+        UInt32 vertexOffset = 0, vertexCount = 0, indexOffset = 0, indexCount = 0;
+        TextureIndices textureIndices;
     };
 
     struct PipelineDrawInfo {
