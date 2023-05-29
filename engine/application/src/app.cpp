@@ -21,7 +21,9 @@ App App::INSTANCE;
 
 void App::update(double deltaTime)
 {
-
+    for (auto&& [entity, transform] : world.getRegistry().view<Transform>().each()) {
+        transform.rotation = glm::rotate(transform.rotation, float(deltaTime * 1.0), glm::vec3(0.0f, 0.0f, 1.0f));
+    }
     renderer->render(world, camera);
 }
 
@@ -120,7 +122,7 @@ void App::init()
     float width = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.0"));
     float height = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.1"));
     camera = Camera(60.0f, width, height);
-    auto model = Model::loadGltfModel("assets/models/dragon.gltf", renderer);
+    auto model = Model::loadGltfModel("assets/models/dragon.glb", renderer);
 
     auto& registry = world.getRegistry();
     auto entity = registry.create();

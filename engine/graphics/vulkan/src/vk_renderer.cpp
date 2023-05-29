@@ -259,7 +259,7 @@ MeshHandle VkRenderer::createMesh(std::span<Model::Vertex> vertices, std::span<U
 
 void VkRenderer::freeMesh(MeshHandle mesh)
 {
-    // TODO
+    // TODO buffer freeing it to ensure the mesh is not still in use by the gpu
     meshRegistry.freeMesh(mesh);
 }
 
