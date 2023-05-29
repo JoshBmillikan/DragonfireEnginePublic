@@ -190,6 +190,7 @@ void VkRenderer::startFrame()
             case vk::Result::eSuccess: break;
             case vk::Result::eSuboptimalKHR:
             case vk::Result::eErrorOutOfDateKHR:
+                device.waitIdle();
                 swapchain = Swapchain(
                         physicalDevice,
                         device,
@@ -199,6 +200,11 @@ void VkRenderer::startFrame()
                         queues.presentFamily,
                         swapchain
                 );
+                device.destroy(msaaView);
+                device.destroy(depthView);
+                createMsaaImage();
+                createDepthImage();
+                swapchain.initFramebuffers(mainRenderPass, msaaView, depthView);
                 break;
             default: crash("Failed to acquire next swapchain image");
         }

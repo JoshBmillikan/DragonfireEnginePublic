@@ -252,7 +252,7 @@ void PipelineFactory::loadLayoutReflectionData(
         binding.binding = bindingInfo.binding;
         binding.descriptorType = static_cast<vk::DescriptorType>(bindingInfo.descriptor_type);
         binding.descriptorCount = bindingInfo.count;
-        if (str.find("bindless_") != std::string::npos) {
+        if (str.find("bindless") != std::string::npos) {
             layoutInfo.bindless = true;
             binding.descriptorCount = maxDrawCount;
         }
