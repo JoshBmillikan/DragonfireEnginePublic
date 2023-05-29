@@ -85,7 +85,7 @@ private:
 private:
     void present(const std::stop_token& stopToken);
     void startFrame();
-    void beginRenderingCommands(const Camera& camera);
+    void beginRenderingCommands(const World& world, const Camera& camera);
     void computePrePass(UInt32 drawCount);
     void renderMainPass();
     void startRenderPass(vk::RenderPass pass, std::span<vk::ClearValue> clearValues);
@@ -123,11 +123,12 @@ public:
     [[nodiscard]] DescriptorLayoutManager* getLayoutManager() { return &layoutManager; }
 };
 
-struct alignas(16) UBOData {
-    glm::mat4 perspective;
-    glm::mat4 orthographic;
-    glm::vec3 sunDirection;
-    glm::vec2 resolution;
+struct UBOData {
+    alignas(16) glm::mat4 perspective;
+    alignas(16) glm::mat4 orthographic;
+    alignas(16) glm::vec3 sunDirection;
+    alignas(16) glm::vec3 cameraPosition;
+    alignas(16) glm::vec2 resolution;
 };
 
 }   // namespace dragonfire

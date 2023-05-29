@@ -17,6 +17,17 @@ vk::DescriptorSetLayout DescriptorLayoutManager::getOrCreateLayout(DescriptorLay
     std::sort(info.bindings.begin(), info.bindings.end(), [](const auto& a, const auto& b) {
         return a.binding < b.binding;
     });
+    if (info.bindings.size() > 1) {
+        for (UInt i = 0; i < info.bindings.size() - 1; i++) {
+            auto& a = info.bindings[i];
+            auto& b = info.bindings[i + 1];
+            if (a.binding == b.binding) {
+                a.stageFlags |= b.stageFlags;
+                b.stageFlags |= a.stageFlags;
+            }
+        }
+    }
+
     info.bindings.erase(std::unique(info.bindings.begin(), info.bindings.end()), info.bindings.end());
     createInfo.bindingCount = info.bindings.size();
     createInfo.pBindings = info.bindings.data();

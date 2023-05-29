@@ -14,7 +14,7 @@ namespace dragonfire {
 void VkRenderer::render(World& world, const Camera& camera)
 {
     startFrame();
-    beginRenderingCommands(camera);
+    beginRenderingCommands(world, camera);
     Frame& frame = getCurrentFrame();
     DrawData* drawData = static_cast<DrawData*>(frame.drawData.getInfo().pMappedData);
 
@@ -61,7 +61,7 @@ void VkRenderer::render(World& world, const Camera& camera)
     endFrame();
 }
 
-void VkRenderer::beginRenderingCommands(const Camera& camera)
+void VkRenderer::beginRenderingCommands(const World& world, const Camera& camera)
 {
     char* ptr = static_cast<char*>(globalUBO.getInfo().pMappedData);
     ptr += uboOffset * (frameCount % FRAMES_IN_FLIGHT);
@@ -69,6 +69,9 @@ void VkRenderer::beginRenderingCommands(const Camera& camera)
     glm::mat4 view = camera.getViewMatrix();
     data->orthographic = camera.ortho * view;
     data->perspective = camera.perspective * view;
+    data->resolution = glm::vec2(swapchain.getExtent().width, swapchain.getExtent().height);
+    data->cameraPosition = glm::vec3(camera.getViewMatrix() * glm::vec4(camera.position, 1.0));
+    data->sunDirection = glm::normalize(glm::vec3(-0.2f, -0.3f, 1.0f));
 
     Frame& frame = getCurrentFrame();
     device.resetCommandPool(frame.pool);

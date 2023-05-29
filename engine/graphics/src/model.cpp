@@ -152,8 +152,11 @@ Model Model::loadGltfModel(const char* path, Renderer* renderer, bool optimizeMo
                 optimize(vertices, indices);
             MeshHandle handle = renderer->createMesh(vertices, indices);
             Material* material = renderer->getMaterialLibrary()->getMaterial("basic");   // TODO get from gltf
-            auto& p = out.primitives.emplace_back(Primitive{handle, material, glm::identity<glm::mat4>()});
-            p.transform = glm::rotate(p.transform, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            out.primitives.emplace_back(Primitive{
+                    handle,
+                    material,
+                    glm::rotate(glm::identity<glm::mat4>(), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            });
 
             spdlog::info("Loaded primitive geometry with {} vertices and {} indices", count, accessor.count);
             vertices.clear();

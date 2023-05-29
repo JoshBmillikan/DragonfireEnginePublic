@@ -8,6 +8,7 @@ layout (set=0, binding=0) uniform Ubo {
     mat4 perspective;
     mat4 orthographic;
     vec3 sunDirection;
+    vec3 cameraPosition;
     vec2 resolution;
 }uboData;
 
@@ -15,16 +16,17 @@ layout (std430, set=1, binding=0) readonly buffer Transforms {
     mat4 modelMatrices[];
 }transforms;
 
-layout(location = 0) out vec4 frag_color;
-layout(location = 1) out vec2 uv_out;
+layout (location=0) out vec3 normalOut;
+layout (location=1) out vec2 uvOut;
+layout (location=2) out vec3 fragPos;
 
 void main()
 {
-    mat4 transform = uboData.perspective * transforms.modelMatrices[gl_InstanceIndex];
+    mat4 model = transforms.modelMatrices[gl_InstanceIndex];
+    mat4 transform = uboData.perspective * model;
     gl_Position = transform * vec4(position, 1.0);
-
-    vec4 ambient = vec4(0.75, 0.75, 0.75, 1.0);
-    vec4 diffuse = vec4(max(dot(vec3(0.24525, -0.919709, 0.30656966), -normal), 0) * vec3(1.0, 1.0, 1.0), 1);
-    frag_color = ambient + diffuse;
-    uv_out = uv;
+    fragPos = vec3(model * vec4 (position, 1.0));
+    // forward normals and uvs to fragment shader
+    normalOut = normal;
+    uvOut = uv;
 }

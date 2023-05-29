@@ -713,7 +713,7 @@ void VkRenderer::initFrame(VkRenderer::Frame& frame, UInt32 frameIndex)
                     .build();
 
     DescriptorLayoutManager::LayoutInfo layoutInfo, computeLayout, frameLayout;
-    layoutInfo.bindings.emplace_back(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex);
+    layoutInfo.bindings.emplace_back(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment);
 
     computeLayout.bindings.emplace_back(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
     computeLayout.bindings.emplace_back(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute);
