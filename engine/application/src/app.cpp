@@ -9,6 +9,7 @@
 #include <file.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
+#include <math.h>
 #include <model.h>
 #include <physfs.h>
 #include <spdlog/async.h>
@@ -16,7 +17,6 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <transform.h>
-#include <math.h>
 
 namespace dragonfire {
 
@@ -36,12 +36,15 @@ void App::update(double deltaTime)
     renderer->render(world, camera);
 }
 
-void App::processEvents()
+void App::processEvents(double deltaTime)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL2_ProcessEvent(&event);
         switch (event.type) {
+            case SDL_KEYDOWN:
+                if (event.key.keysym.scancode != SDL_SCANCODE_ESCAPE)
+                    break;
             case SDL_QUIT: stop(); break;
         }
     }
@@ -54,9 +57,9 @@ void App::run()
     spdlog::info("Initialization finished in {:.3}", double(time) / 1000.0);
     while (running) {
         frame_allocator::nextFrame();
-        processEvents();
         UInt64 now = SDL_GetTicks64();
         double dt = double(now - time) / 1000.0;
+        processEvents(dt);
         update(dt);
         time = now;
     }
@@ -106,6 +109,24 @@ static void initLogging()
     info("Logging started to {}", logPath);
 }
 
+static void spawnBunnies(entt::registry& registry, Renderer* renderer)
+{
+    auto model = Model::loadGltfModel("assets/models/bunny.glb", renderer);
+    const UInt32 bunnyCount = 24;
+    const UInt32 rowCount = 6;
+    for (UInt i = 0; i < rowCount; i++) {
+        for (UInt32 j = 0; j < bunnyCount; j++) {
+            auto entity = registry.create();
+            registry.emplace<Model>(entity, model);
+            auto& t = registry.emplace<Transform>(entity);
+            t.position.y -= float(j + 1);
+            t.position.x += 1.0f + (float(j) * 0.005f) + (2.0f * float(i));
+            t.position.z -= 0.5f;
+            t.scale *= 2;
+        }
+    }
+}
+
 void App::init()
 {
     int err = PHYSFS_setSaneConfig("org", APP_ID, "pak", false, false);
@@ -144,15 +165,9 @@ void App::init()
     t.position.x -= 2;
     t.scale *= 0.05f;
 
-    auto model2 = Model::loadGltfModel("assets/models/bunny.glb", renderer);
-    auto e2 = registry.create();
-    registry.emplace<Model>(e2, std::move(model2));
-    auto& t2 = registry.emplace<Transform>(e2);
-    t2.position.y -= 2;
-    t2.position.x += 1;
-    t2.position.z -= 0.5f;
-    t2.scale *= 2;
-    camera.lookAt(midpoint(t.position, t2.position));
+    spawnBunnies(registry, renderer);
+    camera.lookAt(t.position);
+    t.position.x -= 2;
 }
 
 }   // namespace dragonfire

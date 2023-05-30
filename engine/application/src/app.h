@@ -24,7 +24,7 @@ private:
     Renderer* renderer = nullptr;
 
     App() = default;
-    void processEvents();
+    void processEvents(double deltaTime);
     void update(double deltaTime);
 };
 
