@@ -4,12 +4,12 @@
 
 #pragma once
 #include "descriptor_set.h"
+#include "renderer.h"
 #include <allocators.h>
 #include <ankerl/unordered_dense.h>
 #include <material.h>
 #include <shared_mutex>
 #include <spirv_reflect.h>
-#include "renderer.h"
 
 namespace dragonfire {
 
@@ -28,7 +28,10 @@ public:
     void destroy() noexcept;
     void saveCache();
     std::pair<vk::Pipeline, vk::PipelineLayout> createPipeline(const Material::ShaderEffect& effect);
-    std::pair<vk::Pipeline, vk::PipelineLayout> createComputePipeline(const std::string& shaderName, vk::PipelineCreateFlagBits flags = {});
+    std::pair<vk::Pipeline, vk::PipelineLayout> createComputePipeline(
+            const std::string& shaderName,
+            vk::PipelineCreateFlagBits flags = {}
+    );
 
     PipelineFactory(PipelineFactory&) = delete;
     PipelineFactory(PipelineFactory&&) = delete;
@@ -75,7 +78,6 @@ private:
 
 class Pipeline {
 public:
-
     Pipeline(vk::Pipeline pipeline, vk::PipelineLayout pipelineLayout)
         : pipeline(pipeline), pipelineLayout(pipelineLayout)
     {

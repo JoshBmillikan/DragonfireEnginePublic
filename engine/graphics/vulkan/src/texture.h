@@ -53,6 +53,8 @@ public:
 
         void writeDescriptor(const std::string& textureId, vk::DescriptorSet set, UInt32 binding);
 
+        [[nodiscard]] const Texture& getTexture(const std::string& textureId) const { return textures.at(textureId); }
+
     private:
         VmaAllocator allocator = nullptr;
         std::map<std::string, Texture> textures;

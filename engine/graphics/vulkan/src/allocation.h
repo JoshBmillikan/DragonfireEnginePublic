@@ -12,6 +12,7 @@ public:
     void* map() noexcept;
     void flush();
     virtual ~Allocation() = default;
+
     [[nodiscard]] const VmaAllocationInfo& getInfo() const { return info; };
 
 protected:
