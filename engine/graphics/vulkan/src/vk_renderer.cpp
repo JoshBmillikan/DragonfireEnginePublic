@@ -53,7 +53,6 @@ void VkRenderer::render(World& world, const Camera& camera)
             drawData[drawCount].indexOffset = mesh->getIndexOffset();
             drawData[drawCount].indexCount = mesh->indexCount;
             drawData[drawCount].textureIndices = material.getTextureIds();
-            drawData++;
             drawCount++;
         }
     }

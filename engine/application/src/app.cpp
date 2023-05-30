@@ -7,6 +7,8 @@
 #include <allocators.h>
 #include <config.h>
 #include <file.h>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
 #include <model.h>
 #include <physfs.h>
 #include <spdlog/async.h>
@@ -14,8 +16,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <transform.h>
-#include <imgui.h>
-#include <imgui_impl_sdl2.h>
+#include <math.h>
 
 namespace dragonfire {
 
@@ -140,9 +141,18 @@ void App::init()
     registry.emplace<Model>(entity, std::move(model));
     auto& t = registry.emplace<Transform>(entity);
     t.position.y -= 20;
-    t.position.x -= 1;
-    t.scale *= 0.1f;
-    camera.lookAt(t.position);
+    t.position.x -= 2;
+    t.scale *= 0.05f;
+
+    auto model2 = Model::loadGltfModel("assets/models/bunny.glb", renderer);
+    auto e2 = registry.create();
+    registry.emplace<Model>(e2, std::move(model2));
+    auto& t2 = registry.emplace<Transform>(e2);
+    t2.position.y -= 2;
+    t2.position.x += 1;
+    t2.position.z -= 0.5f;
+    t2.scale *= 2;
+    camera.lookAt(midpoint(t.position, t2.position));
 }
 
 }   // namespace dragonfire

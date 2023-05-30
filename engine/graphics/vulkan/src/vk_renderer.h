@@ -87,7 +87,7 @@ private:
     } presentData;
 
     struct DrawData {
-        glm::mat4 transform{};
+        alignas(16) glm::mat4 transform{};
         UInt32 vertexOffset = 0, vertexCount = 0, indexOffset = 0, indexCount = 0;
         TextureIds textureIndices;
     };

@@ -119,6 +119,7 @@ UInt32 Texture::TextureRegistry::loadTexture(
     graphicsQueue.submit(submitInfo, fence);
 
     vk::resultCheck(device.waitForFences(fence, true, UINT64_MAX), "Fence wait failed");
+    device.resetFences(fence);
     UInt32 imageId = imageIndex++;
 
     vk::SamplerCreateInfo samplerInfo{};
