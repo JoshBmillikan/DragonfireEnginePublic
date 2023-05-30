@@ -334,7 +334,7 @@ UInt32 VkRenderer::loadTexture(
             textureRegistry
                     .loadTexture(name, data, width, height, bitDepth, pixelSize, wrapS, wrapT, minFilter, magFilter);
     for (Frame& frame : frames)
-        textureRegistry.writeDescriptor(name, frame.frameSet, 2);
+        textureRegistry.writeDescriptor(name, frame.frameSet, frame.textureBinding);
     return id;
 }
 
