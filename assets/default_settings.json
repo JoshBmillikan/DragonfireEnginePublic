@@ -1,0 +1,10 @@
+{
+  "graphics": {
+    "window": {
+      "resolution": [1920, 1080],
+      "mode": 0
+    },
+    "vsync": true,
+    "msaa_samples": 8
+  }
+}
