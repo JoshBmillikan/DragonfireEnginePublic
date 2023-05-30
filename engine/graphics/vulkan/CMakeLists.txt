@@ -23,7 +23,7 @@ CPMAddPackage(
 
 add_library(VulkanRenderer STATIC src/vk_renderer.cpp src/vk_renderer.h src/vk_include.h src/init.cpp src/swapchain.cpp src/swapchain.h src/allocation.cpp src/allocation.h src/pipeline.cpp src/pipeline.h src/descriptor_set.cpp src/descriptor_set.h src/mesh.cpp src/mesh.h src/texture.cpp src/texture.h)
 target_link_libraries(VulkanRenderer PUBLIC Core Graphics)
-target_link_libraries(VulkanRenderer PRIVATE Vulkan::Headers VulkanMemoryAllocator spirv-reflect-static)
+target_link_libraries(VulkanRenderer PRIVATE Vulkan::Headers VulkanMemoryAllocator spirv-reflect-static imgui_vulkan)
 target_include_directories(VulkanRenderer PRIVATE src)
 target_precompile_headers(VulkanRenderer PRIVATE <vector> <memory> <string> <core.h> <spdlog/spdlog.h> <vk_include.h>)
 target_compile_definitions(VulkanRenderer PRIVATE "SHADER_OUTPUT_PATH=\"${SHADERS_OUT}\"")

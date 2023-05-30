@@ -3,7 +3,7 @@
 //
 
 #include "app.h"
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <allocators.h>
 #include <config.h>
 #include <file.h>
@@ -14,6 +14,8 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <transform.h>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
 
 namespace dragonfire {
 
@@ -24,6 +26,12 @@ void App::update(double deltaTime)
     for (auto&& [entity, transform] : world.getRegistry().view<Transform>().each()) {
         transform.rotation = glm::rotate(transform.rotation, float(deltaTime * 1.0), glm::vec3(0.0f, 0.0f, 1.0f));
     }
+    renderer->startImGuiFrame();
+    ImGui::Begin("Test");
+    ImGui::Text("Hello world");
+    ImGui::Text("Frame time: %.1fms (%.1f FPS)", deltaTime * 1000, ImGui::GetIO().Framerate);
+    ImGui::End();
+    ImGui::Render();
     renderer->render(world, camera);
 }
 
@@ -31,6 +39,7 @@ void App::processEvents()
 {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        ImGui_ImplSDL2_ProcessEvent(&event);
         switch (event.type) {
             case SDL_QUIT: stop(); break;
         }
@@ -118,6 +127,8 @@ void App::init()
         Config::INSTANCE.saveConfig("settings.json");
     }
     renderer = getRenderer();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
     renderer->init();
     float width = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.0"));
     float height = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.1"));

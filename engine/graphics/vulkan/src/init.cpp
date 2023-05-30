@@ -3,8 +3,10 @@
 //
 #include "config.h"
 #include "vk_renderer.h"
-#include <SDL2/SDL_vulkan.h>
+#include <SDL_vulkan.h>
 #include <allocators.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
 #include <utility.h>
 #if defined(_MSC_VER) || defined(__MINGW32__)
     #include <malloc.h>
@@ -110,6 +112,7 @@ void VkRenderer::init()
             i++;
         }
         presentData.thread = std::jthread(std::bind_front(&VkRenderer::present, this));
+        initImGui();
         logger->info("Vulkan initialization finished");
     }
     catch (const std::exception& e) {
@@ -869,6 +872,107 @@ void VkRenderer::writeDescriptors(VkRenderer::Frame& frame, UInt32 frameIndex)
     writes[8].descriptorType = vk::DescriptorType::eStorageBuffer;
 
     device.updateDescriptorSets(writes, {});
+}
+
+static PFN_vkVoidFunction getFunction(const char* functionName, void*)
+{
+#define FN(name)                                                                                                       \
+    if (strcmp(functionName, #name) == 0)                                                                              \
+        return reinterpret_cast<PFN_vkVoidFunction>(VULKAN_HPP_DEFAULT_DISPATCHER.name);
+    FN(vkAllocateCommandBuffers)
+    FN(vkAllocateDescriptorSets)
+    FN(vkAllocateMemory)
+    FN(vkBindBufferMemory)
+    FN(vkBindImageMemory)
+    FN(vkCmdBindDescriptorSets)
+    FN(vkCmdBindIndexBuffer)
+    FN(vkCmdBindPipeline)
+    FN(vkCmdBindVertexBuffers)
+    FN(vkCmdCopyBufferToImage)
+    FN(vkCmdDrawIndexed)
+    FN(vkCmdPipelineBarrier)
+    FN(vkCmdPushConstants)
+    FN(vkCmdSetScissor)
+    FN(vkCmdSetViewport)
+    FN(vkCreateBuffer)
+    FN(vkCreateCommandPool)
+    FN(vkCreateDescriptorSetLayout)
+    FN(vkCreateFence)
+    FN(vkCreateFramebuffer)
+    FN(vkCreateGraphicsPipelines)
+    FN(vkCreateImage)
+    FN(vkCreateImageView)
+    FN(vkCreatePipelineLayout)
+    FN(vkCreateRenderPass)
+    FN(vkCreateSampler)
+    FN(vkCreateSemaphore)
+    FN(vkCreateShaderModule)
+    FN(vkCreateSwapchainKHR)
+    FN(vkDestroyBuffer)
+    FN(vkDestroyCommandPool)
+    FN(vkDestroyDescriptorSetLayout)
+    FN(vkDestroyFence)
+    FN(vkDestroyFramebuffer)
+    FN(vkDestroyImage)
+    FN(vkDestroyImageView)
+    FN(vkDestroyPipeline)
+    FN(vkDestroyPipelineLayout)
+    FN(vkDestroyRenderPass)
+    FN(vkDestroySampler)
+    FN(vkDestroySemaphore)
+    FN(vkDestroyShaderModule)
+    FN(vkDestroySurfaceKHR)
+    FN(vkDestroySwapchainKHR)
+    FN(vkDeviceWaitIdle)
+    FN(vkFlushMappedMemoryRanges)
+    FN(vkFreeCommandBuffers)
+    FN(vkFreeDescriptorSets)
+    FN(vkFreeMemory)
+    FN(vkGetBufferMemoryRequirements)
+    FN(vkGetImageMemoryRequirements)
+    FN(vkGetPhysicalDeviceMemoryProperties)
+    FN(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
+    FN(vkGetPhysicalDeviceSurfaceFormatsKHR)
+    FN(vkGetPhysicalDeviceSurfacePresentModesKHR)
+    FN(vkGetSwapchainImagesKHR)
+    FN(vkMapMemory)
+    FN(vkUnmapMemory)
+    FN(vkUpdateDescriptorSets)
+#undef FN
+    return nullptr;
+}
+
+void VkRenderer::initImGui()
+{
+    bool ok = ImGui_ImplVulkan_LoadFunctions(&getFunction);
+    if (!ok)
+        crash("Failed to load imgui functions");
+    ImGui_ImplSDL2_InitForVulkan(window);
+
+    ImGui_ImplVulkan_InitInfo imguiInfo{};
+    imguiInfo.Instance = instance;
+    imguiInfo.PhysicalDevice = physicalDevice;
+    imguiInfo.Device = device;
+    imguiInfo.QueueFamily = queues.graphicsFamily;
+    imguiInfo.Queue = queues.graphics;
+    imguiInfo.DescriptorPool = descriptorPool;
+    imguiInfo.MinImageCount = FRAMES_IN_FLIGHT;
+    imguiInfo.ImageCount = swapchain.getImageCount();
+    imguiInfo.MSAASamples = static_cast<VkSampleCountFlagBits>(msaaSamples);
+    ImGui_ImplVulkan_Init(&imguiInfo, mainRenderPass);
+    vk::CommandBuffer cmd = frames[0].cmd;
+    vk::CommandBufferBeginInfo begin{};
+    begin.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+    cmd.begin(begin);
+    ImGui_ImplVulkan_CreateFontsTexture(cmd);
+    cmd.end();
+    vk::SubmitInfo submitInfo{};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+    queues.graphics.submit(submitInfo);
+    queues.graphics.waitIdle();
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
+    logger->info("ImGui rendering initialized");
 }
 
 }   // namespace dragonfire

@@ -6,7 +6,7 @@
 #include "camera.h"
 #include "material.h"
 #include "model.h"
-#include <SDL2/SDL_video.h>
+#include <SDL_video.h>
 
 namespace dragonfire {
 
@@ -30,6 +30,9 @@ public:
     ) = 0;
     virtual void freeMesh(MeshHandle mesh) = 0;
     virtual void render(class World& world, const Camera& camera) = 0;
+    virtual void startImGuiFrame() = 0;
+
+    SDL_Window* getWindow() { return window; }
 
 protected:
     UInt64 frameCount = 0;

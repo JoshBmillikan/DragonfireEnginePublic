@@ -4,6 +4,9 @@ CPMFindPackage(
         VERSION 2.26.3
         URL https://libsdl.org/release/SDL2-2.26.3.zip
 )
+if (SDL2_ADDED)
+    add_library(SDL2::SDL2 ALIAS SDL2)
+endif ()
 CPMAddPackage(
         NAME spdlog
         GITHUB_REPOSITORY gabime/spdlog
@@ -54,6 +57,24 @@ CPMAddPackage(
 if (BSThreadPool_ADDED)
     add_library(BSThreadPool INTERFACE)
     target_include_directories(BSThreadPool INTERFACE ${BSThreadPool_SOURCE_DIR})
+endif ()
+CPMAddPackage(
+        NAME imgui
+        GITHUB_REPOSITORY ocornut/imgui
+        VERSION 1.89.5
+        DOWNLOAD_ONLY True
+)
+
+if (imgui_ADDED)
+    add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp  ${imgui_SOURCE_DIR}/imgui_draw.cpp  ${imgui_SOURCE_DIR}/imgui_tables.cpp  ${imgui_SOURCE_DIR}/imgui_widgets.cpp)
+    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+    find_package(Vulkan REQUIRED)
+    add_library(imgui_vulkan STATIC ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+            ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.h ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h)
+    target_include_directories(imgui_vulkan PUBLIC ${imgui_SOURCE_DIR}/backends)
+    target_link_libraries(imgui_vulkan PUBLIC imgui SDL2::SDL2 Vulkan::Headers)
+    target_include_directories(imgui_vulkan PRIVATE ${SDL_INCLUDE_DIRS})
+    target_compile_definitions(imgui_vulkan PUBLIC IMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 endif ()
 add_subdirectory(core)
 add_subdirectory(graphics)

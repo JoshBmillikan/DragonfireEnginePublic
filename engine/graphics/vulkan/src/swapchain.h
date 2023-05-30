@@ -68,6 +68,8 @@ public:
 
     [[nodiscard]] vk::Framebuffer getCurrentFramebuffer() const { return framebuffers[currentImage]; }
 
+    [[nodiscard]] UInt32 getImageCount() const { return imageCount; }
+
     operator vk::SwapchainKHR() const { return swapchain; }
 
     vk::Result next(vk::Semaphore semaphore = {}, vk::Fence fence = {}) noexcept;

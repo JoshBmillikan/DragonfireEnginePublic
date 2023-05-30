@@ -5,7 +5,8 @@
 #include "vk_renderer.h"
 #include "mesh.h"
 #include "renderer.h"
-#include <ankerl/unordered_dense.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
 #include <transform.h>
 #include <vulkan/vulkan_hash.hpp>
 #include <world.h>
@@ -158,7 +159,15 @@ void VkRenderer::renderMainPass()
         );
         drawOffset += info.drawCount * sizeof(vk::DrawIndexedIndirectCommand);
     }
+
+    renderImGui();
     cmd.endRenderPass();
+}
+
+void VkRenderer::renderImGui()
+{
+    auto* drawData = ImGui::GetDrawData();
+    ImGui_ImplVulkan_RenderDrawData(drawData, getCurrentFrame().cmd);
 }
 
 void VkRenderer::startRenderPass(vk::RenderPass pass, std::span<vk::ClearValue> clearValues)
@@ -274,6 +283,13 @@ void VkRenderer::freeMesh(MeshHandle mesh)
     meshRegistry.freeMesh(mesh);
 }
 
+void VkRenderer::startImGuiFrame()
+{
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplSDL2_NewFrame(window);
+    ImGui::NewFrame();
+}
+
 void VkRenderer::shutdown()
 {
     if (!instance)
@@ -281,6 +297,8 @@ void VkRenderer::shutdown()
     presentData.thread.request_stop();
     presentData.thread.join();
     device.waitIdle();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplVulkan_Shutdown();
     for (Frame& frame : frames) {
         frame.drawData.destroy();
         frame.culledMatrices.destroy();

@@ -23,7 +23,7 @@ public:
     MeshHandle createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices) override;
     void freeMesh(MeshHandle mesh) override;
     void render(World& world, const Camera& camera) override;
-
+    void startImGuiFrame() override;
     UInt32 loadTexture(
             const std::string& name,
             const void* data,
@@ -105,6 +105,7 @@ private:
     void beginRenderingCommands(const World& world, const Camera& camera);
     void computePrePass(UInt32 drawCount);
     void renderMainPass();
+    void renderImGui();
     void startRenderPass(vk::RenderPass pass, std::span<vk::ClearValue> clearValues);
     void endFrame();
 
@@ -122,6 +123,7 @@ private:
     void createDescriptorPool();
     void initFrame(Frame& frame, UInt32 frameIndex);
     void writeDescriptors(Frame& frame, UInt32 frameIndex);
+    void initImGui();
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
