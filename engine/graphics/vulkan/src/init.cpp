@@ -89,12 +89,19 @@ void VkRenderer::init()
         layoutManager = DescriptorLayoutManager(device);
         {
             PipelineFactory pipelineFactory(device, msaaSamples, &layoutManager, maxDrawCount, getRenderPasses());
-            materialLibrary.loadMaterialFiles("assets/materials", this, pipelineFactory);
+            pipelineLibrary.loadMaterialFiles("assets/materials", this, pipelineFactory);
             auto [pipeline, layout] = pipelineFactory.createComputePipeline("cull.comp");
             cullComputePipeline = pipeline;
             cullComputeLayout = layout;
         }
         meshRegistry = Mesh::MeshRegistry(device, allocator, queues.graphics, queues.graphicsFamily);
+        textureRegistry = Texture::TextureRegistry(
+                device,
+                allocator,
+                queues.graphics,
+                queues.graphicsFamily,
+                limits.maxSamplerAnisotropy
+        );
         createGlobalUBO();
         createDescriptorPool();
         UInt32 i = 0;
@@ -715,7 +722,7 @@ void VkRenderer::initFrame(VkRenderer::Frame& frame, UInt32 frameIndex)
     frame.textureIndexBuffer = Buffer::Builder()
                                        .withAllocator(allocator)
                                        .withBufferUsage(vk::BufferUsageFlagBits::eStorageBuffer)
-                                       .withSize(maxDrawCount * sizeof(TextureIndices))
+                                       .withSize(maxDrawCount * sizeof(TextureIds))
                                        .withSharingMode(vk::SharingMode::eExclusive)
                                        .withUsage(VMA_MEMORY_USAGE_GPU_ONLY)
                                        .withRequiredFlags(vk::MemoryPropertyFlagBits::eDeviceLocal)
@@ -745,6 +752,7 @@ void VkRenderer::initFrame(VkRenderer::Frame& frame, UInt32 frameIndex)
             maxDrawCount,
             vk::ShaderStageFlagBits::eFragment
     );
+    frame.textureBinding = 2;
     frameLayout.bindless = true;
 
     vk::DescriptorSetLayout setLayouts[] = {
@@ -835,7 +843,7 @@ void VkRenderer::writeDescriptors(VkRenderer::Frame& frame, UInt32 frameIndex)
     vk::DescriptorBufferInfo textureIndexBuffInfo{};
     textureIndexBuffInfo.buffer = frame.textureIndexBuffer;
     textureIndexBuffInfo.offset = 0;
-    textureIndexBuffInfo.range = maxDrawCount * sizeof(TextureIndices);
+    textureIndexBuffInfo.range = maxDrawCount * sizeof(TextureIds);
     writes[6].dstSet = frame.computeSet;
     writes[6].dstArrayElement = 0;
     writes[6].dstBinding = 5;

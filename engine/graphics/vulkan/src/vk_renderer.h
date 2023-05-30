@@ -6,8 +6,9 @@
 #include "allocation.h"
 #include "descriptor_set.h"
 #include "mesh.h"
+#include "pipeline.h"
 #include "swapchain.h"
-#include "vk_material.h"
+#include "texture.h"
 #include <glm/glm.hpp>
 #include <renderer.h>
 #include <thread>
@@ -18,10 +19,23 @@ class VkRenderer : public Renderer {
 public:
     void init() override;
     void shutdown() override;
-    Material::Library* getMaterialLibrary() override;
+
     MeshHandle createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices) override;
     void freeMesh(MeshHandle mesh) override;
-    void render(class World& world, const Camera& camera) override;
+    void render(World& world, const Camera& camera) override;
+
+    UInt32 loadTexture(
+            const std::string& name,
+            const void* data,
+            UInt32 width,
+            UInt32 height,
+            UInt bitDepth,
+            UInt pixelSize,
+            Material::TextureWrapMode wrapS,
+            Material::TextureWrapMode wrapT,
+            Material::TextureFilterMode minFilter,
+            Material::TextureFilterMode magFilter
+    ) override;
 
     static constexpr USize FRAMES_IN_FLIGHT = 2;
 
@@ -46,8 +60,9 @@ private:
     vk::ImageView depthView, msaaView;
     vk::RenderPass mainRenderPass;
     DescriptorLayoutManager layoutManager;
-    VkMaterial::VkLibrary materialLibrary;
+    Pipeline::PipelineLibrary pipelineLibrary;
     Mesh::MeshRegistry meshRegistry;
+    Texture::TextureRegistry textureRegistry;
     vk::Pipeline cullComputePipeline;
     vk::PipelineLayout cullComputeLayout;
     vk::DescriptorPool descriptorPool;
@@ -61,6 +76,7 @@ private:
         Buffer drawData, culledMatrices, commandBuffer, countBuffer, textureIndexBuffer;
         vk::Semaphore renderSemaphore, presentSemaphore;
         vk::Fence fence;
+        UInt32 textureBinding = 0;
     } frames[FRAMES_IN_FLIGHT], *presentingFrame = nullptr;
 
     struct {
@@ -73,7 +89,7 @@ private:
     struct DrawData {
         glm::mat4 transform{};
         UInt32 vertexOffset = 0, vertexCount = 0, indexOffset = 0, indexCount = 0;
-        TextureIndices textureIndices;
+        TextureIds textureIndices;
     };
 
     struct PipelineDrawInfo {

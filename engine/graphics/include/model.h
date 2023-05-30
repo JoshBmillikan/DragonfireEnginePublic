@@ -18,9 +18,9 @@ public:
     };
 
     struct Primitive {
-        MeshHandle mesh;
-        Material* material;
-        glm::mat4 transform;
+        MeshHandle mesh{};
+        Material material{};
+        glm::mat4 transform{};
     };
 
     static Model loadGltfModel(const char* path, class Renderer* renderer, bool optimizeModel = true);

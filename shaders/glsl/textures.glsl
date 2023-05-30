@@ -2,6 +2,7 @@
 
 struct TextureIndices{
     uint albedo;
+    uint normal;
     uint ambient;
     uint diffuse;
     uint specular;

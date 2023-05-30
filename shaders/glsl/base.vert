@@ -19,6 +19,7 @@ layout (std430, set=1, binding=0) readonly buffer Transforms {
 layout (location=0) out vec3 normalOut;
 layout (location=1) out vec2 uvOut;
 layout (location=2) out vec3 fragPos;
+layout (location=3) out uint instanceIndex;
 
 void main()
 {
@@ -29,4 +30,5 @@ void main()
     // forward normals and uvs to fragment shader
     normalOut = normal;
     uvOut = uv;
+    instanceIndex = gl_InstanceIndex;
 }

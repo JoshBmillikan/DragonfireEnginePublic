@@ -100,6 +100,92 @@ static void optimize(std::vector<Model::Vertex>& vertices, std::vector<UInt32>& 
     );
 }
 
+static USize loadIndices(USize accessorIndex, const tinygltf::Model& model, std::vector<UInt32>& indices)
+{
+    const tinygltf::Accessor& accessor = model.accessors[accessorIndex];
+    const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+    const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+
+    indices.reserve(accessor.count);
+    if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+        const UInt16* ptr = reinterpret_cast<const UInt16*>(&buffer.data[bufferView.byteOffset + accessor.byteOffset]);
+        for (USize i = 0; i < accessor.count; i++)
+            indices.push_back(ptr[i]);
+    }
+    else if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+        const UInt32* ptr = reinterpret_cast<const UInt32*>(&buffer.data[bufferView.byteOffset + accessor.byteOffset]);
+        for (USize i = 0; i < accessor.count; i++)
+            indices.push_back(ptr[i]);
+    }
+    else
+        spdlog::error("Unknown gltf index type");
+    return accessor.count;
+}
+
+static Material::TextureWrapMode getWrapMode(int mode)
+{
+    switch (mode) {
+        case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE: return Material::TextureWrapMode::CLAMP_TO_EDGE;
+        case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT: return Material::TextureWrapMode::MIRRORED_REPEAT;
+        case TINYGLTF_TEXTURE_WRAP_REPEAT: return Material::TextureWrapMode::REPEAT;
+        default: crash("Unreachable");
+    }
+}
+
+static Material::TextureFilterMode getFilterMode(int mode)
+{
+    switch (mode) {
+        case TINYGLTF_TEXTURE_FILTER_NEAREST: return Material::TextureFilterMode::NEAREST;
+        case TINYGLTF_TEXTURE_FILTER_LINEAR: return Material::TextureFilterMode::LINEAR;
+        case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST: return Material::TextureFilterMode::NEAREST_MIPMAP_NEAREST;
+        case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST: return Material::TextureFilterMode::LINEAR_MIPMAP_NEAREST;
+        case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR: return Material::TextureFilterMode::NEAREST_MIPMAP_LINEAR;
+        case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR: return Material::TextureFilterMode::LINEAR_MIPMAP_LINEAR;
+        default: return Material::TextureFilterMode::NONE;
+    }
+}
+
+static UInt32 loadTexture(USize index, const tinygltf::Model& model, Renderer* renderer)
+{
+    const tinygltf::Texture& texture = model.textures[index];
+    const tinygltf::Sampler& sampler = model.samplers[texture.sampler];
+    const tinygltf::Image& image = model.images[texture.source];
+    Material::TextureWrapMode wrapS, wrapT;
+    wrapS = getWrapMode(sampler.wrapS);
+    wrapT = getWrapMode(sampler.wrapT);
+    Material::TextureFilterMode minFilter, magFilter;
+    minFilter = getFilterMode(sampler.minFilter);
+    magFilter = getFilterMode(sampler.magFilter);
+    const std::string& name = texture.name.empty() ? image.name : texture.name;
+    auto id = renderer->loadTexture(
+            name,
+            image.image.data(),
+            image.width,
+            image.height,
+            image.bits,
+            image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT ? 2 : 1,
+            wrapS,
+            wrapT,
+            minFilter,
+            magFilter
+    );
+    spdlog::info("Loaded texture \"{}\" at index {}", name, id);
+    return id;
+}
+
+Material loadMaterial(const tinygltf::Material& material, const tinygltf::Model& model, Renderer* renderer)
+{
+    std::string pipelineId = material.values.contains("PIPELINE_ID") ? material.values.at("PIPELINE_ID").string_value
+                                                                     : material.name;
+    TextureIds textures{};
+    if (material.pbrMetallicRoughness.baseColorTexture.index >= 0)
+        textures.albedo = loadTexture(material.pbrMetallicRoughness.baseColorTexture.index, model, renderer);
+    if (material.normalTexture.index >= 0)
+        textures.normal = loadTexture(material.normalTexture.index, model, renderer);
+
+    return Material(std::move(pipelineId), textures);
+}
+
 Model Model::loadGltfModel(const char* path, Renderer* renderer, bool optimizeModel)
 {
     static thread_local tinygltf::TinyGLTF gltf = initGltf();
@@ -114,7 +200,7 @@ Model Model::loadGltfModel(const char* path, Renderer* renderer, bool optimizeMo
             const float* positions =
                     reinterpret_cast<const float*>(getBufferData("POSITION", model, primitive, &count));
             const float* normals = reinterpret_cast<const float*>(getBufferData("NORMAL", model, primitive));
-            const float* uvs = reinterpret_cast<const float*>(getBufferData("UV", model, primitive));
+            const float* uvs = reinterpret_cast<const float*>(getBufferData("TEXCOORD_0", model, primitive));
             vertices.reserve(count);
             for (USize i = 0; i < count; i++) {
                 Vertex& vertex = vertices.emplace_back();
@@ -129,36 +215,19 @@ Model Model::loadGltfModel(const char* path, Renderer* renderer, bool optimizeMo
                     vertex.uv.y = uvs[i * 2 + 1];
                 }
             }
-            const tinygltf::Accessor& accessor = model.accessors[primitive.indices];
-            const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-            const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
-
-            indices.reserve(accessor.count);
-            if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-                const UInt16* ptr =
-                        reinterpret_cast<const UInt16*>(&buffer.data[bufferView.byteOffset + accessor.byteOffset]);
-                for (USize i = 0; i < accessor.count; i++)
-                    indices.push_back(ptr[i]);
-            }
-            else if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-                const UInt32* ptr =
-                        reinterpret_cast<const UInt32*>(&buffer.data[bufferView.byteOffset + accessor.byteOffset]);
-                for (USize i = 0; i < accessor.count; i++)
-                    indices.push_back(ptr[i]);
-            }
-            else
-                spdlog::error("Unknown gltf index type");
+            USize indexCount = loadIndices(primitive.indices, model, indices);
             if (optimizeModel)
                 optimize(vertices, indices);
             MeshHandle handle = renderer->createMesh(vertices, indices);
-            Material* material = renderer->getMaterialLibrary()->getMaterial("basic");   // TODO get from gltf
+            Material material = loadMaterial(model.materials[primitive.material], model, renderer);
+
             out.primitives.emplace_back(Primitive{
                     handle,
                     material,
                     glm::rotate(glm::identity<glm::mat4>(), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             });
 
-            spdlog::info("Loaded primitive geometry with {} vertices and {} indices", count, accessor.count);
+            spdlog::info("Loaded primitive geometry with {} vertices and {} indices", count, indexCount);
             vertices.clear();
             indices.clear();
         }

@@ -9,6 +9,7 @@
 #include <material.h>
 #include <shared_mutex>
 #include <spirv_reflect.h>
+#include "renderer.h"
 
 namespace dragonfire {
 
@@ -70,5 +71,38 @@ private:
             PipelineFactory::PipelineLayoutInfo& info,
             std::array<DescriptorLayoutManager::LayoutInfo, 4>& layoutInfos
     );
+};
+
+class Pipeline {
+public:
+
+    Pipeline(vk::Pipeline pipeline, vk::PipelineLayout pipelineLayout)
+        : pipeline(pipeline), pipelineLayout(pipelineLayout)
+    {
+    }
+
+    Pipeline() = default;
+
+    class PipelineLibrary {
+    public:
+        PipelineLibrary() = default;
+        Pipeline getPipeline(const std::string& name);
+        void loadMaterialFiles(const char* dir, Renderer* renderer, PipelineFactory& pipelineFactory);
+
+        void destroy();
+
+    private:
+        vk::Device device;
+        ankerl::unordered_dense::map<std::string, Pipeline> pipelines;
+        ankerl::unordered_dense::set<vk::Pipeline> createdPipelines;
+        ankerl::unordered_dense::set<vk::PipelineLayout> createdLayouts;
+    };
+
+    [[nodiscard]] vk::Pipeline getPipeline() const { return pipeline; }
+
+    [[nodiscard]] vk::PipelineLayout getPipelineLayout() const { return pipelineLayout; }
+
+    vk::Pipeline pipeline;
+    vk::PipelineLayout pipelineLayout;
 };
 }   // namespace dragonfire

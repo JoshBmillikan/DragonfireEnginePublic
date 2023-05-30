@@ -7,6 +7,7 @@
 #include "renderer.h"
 #include <ankerl/unordered_dense.h>
 #include <transform.h>
+#include <vulkan/vulkan_hash.hpp>
 #include <world.h>
 
 namespace dragonfire {
@@ -30,8 +31,8 @@ void VkRenderer::render(World& world, const Camera& camera)
                 logger->error("Max draw count exceeded, some models may not be drawn");
                 break;
             }
-            VkMaterial* material = static_cast<VkMaterial*>(primitive.material);
-            vk::Pipeline pipeline = material->getPipeline();
+            const Material& material = primitive.material;
+            auto [pipeline, layout] = pipelineLibrary.getPipeline(material.getPipelineId());
             UInt32 pipelineIndex;
             if (pipelineMap.contains(pipeline)) {
                 auto& info = pipelineMap[pipeline];
@@ -41,7 +42,7 @@ void VkRenderer::render(World& world, const Camera& camera)
             else {
                 auto& info = pipelineMap[pipeline];
                 info.index = pipelineIndex = pipelineCount++;
-                info.layout = material->getPipelineLayout();
+                info.layout = layout;
                 info.drawCount = 1;
             }
             drawData[drawCount].transform = transform.toMatrix() * primitive.transform;
@@ -50,7 +51,7 @@ void VkRenderer::render(World& world, const Camera& camera)
             drawData[drawCount].vertexCount = mesh->vertexCount;
             drawData[drawCount].indexOffset = mesh->getIndexOffset();
             drawData[drawCount].indexCount = mesh->indexCount;
-            drawData[drawCount].textureIndices = material->getTextureIndices();
+            drawData[drawCount].textureIndices = material.getTextureIds();
             drawData++;
             drawCount++;
         }
@@ -273,11 +274,6 @@ void VkRenderer::freeMesh(MeshHandle mesh)
     meshRegistry.freeMesh(mesh);
 }
 
-Material::Library* VkRenderer::getMaterialLibrary()
-{
-    return &materialLibrary;
-}
-
 void VkRenderer::shutdown()
 {
     if (!instance)
@@ -298,9 +294,10 @@ void VkRenderer::shutdown()
     }
 
     device.destroy(descriptorPool);
-    materialLibrary.destroy();
+    pipelineLibrary.destroy();
     layoutManager.destroy();
     meshRegistry.destroy();
+    textureRegistry.destroy();
 
     globalUBO.destroy();
     device.destroy(cullComputePipeline);
@@ -318,6 +315,27 @@ void VkRenderer::shutdown()
         instance.destroy(debugMessenger);
     instance.destroy();
     logger->info("Vulkan renderer shutdown successful");
+}
+
+UInt32 VkRenderer::loadTexture(
+        const std::string& name,
+        const void* data,
+        UInt32 width,
+        UInt32 height,
+        UInt bitDepth,
+        UInt pixelSize,
+        Material::TextureWrapMode wrapS,
+        Material::TextureWrapMode wrapT,
+        Material::TextureFilterMode minFilter,
+        Material::TextureFilterMode magFilter
+)
+{
+    UInt32 id =
+            textureRegistry
+                    .loadTexture(name, data, width, height, bitDepth, pixelSize, wrapS, wrapT, minFilter, magFilter);
+    for (Frame& frame : frames)
+        textureRegistry.writeDescriptor(name, frame.frameSet, 2);
+    return id;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkRenderer::debugCallback(

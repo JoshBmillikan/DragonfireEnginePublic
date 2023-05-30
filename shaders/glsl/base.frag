@@ -5,6 +5,7 @@ layout (location=0) out vec4 outColor;
 layout (location=0) in vec3 normal;
 layout (location=1) in vec2 uv;
 layout (location=2) in vec3 fragPos;
+layout (location=3) in flat uint instanceIndex;
 
 layout (set=0, binding=0) uniform Ubo {
     mat4 perspective;
@@ -35,5 +36,9 @@ void main() {
     vec3 specular = specularStrength * spec * lightColor;
 
     vec3 objectColor = vec3(0.9, 0.7, 0.7);
+    TextureIndices textureIndices = textureData.indices[instanceIndex];
+    if (textureIndices.albedo != 0) {
+        objectColor = vec3(texture(bindless_textures[textureIndices.albedo], uv));
+    }
     outColor = vec4((ambient + diffuse + specular) * objectColor, 1.0);
 }
