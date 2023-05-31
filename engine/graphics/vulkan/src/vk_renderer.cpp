@@ -49,7 +49,7 @@ void VkRenderer::render(World& world, const Camera& camera, bool enableCulling)
             glm::mat4 m = transform.toMatrix() * primitive.transform;
             drawData[drawCount].transform = m;
             drawData[drawCount].boundingSphere = primitive.bounds;
-            //drawData[drawCount].boundingSphere.w *= getMatrixScaleFactor(m);
+            drawData[drawCount].boundingSphere.w *= getMatrixScaleFactor(m);
             Mesh* mesh = reinterpret_cast<Mesh*>(primitive.mesh);
             drawData[drawCount].vertexOffset = mesh->getVertexOffset();
             drawData[drawCount].vertexCount = mesh->vertexCount;
