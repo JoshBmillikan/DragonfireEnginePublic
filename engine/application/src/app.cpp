@@ -9,7 +9,6 @@
 #include <file.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
-#include <math.h>
 #include <model.h>
 #include <physfs.h>
 #include <spdlog/async.h>
@@ -31,9 +30,11 @@ void App::update(double deltaTime)
     ImGui::Begin("Test");
     ImGui::Text("Hello world");
     ImGui::Text("Frame time: %.1fms (%.1f FPS)", deltaTime * 1000, ImGui::GetIO().Framerate);
+    static bool enableCulling = true;
+    ImGui::Checkbox("Enable culling", &enableCulling);
     ImGui::End();
     ImGui::Render();
-    renderer->render(world, camera);
+    renderer->render(world, camera, enableCulling);
 }
 
 void App::processEvents(double deltaTime)
@@ -119,10 +120,10 @@ static void spawnBunnies(entt::registry& registry, Renderer* renderer)
             auto entity = registry.create();
             registry.emplace<Model>(entity, model);
             auto& t = registry.emplace<Transform>(entity);
-            t.position.y -= float(j + 1);
+            t.position.y -= 2.0f - float(j + 1);
             t.position.x += 1.0f + (float(j) * 0.005f) + (2.0f * float(i));
             t.position.z -= 0.5f;
-            t.scale *= 2;
+            t.scale *= 2.0f;
         }
     }
 }
@@ -154,20 +155,24 @@ void App::init()
     renderer->init();
     float width = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.0"));
     float height = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.1"));
-    camera = Camera(60.0f, width, height);
+    camera = Camera(60.0f, width, height, 0.01f);
     auto model = Model::loadGltfModel("assets/models/dragon.glb", renderer);
 
     auto& registry = world.getRegistry();
     auto entity = registry.create();
     registry.emplace<Model>(entity, std::move(model));
     auto& t = registry.emplace<Transform>(entity);
-    t.position.y -= 20;
+    t.position.y -= 2;
     t.position.x -= 2;
-    t.scale *= 0.05f;
+    t.scale *= 0.01f;
 
     spawnBunnies(registry, renderer);
-    camera.lookAt(t.position);
-    t.position.x -= 2;
+    camera.position.y += 5.5f;
+    camera.position.z += 2;
+    glm::vec3 eye = t.position;
+    eye.x += 3;
+    eye.z += 0.1f;
+    camera.lookAt(eye);
 }
 
 }   // namespace dragonfire

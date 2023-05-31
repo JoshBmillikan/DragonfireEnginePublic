@@ -13,7 +13,7 @@
 
 namespace dragonfire {
 
-void VkRenderer::render(World& world, const Camera& camera)
+void VkRenderer::render(World& world, const Camera& camera, bool enableCulling)
 {
     startFrame();
     beginRenderingCommands(world, camera);
@@ -46,7 +46,10 @@ void VkRenderer::render(World& world, const Camera& camera)
                 info.layout = layout;
                 info.drawCount = 1;
             }
-            drawData[drawCount].transform = transform.toMatrix() * primitive.transform;
+            glm::mat4 m = transform.toMatrix() * primitive.transform;
+            drawData[drawCount].transform = m;
+            drawData[drawCount].boundingSphere = primitive.bounds;
+            //drawData[drawCount].boundingSphere.w *= getMatrixScaleFactor(m);
             Mesh* mesh = reinterpret_cast<Mesh*>(primitive.mesh);
             drawData[drawCount].vertexOffset = mesh->getVertexOffset();
             drawData[drawCount].vertexCount = mesh->vertexCount;
@@ -57,7 +60,7 @@ void VkRenderer::render(World& world, const Camera& camera)
         }
     }
 
-    computePrePass(drawCount);
+    computePrePass(drawCount, enableCulling);
     renderMainPass();
 
     endFrame();
@@ -69,11 +72,21 @@ void VkRenderer::beginRenderingCommands(const World& world, const Camera& camera
     ptr += uboOffset * (frameCount % FRAMES_IN_FLIGHT);
     UBOData* data = reinterpret_cast<UBOData*>(ptr);
     glm::mat4 view = camera.getViewMatrix();
-    data->orthographic = camera.ortho * view;
-    data->perspective = camera.perspective * view;
+    data->orthographic = camera.getOrtho() * view;
+    data->perspective = camera.getPerspective() * view;
+    data->view = view;
     data->resolution = glm::vec2(swapchain.getExtent().width, swapchain.getExtent().height);
     data->cameraPosition = glm::vec3(camera.getViewMatrix() * glm::vec4(camera.position, 1.0));
     data->sunDirection = glm::normalize(glm::vec3(-0.2f, -0.3f, 1.0f));
+    auto [frustumX, frustumY] = camera.getFrustumPlanes();
+    data->frustum.x = frustumX.x;
+    data->frustum.y = frustumX.z;
+    data->frustum.z = frustumY.y;
+    data->frustum.w = frustumY.z;
+    data->P00 = camera.getPerspective()[0][0];
+    data->P11 = camera.getPerspective()[1][1];
+    data->zNear = camera.getZNear();
+    data->zFar = camera.getZFar();
 
     Frame& frame = getCurrentFrame();
     device.resetCommandPool(frame.pool);
@@ -82,7 +95,7 @@ void VkRenderer::beginRenderingCommands(const World& world, const Camera& camera
     frame.cmd.begin(beginInfo);
 }
 
-void VkRenderer::computePrePass(UInt32 drawCount)
+void VkRenderer::computePrePass(UInt32 drawCount, bool cull)
 {
     Frame& frame = getCurrentFrame();
     vk::CommandBuffer cmd = frame.cmd;
@@ -92,8 +105,8 @@ void VkRenderer::computePrePass(UInt32 drawCount)
     for (auto& [pipeline, info] : pipelineMap) {
         if (info.drawCount == 0)
             continue;
-        UInt32 pushConstants[] = {baseIndex, info.index, drawCount};
-        cmd.pushConstants(cullComputeLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UInt32) * 3, pushConstants);
+        UInt32 pushConstants[] = {baseIndex, info.index, drawCount, cull ? 1u : 0};
+        cmd.pushConstants(cullComputeLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(UInt32) * 4, pushConstants);
         cmd.dispatch(std::max(drawCount / 256u, 1u), 1, 1);
         baseIndex += info.drawCount;
     }

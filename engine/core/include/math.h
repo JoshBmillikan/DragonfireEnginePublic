@@ -18,4 +18,9 @@ inline constexpr float lerp(float a, float b, float t)
     return std::fma(t, b, std::fma(-t, a, a));
 }
 
+inline constexpr float getMatrixScaleFactor(const glm::mat4& m)
+{
+    return std::sqrt(m[0][0] * m[0][0] + m[0][1] * m[0][1] + m[0][2] * m[0][2]);
+}
+
 }   // namespace dragonfire

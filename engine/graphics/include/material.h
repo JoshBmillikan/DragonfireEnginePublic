@@ -7,7 +7,7 @@
 
 namespace dragonfire {
 
-struct TextureIds {
+struct alignas(16)  TextureIds {
     UInt32 albedo = 0;
     UInt32 normal = 0;
     UInt32 ambient = 0;

@@ -19,6 +19,7 @@ public:
 
     struct Primitive {
         MeshHandle mesh{};
+        glm::vec4 bounds;
         Material material{};
         glm::mat4 transform{};
     };

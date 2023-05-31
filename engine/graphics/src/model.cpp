@@ -186,6 +186,22 @@ Material loadMaterial(const tinygltf::Material& material, const tinygltf::Model&
     return Material(std::move(pipelineId), textures);
 }
 
+static glm::vec4 computeBounds(const std::vector<Model::Vertex>& vertices, const std::vector<UInt32>& indices)
+{
+    float radius = 0;
+    glm::vec3 center(0);
+    for (UInt32 index : indices) {
+        const Model::Vertex& vertex = vertices[index];
+        center += glm::vec3(vertex.position);
+    }
+    center /= float(indices.size());
+    for (UInt32 index : indices) {
+        const Model::Vertex& vertex = vertices[index];
+        radius = std::max(radius, glm::distance(center, vertex.position));
+    }
+    return {center, radius};
+}
+
 Model Model::loadGltfModel(const char* path, Renderer* renderer, bool optimizeModel)
 {
     static thread_local tinygltf::TinyGLTF gltf = initGltf();
@@ -221,13 +237,15 @@ Model Model::loadGltfModel(const char* path, Renderer* renderer, bool optimizeMo
             MeshHandle handle = renderer->createMesh(vertices, indices);
             Material material = loadMaterial(model.materials[primitive.material], model, renderer);
 
+            glm::vec4 bounds = computeBounds(vertices, indices);
             out.primitives.emplace_back(Primitive{
                     handle,
+                    bounds,
                     material,
                     glm::rotate(glm::identity<glm::mat4>(), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             });
 
-            spdlog::info("Loaded primitive geometry with {} vertices and {} indices", count, indexCount);
+            spdlog::info("Loaded primitive geometry with {} vertices and {} indices and radius {}", count, indexCount, bounds.w);
             vertices.clear();
             indices.clear();
         }

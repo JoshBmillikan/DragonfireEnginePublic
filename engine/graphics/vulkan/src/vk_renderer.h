@@ -22,7 +22,7 @@ public:
 
     MeshHandle createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices) override;
     void freeMesh(MeshHandle mesh) override;
-    void render(World& world, const Camera& camera) override;
+    void render(World& world, const Camera& camera, bool enableCulling) override;
     void startImGuiFrame() override;
     UInt32 loadTexture(
             const std::string& name,
@@ -86,10 +86,11 @@ private:
         vk::Result result = vk::Result::eSuccess;
     } presentData;
 
-    struct DrawData {
-        alignas(16) glm::mat4 transform{};
+    struct alignas(16) DrawData {
+        glm::mat4 transform{};
         UInt32 vertexOffset = 0, vertexCount = 0, indexOffset = 0, indexCount = 0;
         TextureIds textureIndices;
+        glm::vec4 boundingSphere;
     };
 
     struct PipelineDrawInfo {
@@ -103,7 +104,7 @@ private:
     void present(const std::stop_token& stopToken);
     void startFrame();
     void beginRenderingCommands(const World& world, const Camera& camera);
-    void computePrePass(UInt32 drawCount);
+    void computePrePass(UInt32 drawCount, bool cull);
     void renderMainPass();
     void renderImGui();
     void startRenderPass(vk::RenderPass pass, std::span<vk::ClearValue> clearValues);
@@ -145,9 +146,12 @@ public:
 struct UBOData {
     alignas(16) glm::mat4 perspective;
     alignas(16) glm::mat4 orthographic;
+    alignas(16) glm::mat4 view;
     alignas(16) glm::vec3 sunDirection;
     alignas(16) glm::vec3 cameraPosition;
     alignas(16) glm::vec2 resolution;
+    alignas(16) glm::vec4 frustum;
+    float P00, P11, zNear, zFar;
 };
 
 }   // namespace dragonfire

@@ -29,7 +29,7 @@ public:
             Material::TextureFilterMode magFilter = Material::TextureFilterMode::NONE
     ) = 0;
     virtual void freeMesh(MeshHandle mesh) = 0;
-    virtual void render(class World& world, const Camera& camera) = 0;
+    virtual void render(class World& world, const Camera& camera, bool enableCulling = true) = 0;
     virtual void startImGuiFrame() = 0;
 
     SDL_Window* getWindow() { return window; }
