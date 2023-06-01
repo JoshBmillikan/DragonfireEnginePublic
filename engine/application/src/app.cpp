@@ -69,6 +69,7 @@ void App::run()
 void App::shutdown()
 {
     renderer->shutdown();
+    ImGui::DestroyContext();
     Config::INSTANCE.saveConfig("settings.json");
     spdlog::info("Goodbye!");
     spdlog::shutdown();
@@ -152,6 +153,9 @@ void App::init()
     renderer = getRenderer();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
+    TempString path = PHYSFS_getWriteDir();
+    path += "/config/imgui.ini";
+    ImGui::GetIO().IniFilename = path.c_str();
     renderer->init();
     float width = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.0"));
     float height = float(Config::INSTANCE.get<Int64>("graphics.window.resolution.1"));
