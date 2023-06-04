@@ -17,8 +17,8 @@ class Mesh {
 public:
     UInt32 vertexCount = 0, indexCount = 0;
 
-    UInt32 getVertexOffset();
-    UInt32 getIndexOffset();
+    UInt32 getVertexOffset() const;
+    UInt32 getIndexOffset() const;
 
     class MeshRegistry {
     public:

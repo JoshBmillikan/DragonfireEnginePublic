@@ -34,15 +34,13 @@ void VkRenderer::render(World& world, const Camera& camera, bool enableCulling)
             }
             const Material& material = primitive.material;
             auto [pipeline, layout] = pipelineLibrary.getPipeline(material.getPipelineId());
-            UInt32 pipelineIndex;
             if (pipelineMap.contains(pipeline)) {
                 auto& info = pipelineMap[pipeline];
-                pipelineIndex = info.index;
                 info.drawCount++;
             }
             else {
                 auto& info = pipelineMap[pipeline];
-                info.index = pipelineIndex = pipelineCount++;
+                info.index = pipelineCount++;
                 info.layout = layout;
                 info.drawCount = 1;
             }

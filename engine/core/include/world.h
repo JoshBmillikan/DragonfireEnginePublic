@@ -4,14 +4,17 @@
 
 #pragma once
 #include <entt/entt.hpp>
+#include "rng.h"
 
 namespace dragonfire {
 
 class World {
-    entt::registry registry;
-
 public:
     [[nodiscard]] entt::registry& getRegistry() { return registry; }
+
+private:
+    entt::registry registry;
+    Rng rng;
 };
 
 }   // namespace dragonfire

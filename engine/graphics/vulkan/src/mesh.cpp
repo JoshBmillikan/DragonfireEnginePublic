@@ -102,12 +102,12 @@ void Mesh::MeshRegistry::freeMesh(MeshHandle mesh)
     delete ptr;
 }
 
-UInt32 Mesh::getVertexOffset()
+UInt32 Mesh::getVertexOffset() const
 {
     return vertexInfo.offset / sizeof(Model::Vertex);
 }
 
-UInt32 Mesh::getIndexOffset()
+UInt32 Mesh::getIndexOffset() const
 {
     return indexInfo.offset / sizeof(UInt32);
 }
