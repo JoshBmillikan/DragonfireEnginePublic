@@ -24,10 +24,10 @@ SeparateDefinitionBlocks: Always
 BreakBeforeTernaryOperators: true
 AlwaysBreakBeforeMultilineStrings: true
 ReferenceAlignment: Left
-PackConstructorInitializers: NextLine
+PackConstructorInitializers: BinPack
 BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: AfterColon
-ColumnLimit: 120
+ColumnLimit: 100
 PenaltyExcessCharacter: 100
 CompactNamespaces: false
 ContinuationIndentWidth: 8
