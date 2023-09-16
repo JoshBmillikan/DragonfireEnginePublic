@@ -10,6 +10,7 @@
 #include <transform.h>
 #include <vulkan/vulkan_hash.hpp>
 #include <world.h>
+#include <math_utils.h>
 
 namespace dragonfire {
 
@@ -282,7 +283,7 @@ void VkRenderer::present(const std::stop_token& stopToken)
     logger->info("Presentation thread destroyed");
 }
 
-MeshHandle VkRenderer::createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices)
+MeshHandle VkRenderer::createMesh(std::span<Vertex> vertices, std::span<UInt32> indices)
 {
     return meshRegistry.createMesh(vertices, indices);
 }

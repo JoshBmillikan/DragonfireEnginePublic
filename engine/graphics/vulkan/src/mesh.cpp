@@ -7,9 +7,9 @@
 
 namespace dragonfire {
 
-Mesh Mesh::MeshRegistry::uploadMesh(const std::span<Model::Vertex> vertices, const std::span<UInt32> indices)
+Mesh Mesh::MeshRegistry::uploadMesh(const std::span<Vertex> vertices, const std::span<UInt32> indices)
 {
-    const vk::DeviceSize vertexSize = vertices.size() * sizeof(Model::Vertex);
+    const vk::DeviceSize vertexSize = vertices.size() * sizeof(Vertex);
     const vk::DeviceSize indexSize = indices.size() * sizeof(UInt32);
     char* ptr = static_cast<char*>(getStagingPtr(vertexSize + indexSize));
     memcpy(ptr, vertices.data(), vertexSize);
@@ -84,7 +84,7 @@ void* Mesh::MeshRegistry::getStagingPtr(USize size)
     return stagingBuffer.getInfo().pMappedData;
 }
 
-MeshHandle Mesh::MeshRegistry::createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices)
+MeshHandle Mesh::MeshRegistry::createMesh(std::span<Vertex> vertices, std::span<UInt32> indices)
 {
     std::unique_lock lock(mutex);
     Mesh* mesh = new Mesh(uploadMesh(vertices, indices));
@@ -104,7 +104,7 @@ void Mesh::MeshRegistry::freeMesh(MeshHandle mesh)
 
 UInt32 Mesh::getVertexOffset() const
 {
-    return vertexInfo.offset / sizeof(Model::Vertex);
+    return vertexInfo.offset / sizeof(Vertex);
 }
 
 UInt32 Mesh::getIndexOffset() const
@@ -133,7 +133,7 @@ Mesh::MeshRegistry::MeshRegistry(
         maxIndexCount = 1 << 27;
     }
     vertexBuffer = Buffer::Builder()
-                           .withSize(sizeof(Model::Vertex) * maxVertexCount)
+                           .withSize(sizeof(Vertex) * maxVertexCount)
                            .withBufferUsage(
                                    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eVertexBuffer
                                    | vk::BufferUsageFlagBits::eTransferDst

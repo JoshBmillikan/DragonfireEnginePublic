@@ -3,6 +3,7 @@
 //
 
 #include "model.h"
+#include <vertex.h>
 #ifdef __GNUC__   // STB image SIMD support doesn't work with gcc
     #define STBI_NO_SIMD
 #endif
@@ -66,7 +67,7 @@ static const unsigned char* getBufferData(
     }
 }
 
-static void optimize(std::vector<Model::Vertex>& vertices, std::vector<UInt32>& indices)
+static void optimize(std::vector<Vertex>& vertices, std::vector<UInt32>& indices)
 {
     std::vector<UInt32> remap(indices.size());
     USize vertexCount = meshopt_generateVertexRemap(
@@ -75,11 +76,11 @@ static void optimize(std::vector<Model::Vertex>& vertices, std::vector<UInt32>& 
             indices.size(),
             vertices.data(),
             indices.size(),
-            sizeof(Model::Vertex)
+            sizeof(Vertex)
     );
     vertices.resize(vertexCount);
     meshopt_remapIndexBuffer(indices.data(), indices.data(), indices.size(), remap.data());
-    meshopt_remapVertexBuffer(vertices.data(), vertices.data(), vertexCount, sizeof(Model::Vertex), remap.data());
+    meshopt_remapVertexBuffer(vertices.data(), vertices.data(), vertexCount, sizeof(Vertex), remap.data());
     meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertexCount);
     meshopt_optimizeOverdraw(
             indices.data(),
@@ -87,7 +88,7 @@ static void optimize(std::vector<Model::Vertex>& vertices, std::vector<UInt32>& 
             indices.size(),
             &vertices[0].position.x,
             vertexCount,
-            sizeof(Model::Vertex),
+            sizeof(Vertex),
             1.05f
     );
     meshopt_optimizeVertexFetch(
@@ -96,7 +97,7 @@ static void optimize(std::vector<Model::Vertex>& vertices, std::vector<UInt32>& 
             indices.size(),
             vertices.data(),
             vertexCount,
-            sizeof(Model::Vertex)
+            sizeof(Vertex)
     );
 }
 
@@ -186,17 +187,17 @@ Material loadMaterial(const tinygltf::Material& material, const tinygltf::Model&
     return Material(std::move(pipelineId), textures);
 }
 
-static glm::vec4 computeBounds(const std::vector<Model::Vertex>& vertices, const std::vector<UInt32>& indices)
+static glm::vec4 computeBounds(const std::vector<Vertex>& vertices, const std::vector<UInt32>& indices)
 {
     float radius = 0;
     glm::vec3 center(0);
     for (UInt32 index : indices) {
-        const Model::Vertex& vertex = vertices[index];
+        const Vertex& vertex = vertices[index];
         center += glm::vec3(vertex.position);
     }
     center /= float(indices.size());
     for (UInt32 index : indices) {
-        const Model::Vertex& vertex = vertices[index];
+        const Vertex& vertex = vertices[index];
         radius = std::max(radius, glm::distance(center, vertex.position));
     }
     return {center, radius};

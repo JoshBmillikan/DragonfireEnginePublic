@@ -90,13 +90,13 @@ void Pipeline::PipelineLibrary::destroy()
 }
 
 static std::array<vk::VertexInputBindingDescription, 1> MESH_VERTEX_INPUT_BINDING = {
-        vk::VertexInputBindingDescription(0, sizeof(Model::Vertex), vk::VertexInputRate::eVertex),
+        vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
 };
 
 static std::array<vk::VertexInputAttributeDescription, 3> MESH_VERTEX_ATTRIBUTES = {
-        vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Model::Vertex, position)),
-        vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Model::Vertex, normal)),
-        vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Model::Vertex, uv)),
+        vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, position)),
+        vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)),
+        vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, uv)),
 };
 
 std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::createPipeline(const Material::ShaderEffect& effect)

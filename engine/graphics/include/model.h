@@ -12,11 +12,6 @@ using MeshHandle = std::uintptr_t;
 
 class Model {
 public:
-    struct Vertex {
-        glm::vec3 position, normal;
-        glm::vec2 uv;
-    };
-
     struct Primitive {
         MeshHandle mesh{};
         glm::vec4 bounds;

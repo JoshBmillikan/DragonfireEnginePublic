@@ -7,6 +7,7 @@
 #include "material.h"
 #include "model.h"
 #include <SDL_video.h>
+#include <vertex.h>
 
 namespace dragonfire {
 
@@ -15,7 +16,7 @@ public:
     virtual ~Renderer() = default;
     virtual void init() = 0;
     virtual void shutdown() = 0;
-    virtual MeshHandle createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices) = 0;
+    virtual MeshHandle createMesh(std::span<Vertex> vertices, std::span<UInt32> indices) = 0;
     virtual UInt32 loadTexture(
             const std::string& name,
             const void* data,

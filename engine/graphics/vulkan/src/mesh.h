@@ -8,6 +8,7 @@
 #include <mutex>
 #include <span>
 #include <vector>
+#include <vertex.h>
 
 namespace dragonfire {
 class Mesh {
@@ -17,14 +18,14 @@ class Mesh {
 public:
     UInt32 vertexCount = 0, indexCount = 0;
 
-    UInt32 getVertexOffset() const;
-    UInt32 getIndexOffset() const;
+    [[nodiscard]] UInt32 getVertexOffset() const;
+    [[nodiscard]] UInt32 getIndexOffset() const;
 
     class MeshRegistry {
     public:
         MeshRegistry(vk::Device device, VmaAllocator allocator, vk::Queue graphicsQueue, UInt32 graphicsFamily);
         MeshRegistry() = default;
-        MeshHandle createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices);
+        MeshHandle createMesh(std::span<Vertex> vertices, std::span<UInt32> indices);
         void freeMesh(MeshHandle mesh);
         void bindBuffers(vk::CommandBuffer buf);
         void destroy() noexcept;
@@ -49,7 +50,7 @@ public:
         std::vector<Mesh*> meshes;
         std::mutex mutex;
 
-        Mesh uploadMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices);
+        Mesh uploadMesh(std::span<Vertex> vertices, std::span<UInt32> indices);
         void freeMeshRegion(const Mesh& mesh);
         void* getStagingPtr(USize size);
     };

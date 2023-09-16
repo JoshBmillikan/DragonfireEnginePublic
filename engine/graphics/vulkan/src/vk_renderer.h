@@ -20,7 +20,7 @@ public:
     void init() override;
     void shutdown() override;
 
-    MeshHandle createMesh(std::span<Model::Vertex> vertices, std::span<UInt32> indices) override;
+    MeshHandle createMesh(std::span<Vertex> vertices, std::span<UInt32> indices) override;
     void freeMesh(MeshHandle mesh) override;
     void render(World& world, const Camera& camera, bool enableCulling) override;
     void startImGuiFrame() override;
